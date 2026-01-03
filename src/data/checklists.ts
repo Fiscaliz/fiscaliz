@@ -1,7 +1,213 @@
 // Checklists pré-atestados por tipo de estabelecimento
-// Baseado na legislação sanitária (Lei Municipal 8741/08, RDC 216/04, RDC ANVISA 656/22)
+// Baseado na legislação sanitária vigente
 // TEXTO EM IMPERATIVO - para adequação das não conformidades
 
+// ============= BANCO DE LEGISLAÇÕES =============
+export interface LegislationReference {
+  code: string;
+  name: string;
+  description: string;
+  scope: string; // 'federal' | 'estadual' | 'municipal'
+  category: string;
+}
+
+export const legislationDatabase: LegislationReference[] = [
+  // Legislação Estadual
+  { 
+    code: 'Lei Estadual 16.140/2007', 
+    name: 'Código de Saúde do Estado de Goiás',
+    description: 'Código de Saúde do Estado de Goiás - Vigilância Sanitária',
+    scope: 'estadual',
+    category: 'Geral'
+  },
+  
+  // Legislação Federal - ANVISA
+  { 
+    code: 'RDC 275/2002', 
+    name: 'Boas Práticas de Fabricação - Indústria',
+    description: 'Regulamento Técnico de Procedimentos Operacionais Padronizados aplicados aos Estabelecimentos Produtores/Industrializadores de Alimentos',
+    scope: 'federal',
+    category: 'Indústria'
+  },
+  { 
+    code: 'RDC 267/2003', 
+    name: 'Gelados Comestíveis',
+    description: 'Regulamento Técnico de Boas Práticas de Fabricação para Estabelecimentos Industrializadores de Gelados Comestíveis',
+    scope: 'federal',
+    category: 'Gelados'
+  },
+  { 
+    code: 'RDC 727/2022', 
+    name: 'Rotulagem de Alimentos',
+    description: 'Regulamento Técnico de Rotulagem de Alimentos Embalados',
+    scope: 'federal',
+    category: 'Rotulagem'
+  },
+  { 
+    code: 'IN 75/2020', 
+    name: 'Rotulagem Nutricional',
+    description: 'Instrução Normativa sobre Rotulagem Nutricional de Alimentos Embalados',
+    scope: 'federal',
+    category: 'Rotulagem'
+  },
+  { 
+    code: 'RDC 843/2024', 
+    name: 'Suplementos Alimentares',
+    description: 'Requisitos para Comunicado de Início de Fabricação e Notificação de Suplementos Alimentares',
+    scope: 'federal',
+    category: 'Suplementos'
+  },
+  { 
+    code: 'RDC 216/2004', 
+    name: 'Boas Práticas para Serviços de Alimentação',
+    description: 'Regulamento Técnico de Boas Práticas para Serviços de Alimentação',
+    scope: 'federal',
+    category: 'Alimentos'
+  },
+  { 
+    code: 'RDC 656/2022', 
+    name: 'Alimentos em Eventos',
+    description: 'Boas Práticas para Manipulação de Alimentos em Eventos de Massa e Locais Públicos',
+    scope: 'federal',
+    category: 'Eventos'
+  },
+  { 
+    code: 'RDC 44/2009', 
+    name: 'Farmácias e Drogarias',
+    description: 'Boas Práticas Farmacêuticas para o controle sanitário do funcionamento de farmácias e drogarias',
+    scope: 'federal',
+    category: 'Farmácia'
+  },
+  { 
+    code: 'RDC 50/2002', 
+    name: 'Estabelecimentos de Saúde',
+    description: 'Regulamento Técnico para planejamento, programação, elaboração e avaliação de projetos físicos de estabelecimentos assistenciais de saúde',
+    scope: 'federal',
+    category: 'Saúde'
+  },
+  { 
+    code: 'RDC 222/2018', 
+    name: 'Resíduos de Serviços de Saúde',
+    description: 'Regulamenta as Boas Práticas de Gerenciamento dos Resíduos de Serviços de Saúde',
+    scope: 'federal',
+    category: 'Resíduos'
+  },
+  { 
+    code: 'RDC 56/2008', 
+    name: 'Estabelecimentos de Beleza',
+    description: 'Regulamento Técnico de Boas Práticas para Serviços de Estética e Embelezamento',
+    scope: 'federal',
+    category: 'Beleza'
+  },
+  { 
+    code: 'Portaria 344/1998', 
+    name: 'Substâncias Controladas',
+    description: 'Regulamento Técnico sobre substâncias e medicamentos sujeitos a controle especial',
+    scope: 'federal',
+    category: 'Medicamentos'
+  },
+  { 
+    code: 'Portaria 888/2021', 
+    name: 'Qualidade da Água',
+    description: 'Procedimentos de controle e de vigilância da qualidade da água para consumo humano',
+    scope: 'federal',
+    category: 'Água'
+  },
+  { 
+    code: 'RDC 259/2002', 
+    name: 'Rotulagem Geral',
+    description: 'Regulamento Técnico sobre Rotulagem de Alimentos Embalados',
+    scope: 'federal',
+    category: 'Rotulagem'
+  },
+  { 
+    code: 'RDC 15/2012', 
+    name: 'CME - Processamento de Produtos para Saúde',
+    description: 'Requisitos de boas práticas para o processamento de produtos para saúde',
+    scope: 'federal',
+    category: 'Saúde'
+  },
+  { 
+    code: 'RDC 07/2015', 
+    name: 'Cosméticos',
+    description: 'Requisitos técnicos para a regularização de produtos de higiene pessoal, cosméticos e perfumes',
+    scope: 'federal',
+    category: 'Cosméticos'
+  },
+  { 
+    code: 'NR 32', 
+    name: 'Segurança em Serviços de Saúde',
+    description: 'Segurança e saúde no trabalho em serviços de saúde',
+    scope: 'federal',
+    category: 'Segurança'
+  },
+  
+  // Legislação Municipal - Goiânia - Dengue/Controle de Vetores
+  { 
+    code: 'LM 8887/2010', 
+    name: 'Controle de Vetores - Dengue',
+    description: 'Dispõe sobre medidas de prevenção e controle da dengue no âmbito do município de Goiânia',
+    scope: 'municipal',
+    category: 'Dengue'
+  },
+  { 
+    code: 'LM 9631/2015', 
+    name: 'Combate à Dengue - Obrigatoriedade',
+    description: 'Dispõe sobre a obrigatoriedade de adoção de medidas para combate à dengue',
+    scope: 'municipal',
+    category: 'Dengue'
+  },
+  { 
+    code: 'LM 9731/2015', 
+    name: 'Dengue - Medidas Complementares',
+    description: 'Medidas complementares de combate à dengue no município de Goiânia',
+    scope: 'municipal',
+    category: 'Dengue'
+  },
+  { 
+    code: 'LM 9904/2016', 
+    name: 'Arboviroses',
+    description: 'Dispõe sobre medidas de prevenção e controle de arboviroses (dengue, zika, chikungunya)',
+    scope: 'municipal',
+    category: 'Dengue'
+  },
+  
+  // Legislação Municipal - Goiânia - Geral
+  { 
+    code: 'Lei 8741/2008', 
+    name: 'Código Sanitário de Goiânia',
+    description: 'Código Sanitário do Município de Goiânia - Vigilância Sanitária',
+    scope: 'municipal',
+    category: 'Geral'
+  },
+  { 
+    code: 'Decreto 506/2016', 
+    name: 'Regulamentação Sanitária',
+    description: 'Regulamenta disposições do Código Sanitário Municipal',
+    scope: 'municipal',
+    category: 'Geral'
+  },
+];
+
+// Função para buscar legislação por código
+export const getLegislationByCode = (code: string): LegislationReference | undefined => {
+  return legislationDatabase.find(leg => 
+    leg.code.toLowerCase().includes(code.toLowerCase()) || 
+    code.toLowerCase().includes(leg.code.toLowerCase())
+  );
+};
+
+// Função para buscar legislações por categoria
+export const getLegislationsByCategory = (category: string): LegislationReference[] => {
+  return legislationDatabase.filter(leg => leg.category === category);
+};
+
+// Função para buscar legislações por escopo
+export const getLegislationsByScope = (scope: string): LegislationReference[] => {
+  return legislationDatabase.filter(leg => leg.scope === scope);
+};
+
+// ============= CHECKLISTS =============
 export interface ChecklistItem {
   id: string;
   text: string; // Texto imperativo para adequação
@@ -246,7 +452,107 @@ export const checklistTemplates: ChecklistTemplate[] = [
       { id: 'cg1', text: 'Adotar medidas necessárias à manutenção do local isento de água parada', category: 'Controle de Vetores', legislation: 'Lei 8887/2010' },
       { id: 'cg2', text: 'Manter local limpo, sem acúmulo de lixo e materiais inservíveis', category: 'Controle de Vetores', legislation: 'Lei 8887/2010' },
       { id: 'cg3', text: 'Remover materiais que possam acumular água e propiciar proliferação do Aedes aegypti', category: 'Controle de Vetores', legislation: 'Lei 8887/2010' },
-      { id: 'cg4', text: 'Evitar condições que propiciem a instalação e proliferação do Aedes aegypti', category: 'Controle de Vetores', legislation: 'Lei 8887/2010' },
+      { id: 'cg4', text: 'Evitar condições que propiciem a instalação e proliferação do Aedes aegypti', category: 'Controle de Vetores', legislation: 'LM 8887/2010' },
+      { id: 'cg5', text: 'Permitir acesso dos agentes de saúde para inspeção e combate ao Aedes aegypti', category: 'Controle de Vetores', legislation: 'LM 9631/2015' },
+      { id: 'cg6', text: 'Eliminar recipientes que possam acumular água parada', category: 'Controle de Vetores', legislation: 'LM 9731/2015' },
+      { id: 'cg7', text: 'Implementar ações periódicas de vistoria e eliminação de criadouros do mosquito', category: 'Controle de Vetores', legislation: 'LM 9904/2016' },
+    ]
+  },
+  {
+    id: 'industria_alimentos',
+    name: 'Indústria de Alimentos (BPF)',
+    description: 'Estabelecimentos industrializadores de alimentos - POPs e BPF',
+    icon: 'Factory',
+    legislationBase: 'RDC 275/2002 - ANVISA e Lei Estadual 16.140/2007',
+    items: [
+      { id: 'ind1', text: 'Elaborar e implementar Manual de Boas Práticas de Fabricação', category: 'Documentação', legislation: 'RDC 275/2002' },
+      { id: 'ind2', text: 'Elaborar e implementar Procedimentos Operacionais Padronizados (POPs)', category: 'Documentação', legislation: 'RDC 275/2002' },
+      { id: 'ind3', text: 'Manter instalações em adequado estado de higiene e conservação', category: 'Estrutura', legislation: 'RDC 275/2002' },
+      { id: 'ind4', text: 'Implementar programa de manutenção preventiva de equipamentos', category: 'Equipamentos', legislation: 'RDC 275/2002' },
+      { id: 'ind5', text: 'Manter equipamentos calibrados com registros de calibração', category: 'Equipamentos', legislation: 'RDC 275/2002' },
+      { id: 'ind6', text: 'Implementar programa de controle integrado de pragas', category: 'Controle de Pragas', legislation: 'RDC 275/2002' },
+      { id: 'ind7', text: 'Realizar higienização do reservatório de água semestralmente com comprovação', category: 'Água', legislation: 'RDC 275/2002' },
+      { id: 'ind8', text: 'Manter laudos de análise da água atualizados', category: 'Água', legislation: 'RDC 275/2002' },
+      { id: 'ind9', text: 'Capacitar manipuladores de alimentos periodicamente com registros', category: 'Pessoal', legislation: 'RDC 275/2002' },
+      { id: 'ind10', text: 'Realizar exames de saúde periódicos dos funcionários', category: 'Pessoal', legislation: 'RDC 275/2002' },
+      { id: 'ind11', text: 'Implementar rastreabilidade de matérias-primas e produtos', category: 'Alimentos', legislation: 'RDC 275/2002' },
+      { id: 'ind12', text: 'Armazenar matérias-primas adequadamente, separadas de produtos acabados', category: 'Armazenamento', legislation: 'RDC 275/2002' },
+      { id: 'ind13', text: 'Manter registros de controle de produção atualizados', category: 'Documentação', legislation: 'RDC 275/2002' },
+      { id: 'ind14', text: 'Separar área de produção das áreas de vestiário e sanitário', category: 'Estrutura', legislation: 'Lei Estadual 16.140/2007' },
+    ]
+  },
+  {
+    id: 'gelados_comestiveis',
+    name: 'Gelados Comestíveis',
+    description: 'Fabricação de sorvetes, picolés e similares',
+    icon: 'IceCream',
+    legislationBase: 'RDC 267/2003 - ANVISA',
+    items: [
+      { id: 'gel1', text: 'Providenciar e afixar Alvará Sanitário válido', category: 'Documentação', legislation: 'Lei 8741/2008' },
+      { id: 'gel2', text: 'Elaborar e implementar Manual de Boas Práticas de Fabricação', category: 'Documentação', legislation: 'RDC 267/2003' },
+      { id: 'gel3', text: 'Elaborar e implementar Procedimentos Operacionais Padronizados (POPs)', category: 'Documentação', legislation: 'RDC 267/2003' },
+      { id: 'gel4', text: 'Controlar e registrar temperatura de armazenamento dos produtos', category: 'Equipamentos', legislation: 'RDC 267/2003' },
+      { id: 'gel5', text: 'Manter produtos em temperatura igual ou inferior a -18°C', category: 'Alimentos', legislation: 'RDC 267/2003' },
+      { id: 'gel6', text: 'Utilizar matérias-primas de procedência comprovada e dentro do prazo de validade', category: 'Alimentos', legislation: 'RDC 267/2003' },
+      { id: 'gel7', text: 'Higienizar equipamentos e utensílios adequadamente', category: 'Higiene', legislation: 'RDC 267/2003' },
+      { id: 'gel8', text: 'Manter uniformes limpos e adequados para manipuladores', category: 'Pessoal', legislation: 'RDC 267/2003' },
+      { id: 'gel9', text: 'Implementar programa de controle integrado de pragas', category: 'Controle de Pragas', legislation: 'RDC 267/2003' },
+      { id: 'gel10', text: 'Manter rotulagem de produtos conforme legislação vigente', category: 'Rotulagem', legislation: 'RDC 727/2022' },
+    ]
+  },
+  {
+    id: 'rotulagem',
+    name: 'Rotulagem de Alimentos',
+    description: 'Verificação de rotulagem de alimentos embalados',
+    icon: 'Tag',
+    legislationBase: 'RDC 727/2022 e IN 75/2020 - ANVISA',
+    items: [
+      { id: 'rot1', text: 'Apresentar denominação de venda do alimento conforme regulamento técnico', category: 'Rotulagem', legislation: 'RDC 727/2022' },
+      { id: 'rot2', text: 'Apresentar lista de ingredientes em ordem decrescente de quantidade', category: 'Rotulagem', legislation: 'RDC 727/2022' },
+      { id: 'rot3', text: 'Destacar alergênicos conforme determinação da legislação', category: 'Rotulagem', legislation: 'RDC 727/2022' },
+      { id: 'rot4', text: 'Apresentar tabela nutricional frontal conforme modelo estabelecido', category: 'Rotulagem', legislation: 'IN 75/2020' },
+      { id: 'rot5', text: 'Informar conteúdo líquido do produto', category: 'Rotulagem', legislation: 'RDC 727/2022' },
+      { id: 'rot6', text: 'Apresentar identificação de origem (fabricante/produtor)', category: 'Rotulagem', legislation: 'RDC 727/2022' },
+      { id: 'rot7', text: 'Informar prazo de validade legível e visível', category: 'Rotulagem', legislation: 'RDC 727/2022' },
+      { id: 'rot8', text: 'Apresentar lote de fabricação', category: 'Rotulagem', legislation: 'RDC 727/2022' },
+      { id: 'rot9', text: 'Informar instruções de preparo quando aplicável', category: 'Rotulagem', legislation: 'RDC 727/2022' },
+      { id: 'rot10', text: 'Apresentar registro ou dispensa de registro junto à ANVISA', category: 'Documentação', legislation: 'RDC 727/2022' },
+    ]
+  },
+  {
+    id: 'suplementos',
+    name: 'Suplementos Alimentares',
+    description: 'Fabricação e comercialização de suplementos alimentares',
+    icon: 'Pill',
+    legislationBase: 'RDC 843/2024 - ANVISA',
+    items: [
+      { id: 'sup1', text: 'Providenciar Comunicado de Início de Fabricação junto à ANVISA', category: 'Documentação', legislation: 'RDC 843/2024' },
+      { id: 'sup2', text: 'Notificar suplementos alimentares conforme regulamentação', category: 'Documentação', legislation: 'RDC 843/2024' },
+      { id: 'sup3', text: 'Manter rotulagem conforme regulamento técnico de suplementos', category: 'Rotulagem', legislation: 'RDC 843/2024' },
+      { id: 'sup4', text: 'Apresentar informações nutricionais conforme legislação', category: 'Rotulagem', legislation: 'RDC 843/2024' },
+      { id: 'sup5', text: 'Manter alegações de saúde somente as permitidas pela regulamentação', category: 'Rotulagem', legislation: 'RDC 843/2024' },
+      { id: 'sup6', text: 'Apresentar documentação de conformidade dos ingredientes', category: 'Documentação', legislation: 'RDC 843/2024' },
+      { id: 'sup7', text: 'Manter controle de qualidade dos produtos', category: 'Qualidade', legislation: 'RDC 843/2024' },
+      { id: 'sup8', text: 'Armazenar produtos em condições adequadas de temperatura e umidade', category: 'Armazenamento', legislation: 'RDC 843/2024' },
+    ]
+  },
+  {
+    id: 'dengue_arboviroses',
+    name: 'Dengue e Arboviroses',
+    description: 'Controle e combate ao Aedes aegypti',
+    icon: 'Bug',
+    legislationBase: 'LM 8887/2010, LM 9631/2015, LM 9731/2015 e LM 9904/2016',
+    items: [
+      { id: 'den1', text: 'Adotar medidas necessárias à manutenção do local isento de água parada', category: 'Controle de Vetores', legislation: 'LM 8887/2010' },
+      { id: 'den2', text: 'Eliminar recipientes que possam acumular água e servir de criadouro', category: 'Controle de Vetores', legislation: 'LM 8887/2010' },
+      { id: 'den3', text: 'Manter caixas d\'água, cisternas e reservatórios vedados', category: 'Controle de Vetores', legislation: 'LM 9631/2015' },
+      { id: 'den4', text: 'Descartar adequadamente materiais que acumulam água (pneus, garrafas, vasos)', category: 'Controle de Vetores', legislation: 'LM 9631/2015' },
+      { id: 'den5', text: 'Manter calhas, lajes e áreas descobertas sem acúmulo de água', category: 'Controle de Vetores', legislation: 'LM 9731/2015' },
+      { id: 'den6', text: 'Permitir acesso dos agentes de saúde para inspeção', category: 'Controle de Vetores', legislation: 'LM 9731/2015' },
+      { id: 'den7', text: 'Implementar rotina periódica de vistoria em áreas externas', category: 'Controle de Vetores', legislation: 'LM 9904/2016' },
+      { id: 'den8', text: 'Manter ralos com tela ou tampa adequada', category: 'Controle de Vetores', legislation: 'LM 9904/2016' },
+      { id: 'den9', text: 'Evitar acúmulo de lixo e materiais inservíveis nas dependências', category: 'Controle de Vetores', legislation: 'LM 9904/2016' },
+      { id: 'den10', text: 'Manter piscinas e espelhos d\'água tratados ou cobertos', category: 'Controle de Vetores', legislation: 'LM 9904/2016' },
     ]
   }
 ];
