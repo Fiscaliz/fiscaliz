@@ -17,6 +17,7 @@ import EstablishmentEntry from "./pages/NewAction/EstablishmentEntry";
 import DocumentTypeSelection from "./pages/NewAction/DocumentTypeSelection";
 import CreateDocument from "./pages/NewAction/CreateDocument";
 import MonthlyReport from "./pages/MonthlyReport";
+import DocumentDetail from "./pages/DocumentDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -76,6 +77,11 @@ const App = () => (
             <Route path="/relatorio-mensal" element={
               <ProtectedRoute>
                 <MonthlyReport />
+              </ProtectedRoute>
+            } />
+            <Route path="/documento/:id" element={
+              <ProtectedRoute>
+                <DocumentDetail />
               </ProtectedRoute>
             } />
             
