@@ -1,10 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -18,7 +17,10 @@ import {
   ChevronDown,
   ChevronUp,
   FileText,
-  Calendar
+  Calendar,
+  Camera,
+  X,
+  Image as ImageIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { checklistTemplates, getAllCategories, type ChecklistItem } from '@/data/checklists';
@@ -67,6 +69,10 @@ export default function CreateDocument() {
   const [manualContent, setManualContent] = useState('');
   const [deadlineDays, setDeadlineDays] = useState('15');
   const [saving, setSaving] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [otrosContent, setOtrosContent] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const aiFileInputRef = useRef<HTMLInputElement>(null);
 
   const currentChecklist = useMemo(() => {
     return checklistTemplates.find(c => c.id === selectedChecklist);
@@ -97,10 +103,48 @@ export default function CreateDocument() {
     return currentChecklist?.items.filter(item => item.category === category) || [];
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, isAI: boolean = false) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const maxFiles = isAI ? 50 : 10;
+    const currentCount = uploadedImages.length;
+    const remainingSlots = maxFiles - currentCount;
+    
+    if (files.length > remainingSlots) {
+      toast({
+        title: 'Limite de fotos',
+        description: `Você pode adicionar no máximo ${maxFiles} fotos. Slots disponíveis: ${remainingSlots}`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setUploadedImages(prev => [...prev, event.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Reset input
+    e.target.value = '';
+  };
+
+  const removeImage = (index: number) => {
+    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
   const generateDocumentContent = () => {
     if (method === 'checklist' && currentChecklist) {
       const selectedItemsData = currentChecklist.items.filter(item => selectedItems.includes(item.id));
       return selectedItemsData.map((item, idx) => `${idx + 1}. ${item.text}`).join('\n');
+    }
+    if (method === 'outros') {
+      return otrosContent;
     }
     return manualContent;
   };
@@ -161,6 +205,13 @@ export default function CreateDocument() {
           }))
         : [];
 
+      // Prepare attachments (base64 images)
+      const attachments = uploadedImages.length > 0 ? uploadedImages.map((img, idx) => ({
+        id: `img_${idx}`,
+        data: img,
+        type: 'image',
+      })) : null;
+
       const { data: newDoc, error: docError } = await supabase
         .from('fiscal_documents')
         .insert({
@@ -170,6 +221,7 @@ export default function CreateDocument() {
           document_type: tipo as any,
           content: { text: content, method },
           irregularities,
+          attachments,
           deadline_days: tipo === 'termo_intimacao' ? parseInt(deadlineDays) : null,
           deadline_date: tipo === 'termo_intimacao' ? deadlineDate.toISOString().split('T')[0] : null,
           priority: motivo === 'denuncia' || motivo === 'surto' ? 'high' : 'medium',
@@ -439,38 +491,279 @@ export default function CreateDocument() {
           </>
         )}
 
-        {/* AI Method Placeholder */}
+        {/* AI Method - Photo Upload */}
         {method === 'ai' && (
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-8 text-center">
-              <Sparkles className="mx-auto h-12 w-12 text-primary mb-4" />
-              <h3 className="font-semibold mb-2">Fiscalização por IA</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Faça upload de até 50 fotos e a IA analisará as irregularidades automaticamente.
-              </p>
-              <Button variant="outline" onClick={() => setMethod(null)}>
+          <>
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-4 space-y-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  <div>
+                    <h3 className="font-semibold">Fiscalização por IA</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Upload de até 50 fotos para análise automática
+                    </p>
+                  </div>
+                </div>
+
+                <input
+                  ref={aiFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => handleImageUpload(e, true)}
+                />
+
+                <div className="grid grid-cols-3 gap-2">
+                  {uploadedImages.map((img, idx) => (
+                    <div key={idx} className="relative aspect-square rounded-lg overflow-hidden">
+                      <img src={img} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => removeImage(idx)}
+                        className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  
+                  {uploadedImages.length < 50 && (
+                    <button
+                      onClick={() => aiFileInputRef.current?.click()}
+                      className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 hover:border-primary hover:bg-primary/5 transition-colors"
+                    >
+                      <Camera className="h-6 w-6 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Adicionar</span>
+                    </button>
+                  )}
+                </div>
+
+                <p className="text-xs text-muted-foreground text-center">
+                  {uploadedImages.length}/50 fotos
+                </p>
+
+                {tipo === 'termo_intimacao' && (
+                  <div className="flex items-center gap-3 pt-2 border-t">
+                    <Calendar className="h-5 w-5 text-primary" />
+                    <div>
+                      <Label htmlFor="prazoAI">Prazo</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Input
+                          id="prazoAI"
+                          type="number"
+                          min="1"
+                          max="90"
+                          value={deadlineDays}
+                          onChange={(e) => setDeadlineDays(e.target.value)}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">dias</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => { setMethod(null); setUploadedImages([]); }}>
                 Voltar
               </Button>
-            </CardContent>
-          </Card>
+              <Button 
+                className="flex-1" 
+                onClick={handleSave}
+                disabled={uploadedImages.length === 0 || saving}
+              >
+                {saving ? 'Salvando...' : 'Analisar com IA'}
+              </Button>
+            </div>
+          </>
         )}
 
-        {/* Upload and Others placeholders */}
-        {(method === 'upload' || method === 'outros') && (
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-8 text-center">
-              <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="font-semibold mb-2">
-                {method === 'upload' ? 'Upload de Documento' : 'Outros'}
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Funcionalidade em desenvolvimento.
-              </p>
-              <Button variant="outline" onClick={() => setMethod(null)}>
+        {/* Upload de Documento - Photo of paper document */}
+        {method === 'upload' && (
+          <>
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-4 space-y-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <Upload className="h-5 w-5 text-primary" />
+                  <div>
+                    <h3 className="font-semibold">Upload de Documento</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Tire foto do documento em papel
+                    </p>
+                  </div>
+                </div>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => handleImageUpload(e, false)}
+                />
+
+                <div className="grid grid-cols-2 gap-2">
+                  {uploadedImages.map((img, idx) => (
+                    <div key={idx} className="relative aspect-[3/4] rounded-lg overflow-hidden">
+                      <img src={img} alt={`Documento ${idx + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => removeImage(idx)}
+                        className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  
+                  {uploadedImages.length < 10 && (
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="aspect-[3/4] rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-2 hover:border-primary hover:bg-primary/5 transition-colors"
+                    >
+                      <Camera className="h-8 w-8 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Tirar foto</span>
+                    </button>
+                  )}
+                </div>
+
+                {tipo === 'termo_intimacao' && uploadedImages.length > 0 && (
+                  <div className="flex items-center gap-3 pt-2 border-t">
+                    <Calendar className="h-5 w-5 text-primary" />
+                    <div>
+                      <Label htmlFor="prazoUpload">Prazo</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Input
+                          id="prazoUpload"
+                          type="number"
+                          min="1"
+                          max="90"
+                          value={deadlineDays}
+                          onChange={(e) => setDeadlineDays(e.target.value)}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">dias</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => { setMethod(null); setUploadedImages([]); }}>
                 Voltar
               </Button>
-            </CardContent>
-          </Card>
+              <Button 
+                className="flex-1" 
+                onClick={handleSave}
+                disabled={uploadedImages.length === 0 || saving}
+              >
+                {saving ? 'Salvando...' : 'Salvar Documento'}
+              </Button>
+            </div>
+          </>
+        )}
+
+        {/* Outros - Campo Livre */}
+        {method === 'outros' && (
+          <>
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-4 space-y-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <MoreHorizontal className="h-5 w-5 text-primary" />
+                  <div>
+                    <h3 className="font-semibold">Campo Livre</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Descreva as observações ou irregularidades
+                    </p>
+                  </div>
+                </div>
+
+                <Textarea
+                  placeholder="Digite aqui suas observações, irregularidades encontradas ou qualquer outra informação relevante..."
+                  value={otrosContent}
+                  onChange={(e) => setOtrosContent(e.target.value)}
+                  className="min-h-[200px]"
+                />
+
+                {/* Optional photo upload for "outros" */}
+                <div>
+                  <Label className="text-sm">Fotos (opcional)</Label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    capture="environment"
+                    className="hidden"
+                    id="otros-photos"
+                    onChange={(e) => handleImageUpload(e, false)}
+                  />
+                  
+                  <div className="grid grid-cols-4 gap-2 mt-2">
+                    {uploadedImages.map((img, idx) => (
+                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden">
+                        <img src={img} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => removeImage(idx)}
+                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                    
+                    {uploadedImages.length < 10 && (
+                      <label
+                        htmlFor="otros-photos"
+                        className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors"
+                      >
+                        <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                      </label>
+                    )}
+                  </div>
+                </div>
+
+                {tipo === 'termo_intimacao' && (
+                  <div className="flex items-center gap-3 pt-2 border-t">
+                    <Calendar className="h-5 w-5 text-primary" />
+                    <div>
+                      <Label htmlFor="prazoOtros">Prazo</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Input
+                          id="prazoOtros"
+                          type="number"
+                          min="1"
+                          max="90"
+                          value={deadlineDays}
+                          onChange={(e) => setDeadlineDays(e.target.value)}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">dias</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => { setMethod(null); setUploadedImages([]); setOtrosContent(''); }}>
+                Voltar
+              </Button>
+              <Button 
+                className="flex-1" 
+                onClick={handleSave}
+                disabled={!otrosContent.trim() || saving}
+              >
+                {saving ? 'Salvando...' : 'Salvar Documento'}
+              </Button>
+            </div>
+          </>
         )}
       </div>
     </AppLayout>
