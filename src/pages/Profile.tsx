@@ -3,7 +3,6 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   User, 
   LogOut, 
@@ -11,8 +10,10 @@ import {
   FileText, 
   HelpCircle,
   ChevronRight,
-  Shield
+  Shield,
+  Calendar
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import fiscalizLogo from '@/assets/fiscaliz-logo.png';
 
 export default function Profile() {
@@ -24,6 +25,7 @@ export default function Profile() {
   const menuItems = [
     { icon: User, label: 'Editar Perfil', href: '/perfil/editar' },
     { icon: FileText, label: 'Meus Documentos', href: '/documentos' },
+    { icon: Calendar, label: 'Relatório Mensal', href: '/relatorio-mensal' },
     { icon: Settings, label: 'Configurações', href: '/configuracoes' },
     { icon: HelpCircle, label: 'Ajuda', href: '/ajuda' },
   ];
@@ -33,16 +35,13 @@ export default function Profile() {
       <Header title="Perfil" />
       
       <div className="p-4">
-        {/* Profile Card */}
+        {/* Profile Card with Logo */}
         <Card className="mb-6 border-0 shadow-sm overflow-hidden">
           <div className="fiscaliz-gradient px-4 py-6">
             <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16 border-2 border-primary-foreground/20">
-                <AvatarImage src={user?.user_metadata?.avatar_url} />
-                <AvatarFallback className="bg-primary-foreground/10 text-primary-foreground text-lg font-semibold">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
+              <div className="h-16 w-16 rounded-full bg-primary-foreground/10 p-2 backdrop-blur-sm flex items-center justify-center">
+                <img src={fiscalizLogo} alt="Fiscaliz" className="h-12 w-12 object-contain" />
+              </div>
               <div className="text-primary-foreground">
                 <h2 className="text-lg font-bold">{fullName}</h2>
                 <p className="text-sm text-primary-foreground/80">{user?.email}</p>
@@ -59,8 +58,9 @@ export default function Profile() {
         <Card className="mb-6 border-0 shadow-sm">
           <CardContent className="p-0">
             {menuItems.map((item, index) => (
-              <button
+              <Link
                 key={item.label}
+                to={item.href}
                 className="flex w-full items-center justify-between px-4 py-4 text-left hover:bg-muted/50 transition-colors"
                 style={{ borderBottom: index < menuItems.length - 1 ? '1px solid hsl(var(--border))' : 'none' }}
               >
@@ -69,7 +69,7 @@ export default function Profile() {
                   <span className="font-medium">{item.label}</span>
                 </div>
                 <ChevronRight className="h-5 w-5 text-muted-foreground" />
-              </button>
+              </Link>
             ))}
           </CardContent>
         </Card>

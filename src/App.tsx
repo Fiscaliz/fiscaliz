@@ -13,6 +13,10 @@ import Tasks from "./pages/Tasks";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import NewAction from "./pages/NewAction";
+import EstablishmentEntry from "./pages/NewAction/EstablishmentEntry";
+import DocumentTypeSelection from "./pages/NewAction/DocumentTypeSelection";
+import CreateDocument from "./pages/NewAction/CreateDocument";
+import MonthlyReport from "./pages/MonthlyReport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -52,6 +56,26 @@ const App = () => (
             <Route path="/nova-acao" element={
               <ProtectedRoute>
                 <NewAction />
+              </ProtectedRoute>
+            } />
+            <Route path="/nova-acao/estabelecimento" element={
+              <ProtectedRoute>
+                <EstablishmentEntry />
+              </ProtectedRoute>
+            } />
+            <Route path="/nova-acao/tipo-documento" element={
+              <ProtectedRoute>
+                <DocumentTypeSelection />
+              </ProtectedRoute>
+            } />
+            <Route path="/nova-acao/criar-documento" element={
+              <ProtectedRoute>
+                <CreateDocument />
+              </ProtectedRoute>
+            } />
+            <Route path="/relatorio-mensal" element={
+              <ProtectedRoute>
+                <MonthlyReport />
               </ProtectedRoute>
             } />
             
