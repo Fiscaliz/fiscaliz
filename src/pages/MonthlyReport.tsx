@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { 
   FileText, 
   Calendar, 
@@ -15,7 +16,9 @@ import {
   Send,
   Edit3,
   Lock,
-  CheckCircle
+  CheckCircle,
+  Printer,
+  FileDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,6 +26,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import fiscalizLogo from '@/assets/fiscaliz-logo.png';
 
 interface DocumentSummary {
   termo_intimacao: number;
@@ -44,6 +48,21 @@ const months = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
+const documentTypeLabels: Record<string, string> = {
+  termo_intimacao: 'Termo de Intimação',
+  visita_fiscal: 'Visita Fiscal',
+  auto_infracao: 'Auto de Infração',
+  advertencia: 'Advertência',
+  inutilizacao: 'Inutilização',
+  apreensao: 'Apreensão',
+  interdicao: 'Interdição',
+  relatorio_tecnico: 'Relatório Técnico',
+  notificacao: 'Notificação',
+  replica: 'Réplica',
+  certidao: 'Certidão',
+  coleta_amostra: 'Coleta de Amostra',
+};
+
 export default function MonthlyReport() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -53,8 +72,11 @@ export default function MonthlyReport() {
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   
   const [report, setReport] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [reportVersion, setReportVersion] = useState(1);
+  const [showPDFPreview, setShowPDFPreview] = useState(false);
   
   // Editable fields
   const [workingDays, setWorkingDays] = useState('');
@@ -82,10 +104,21 @@ export default function MonthlyReport() {
 
   useEffect(() => {
     if (user) {
+      loadProfile();
       loadReport();
       loadDocumentStats();
     }
   }, [user, selectedMonth, selectedYear]);
+
+  const loadProfile = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+    if (data) setProfile(data);
+  };
 
   const loadReport = async () => {
     if (!user) return;
@@ -113,7 +146,6 @@ export default function MonthlyReport() {
       }
     } else {
       setReport(null);
-      // Reset fields
       setWorkingDays('');
       setFieldDays('');
       setInternalDays('');
@@ -216,8 +248,161 @@ export default function MonthlyReport() {
     }
   };
 
+  const handleSendReport = async () => {
+    if (!user) return;
+    
+    try {
+      await handleSave();
+      
+      const { error } = await supabase
+        .from('monthly_reports')
+        .update({
+          status: 'sent',
+          is_locked: true,
+          sent_at: new Date().toISOString()
+        })
+        .eq('id', report?.id);
+      
+      if (error) throw error;
+
+      toast({
+        title: 'Relatório enviado!',
+        description: `Relatório de ${months[selectedMonth - 1]}/${selectedYear} v${reportVersion} enviado com sucesso.`,
+      });
+      
+      loadReport();
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao enviar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleGeneratePDF = () => {
+    setShowPDFPreview(true);
+    setTimeout(() => {
+      window.print();
+    }, 500);
+  };
+
   const totalDocuments = Object.values(documentSummary).reduce((a, b) => a + b, 0);
   const isLocked = report?.is_locked;
+
+  // PDF Preview Component
+  if (showPDFPreview) {
+    return (
+      <div className="min-h-screen bg-white text-black p-8 print:p-0">
+        {/* Print Header */}
+        <div className="flex items-center justify-between mb-8 print:mb-4">
+          <img src={fiscalizLogo} alt="Fiscaliz" className="h-16" />
+          <div className="text-center flex-1">
+            <p className="text-xs font-bold">PREFEITURA DE GOIÂNIA</p>
+            <p className="text-xs">SECRETARIA MUNICIPAL DE SAÚDE</p>
+            <p className="text-xs">DIRETORIA DE VIGILÂNCIA SANITÁRIA E AMBIENTAL</p>
+          </div>
+          <div className="text-right">
+            <Badge variant="outline">v{reportVersion}</Badge>
+          </div>
+        </div>
+
+        <h1 className="text-xl font-bold text-center mb-6">
+          RELATÓRIO MENSAL DE PRODUTIVIDADE
+        </h1>
+        <h2 className="text-lg text-center mb-8">
+          {months[selectedMonth - 1]} / {selectedYear}
+        </h2>
+
+        {/* Fiscal Info */}
+        <div className="border p-4 mb-6">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <strong>Fiscal:</strong> {profile?.full_name}
+            </div>
+            <div>
+              <strong>Matrícula:</strong> {profile?.registration_number || '-'}
+            </div>
+            <div>
+              <strong>POS:</strong> {osNumber || '-'}
+            </div>
+            <div>
+              <strong>Divisão:</strong> {profile?.division || '-'}
+            </div>
+          </div>
+        </div>
+
+        {/* Statistics */}
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="border p-3 text-center">
+            <p className="text-2xl font-bold">{workingDays || 0}</p>
+            <p className="text-xs">Dias Úteis</p>
+          </div>
+          <div className="border p-3 text-center">
+            <p className="text-2xl font-bold">{fieldDays || 0}</p>
+            <p className="text-xs">Dias Campo</p>
+          </div>
+          <div className="border p-3 text-center">
+            <p className="text-2xl font-bold">{internalDays || 0}</p>
+            <p className="text-xs">Dias Internos</p>
+          </div>
+          <div className="border p-3 text-center">
+            <p className="text-2xl font-bold">{totalKm || 0}</p>
+            <p className="text-xs">Km ({transportMode || 'MPL'})</p>
+          </div>
+        </div>
+
+        {/* Document Summary */}
+        <h3 className="font-bold mb-2">PEÇAS FISCAIS EMITIDAS:</h3>
+        <table className="w-full border-collapse border mb-6 text-sm">
+          <thead>
+            <tr className="bg-muted">
+              <th className="border p-2 text-left">Tipo de Documento</th>
+              <th className="border p-2 text-center w-20">Qtd</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.entries(documentSummary).map(([key, value]) => (
+              value > 0 && (
+                <tr key={key}>
+                  <td className="border p-2">{documentTypeLabels[key] || key}</td>
+                  <td className="border p-2 text-center font-bold">{value}</td>
+                </tr>
+              )
+            ))}
+            <tr className="bg-muted font-bold">
+              <td className="border p-2">TOTAL</td>
+              <td className="border p-2 text-center">{totalDocuments}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* Signature */}
+        <div className="mt-12 pt-8">
+          <div className="w-64 mx-auto text-center">
+            <div className="border-b border-black mb-2 h-12" />
+            <p className="font-bold">{profile?.full_name}</p>
+            <p className="text-sm">Auditor Fiscal de Saúde Pública</p>
+            {profile?.registration_number && (
+              <p className="text-sm">Mat. {profile.registration_number}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-8 text-center text-xs text-muted-foreground">
+          <p>Documento gerado por <strong>fiscaliz.app</strong></p>
+          <p>Goiânia, {format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
+        </div>
+
+        {/* Back button (hidden in print) */}
+        <div className="print:hidden fixed bottom-4 right-4">
+          <Button onClick={() => setShowPDFPreview(false)}>
+            Voltar
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AppLayout>
@@ -252,6 +437,16 @@ export default function MonthlyReport() {
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(parseInt(e.target.value))}
                   disabled={isLocked}
+                  className="mt-1"
+                />
+              </div>
+              <div className="w-16">
+                <Label>Versão</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={reportVersion}
+                  onChange={(e) => setReportVersion(parseInt(e.target.value) || 1)}
                   className="mt-1"
                 />
               </div>
@@ -467,8 +662,8 @@ export default function MonthlyReport() {
               <CardContent className="space-y-2">
                 {Object.entries(documentSummary).map(([key, value]) => (
                   <div key={key} className="flex items-center justify-between py-2 border-b last:border-0">
-                    <span className="text-sm capitalize">
-                      {key.replace(/_/g, ' ')}
+                    <span className="text-sm">
+                      {documentTypeLabels[key] || key.replace(/_/g, ' ')}
                     </span>
                     <span className={cn(
                       'font-semibold',
@@ -482,28 +677,38 @@ export default function MonthlyReport() {
         </Tabs>
 
         {/* Action Buttons */}
-        {!isLocked && (
-          <div className="flex gap-3">
-            <Button 
-              variant="outline" 
-              className="flex-1"
-              onClick={handleSave}
-              disabled={saving}
-            >
-              <Edit3 className="mr-2 h-4 w-4" />
-              {saving ? 'Salvando...' : 'Salvar Rascunho'}
-            </Button>
-            <Button className="flex-1">
-              <Send className="mr-2 h-4 w-4" />
-              Enviar
-            </Button>
-          </div>
-        )}
-
-        <Button variant="outline" className="w-full">
-          <Download className="mr-2 h-4 w-4" />
-          Exportar PDF
-        </Button>
+        <div className="space-y-3">
+          {!isLocked && (
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={handleSave}
+                disabled={saving}
+              >
+                <Edit3 className="mr-2 h-4 w-4" />
+                {saving ? 'Salvando...' : 'Salvar Rascunho'}
+              </Button>
+              <Button 
+                className="flex-1"
+                onClick={handleSendReport}
+                disabled={saving}
+              >
+                <Send className="mr-2 h-4 w-4" />
+                Enviar
+              </Button>
+            </div>
+          )}
+          
+          <Button 
+            variant="secondary" 
+            className="w-full"
+            onClick={handleGeneratePDF}
+          >
+            <FileDown className="mr-2 h-4 w-4" />
+            Gerar PDF - {months[selectedMonth - 1]} v{reportVersion}
+          </Button>
+        </div>
       </div>
     </AppLayout>
   );
