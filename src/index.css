@@ -169,22 +169,44 @@
     color: hsl(var(--success-foreground));
   }
 
-  /* Document watermark */
+  /* Document watermark - uses background image */
   .watermark {
     position: relative;
   }
 
   .watermark::after {
-    content: "Fiscaliz";
+    content: "";
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%) rotate(-45deg);
-    font-size: 6rem;
-    font-weight: bold;
-    opacity: 0.03;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    height: 400px;
+    background-image: var(--watermark-image);
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    opacity: 0.06;
     pointer-events: none;
-    color: hsl(var(--primary));
+  }
+  
+  /* App watermark - visible in app but not in PDF */
+  .app-watermark {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    height: 300px;
+    opacity: 0.04;
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  @media print {
+    .app-watermark {
+      display: none;
+    }
   }
 }
 

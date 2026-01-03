@@ -24,7 +24,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import fiscalizLogo from '@/assets/fiscaliz-logo.png';
+import marcaDaguaFiscaliz from '@/assets/marca-dagua-fiscaliz.png';
+
+// Logos oficiais para o PDF
+const PREFEITURA_LOGO_URL = 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Bras%C3%A3o_de_Goi%C3%A2nia.svg/200px-Bras%C3%A3o_de_Goi%C3%A2nia.svg.png';
+const SUS_LOGO_URL = 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/SUS_logo.svg/200px-SUS_logo.svg.png';
 
 interface DocumentSummary {
   termo_intimacao: number;
@@ -49,6 +53,8 @@ interface DailyAction {
   grade: number;
   establishment: string;
   document: string;
+  documentId: string;
+  documentType: string;
 }
 
 const months = [
@@ -261,6 +267,8 @@ export default function MonthlyReport() {
           grade: content.grau || 2,
           establishment: doc.establishments?.nome_fantasia || 'Estabelecimento',
           document: doc.document_number || `${documentTypeAbbreviation[doc.document_type] || 'DOC'} ${doc.id.slice(0,4)}`,
+          documentId: doc.id,
+          documentType: doc.document_type,
         };
       });
       setDailyActions(actions);
@@ -380,9 +388,12 @@ export default function MonthlyReport() {
         `}</style>
 
         <div className="p-8 max-w-4xl mx-auto">
-          {/* CABEÇALHO */}
+          {/* CABEÇALHO - Logo oficial da prefeitura para PDF */}
           <div className="text-center mb-6 border-b-2 border-blue-900 pb-4">
-            <img src={fiscalizLogo} alt="Fiscaliz" className="h-20 mx-auto mb-3" />
+            <div className="flex justify-center items-center gap-4 mb-3">
+              <img src={PREFEITURA_LOGO_URL} alt="Brasão de Goiânia" className="h-16 w-auto" />
+              <img src={SUS_LOGO_URL} alt="SUS" className="h-10 w-auto" />
+            </div>
             <h1 className="text-sm font-bold text-blue-900">PREFEITURA MUNICIPAL DE GOIÂNIA</h1>
             <h1 className="text-sm font-bold text-blue-900">SECRETARIA MUNICIPAL DE SAÚDE</h1>
             <h2 className="text-xs text-gray-600">DIRETORIA DE VIGILÂNCIA SANITÁRIA E AMBIENTAL</h2>
@@ -451,7 +462,10 @@ export default function MonthlyReport() {
 
           {/* AÇÕES DIÁRIAS */}
           <div className="text-center mb-6">
-            <img src={fiscalizLogo} alt="Fiscaliz" className="h-16 mx-auto mb-2" />
+            <div className="flex justify-center items-center gap-3 mb-2">
+              <img src={PREFEITURA_LOGO_URL} alt="Brasão de Goiânia" className="h-12 w-auto" />
+              <img src={SUS_LOGO_URL} alt="SUS" className="h-8 w-auto" />
+            </div>
             <h2 className="text-xs text-gray-600">DESCRIÇÃO DETALHADA DAS AÇÕES DIÁRIAS</h2>
           </div>
 
@@ -492,21 +506,60 @@ export default function MonthlyReport() {
             </p>
           </div>
 
-          {/* DOCUMENTOS ANEXADOS */}
+          {/* DOCUMENTOS ANEXADOS - Bloco de comprovação completo */}
           <div className="mb-6">
             <div className="section-title">DOCUMENTAÇÃO COMPROBATÓRIA ANEXADA</div>
+            <p className="text-xs text-gray-600 mb-2 italic">
+              As peças fiscais abaixo relacionadas estão anexadas a este relatório como comprovação das atividades realizadas.
+            </p>
             <table>
               <thead>
-                <tr><th>Nº</th><th>Tipo de Documento</th><th>Descrição</th></tr>
+                <tr>
+                  <th style={{ width: '8%' }}>Nº</th>
+                  <th style={{ width: '12%' }}>Data</th>
+                  <th style={{ width: '25%' }}>Tipo de Documento</th>
+                  <th style={{ width: '20%' }}>Número</th>
+                  <th style={{ width: '35%' }}>Estabelecimento</th>
+                </tr>
               </thead>
               <tbody>
-                {dailyActions.slice(0, 10).map((action, idx) => (
+                {dailyActions.map((action, idx) => (
                   <tr key={idx}>
                     <td>{idx + 1}</td>
-                    <td>{action.actionType === 'Inspeção' ? 'Auto de Infração' : action.actionType === 'Reinspeção' ? 'Termo de Reinspeção' : action.actionType === 'Certidão' ? 'Certidão Sanitária' : action.actionType === 'Coleta' ? 'Coleta de Amostra' : 'Documento'}</td>
-                    <td>{action.document} - {action.establishment}</td>
+                    <td>{action.day}/{selectedMonth.toString().padStart(2, '0')}</td>
+                    <td>{documentTypeLabels[action.documentType] || action.documentType}</td>
+                    <td>{action.document}</td>
+                    <td>{action.establishment}</td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+            <div className="mt-2 text-xs text-gray-600">
+              <strong>Total de peças anexadas:</strong> {dailyActions.length} documentos
+            </div>
+          </div>
+
+          {/* RESUMO POR TIPO DE DOCUMENTO */}
+          <div className="mb-6">
+            <div className="section-title">RESUMO POR TIPO DE PEÇA FISCAL</div>
+            <table>
+              <thead>
+                <tr><th>Tipo de Documento</th><th>Quantidade</th></tr>
+              </thead>
+              <tbody>
+                {Object.entries(documentSummary).map(([key, value]) => {
+                  if (value === 0) return null;
+                  return (
+                    <tr key={key}>
+                      <td>{documentTypeLabels[key] || key}</td>
+                      <td>{value}</td>
+                    </tr>
+                  );
+                })}
+                <tr style={{ fontWeight: 'bold', backgroundColor: '#e0e0e0' }}>
+                  <td>TOTAL</td>
+                  <td>{totalDocuments}</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -517,6 +570,7 @@ export default function MonthlyReport() {
               <div className="border-t border-black mb-2 mt-12" />
               <p className="font-bold">{profile?.full_name}</p>
               <p className="text-sm">Matrícula: {profile?.registration_number}</p>
+              <p className="text-xs text-gray-600">{profile?.division || 'Auditor Fiscal de Vigilância Sanitária'}</p>
             </div>
           </div>
 
@@ -524,7 +578,7 @@ export default function MonthlyReport() {
           <div className="mt-10 border-t pt-2 text-xs">
             <p><strong>NOTA:</strong> Eventualmente o número de OS executado poderá exceder o número de OS programado para fechamento de produção.</p>
             <p><strong>1ª VIA:</strong> CAAIF | <strong>2ª VIA:</strong> DIVISÃO DE FISCALIZAÇÃO</p>
-            <p className="mt-2">Gerado em: {format(new Date(), 'dd/MM/yyyy')} | <strong>fiscaliz.app</strong></p>
+            <p className="mt-2">Gerado em: {format(new Date(), 'dd/MM/yyyy')} | <strong>fiscaliz.app</strong> © {new Date().getFullYear()}</p>
           </div>
         </div>
 
