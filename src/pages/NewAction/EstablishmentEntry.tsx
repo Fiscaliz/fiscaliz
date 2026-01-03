@@ -12,13 +12,15 @@ import {
   Edit3, 
   Loader2,
   Building2,
-  MapPin
+  MapPin,
+  Navigation,
+  Locate
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-type EntryMethod = 'cnpj' | 'ocr' | 'manual';
+type EntryMethod = 'cnpj' | 'ocr' | 'manual' | 'geo';
 
 export default function EstablishmentEntry() {
   const [searchParams] = useSearchParams();
@@ -29,7 +31,9 @@ export default function EstablishmentEntry() {
   const [method, setMethod] = useState<EntryMethod | null>(null);
   const [cnpj, setCnpj] = useState('');
   const [loading, setLoading] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
   const [establishment, setEstablishment] = useState<any>(null);
+  const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
 
   const formatCNPJ = (value: string) => {
     const numbers = value.replace(/\D/g, '');
@@ -85,6 +89,120 @@ export default function EstablishmentEntry() {
     });
   };
 
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: 'Geolocalização não suportada',
+        description: 'Seu navegador não suporta geolocalização',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setGeoLoading(true);
+    
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        setCurrentLocation({ lat: latitude, lng: longitude });
+        
+        // Try to get address from coordinates using reverse geocoding
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`
+          );
+          const data = await response.json();
+          
+          if (data && data.address) {
+            const addr = data.address;
+            const street = addr.road || addr.street || '';
+            const number = addr.house_number || '';
+            const neighborhood = addr.suburb || addr.neighbourhood || addr.district || '';
+            const postcode = addr.postcode || '';
+            
+            setEstablishment({
+              razao_social: '',
+              nome_fantasia: '',
+              cnpj: '',
+              endereco: number ? `${street}, ${number}` : street,
+              bairro: neighborhood,
+              cep: postcode.replace(/\D/g, ''),
+              latitude,
+              longitude,
+            });
+            
+            toast({
+              title: 'Localização obtida',
+              description: 'Endereço preenchido automaticamente. Complete os dados do estabelecimento.',
+            });
+          } else {
+            setEstablishment({
+              razao_social: '',
+              nome_fantasia: '',
+              cnpj: '',
+              endereco: '',
+              bairro: '',
+              cep: '',
+              latitude,
+              longitude,
+            });
+            
+            toast({
+              title: 'Localização obtida',
+              description: 'Coordenadas capturadas. Preencha o endereço manualmente.',
+            });
+          }
+        } catch (error) {
+          // Even if geocoding fails, we have the coordinates
+          setEstablishment({
+            razao_social: '',
+            nome_fantasia: '',
+            cnpj: '',
+            endereco: '',
+            bairro: '',
+            cep: '',
+            latitude,
+            longitude,
+          });
+          
+          toast({
+            title: 'Localização obtida',
+            description: 'Coordenadas capturadas. Preencha o endereço manualmente.',
+          });
+        }
+        
+        setGeoLoading(false);
+      },
+      (error) => {
+        setGeoLoading(false);
+        let message = 'Erro ao obter localização';
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            message = 'Permissão de localização negada. Habilite nas configurações.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            message = 'Localização indisponível no momento';
+            break;
+          case error.TIMEOUT:
+            message = 'Tempo esgotado ao obter localização';
+            break;
+        }
+        
+        toast({
+          title: 'Erro de geolocalização',
+          description: message,
+          variant: 'destructive',
+        });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
+      }
+    );
+  };
+
   const handleProceed = () => {
     if (establishment) {
       // Navigate to document type selection
@@ -94,6 +212,7 @@ export default function EstablishmentEntry() {
 
   const entryMethods = [
     { id: 'cnpj' as EntryMethod, icon: Search, label: 'Buscar por CNPJ', description: 'Consulta automática' },
+    { id: 'geo' as EntryMethod, icon: Navigation, label: 'Georreferenciamento', description: 'Usar GPS do dispositivo' },
     { id: 'ocr' as EntryMethod, icon: Camera, label: 'Foto do Alvará', description: 'OCR automático' },
     { id: 'manual' as EntryMethod, icon: Edit3, label: 'Manual', description: 'Preencher dados' },
   ];
@@ -162,6 +281,38 @@ export default function EstablishmentEntry() {
                     )}
                   </Button>
                 </div>
+              </div>
+              
+              <Button variant="outline" className="w-full" onClick={() => setMethod(null)}>
+                Voltar
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Geolocation */}
+        {method === 'geo' && !establishment && (
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4 space-y-4">
+              <div className="border-2 border-dashed border-muted rounded-xl p-8 text-center">
+                <Locate className="mx-auto h-12 w-12 text-primary mb-4" />
+                <p className="font-medium">Georreferenciamento</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Capture a localização GPS atual para preencher o endereço automaticamente
+                </p>
+                <Button onClick={handleGetLocation} disabled={geoLoading}>
+                  {geoLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Obtendo localização...
+                    </>
+                  ) : (
+                    <>
+                      <Navigation className="mr-2 h-4 w-4" />
+                      Obter Localização
+                    </>
+                  )}
+                </Button>
               </div>
               
               <Button variant="outline" className="w-full" onClick={() => setMethod(null)}>
@@ -269,6 +420,26 @@ export default function EstablishmentEntry() {
                     />
                   </div>
                 </div>
+
+                {/* GPS Coordinates Display */}
+                {(establishment?.latitude && establishment?.longitude) && (
+                  <div className="bg-primary/5 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Locate className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium text-primary">Coordenadas GPS</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Latitude:</span>
+                        <span className="ml-1 font-mono">{establishment.latitude.toFixed(6)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Longitude:</span>
+                        <span className="ml-1 font-mono">{establishment.longitude.toFixed(6)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
               
               <div className="flex gap-3 pt-2">
