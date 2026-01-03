@@ -42,18 +42,19 @@ export default function DocumentDetail() {
     if (!id) return;
     
     setLoading(true);
-    const { data, error } = await supabase
+    
+    // First get the document with establishment
+    const { data: docData, error: docError } = await supabase
       .from('fiscal_documents')
       .select(`
         *,
-        establishment:establishments(*),
-        profile:profiles!fiscal_documents_user_id_fkey(full_name, registration_number)
+        establishment:establishments(*)
       `)
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
-    if (error) {
-      console.error('Error loading document:', error);
+    if (docError || !docData) {
+      console.error('Error loading document:', docError);
       toast({
         title: 'Erro',
         description: 'Não foi possível carregar o documento',
@@ -63,10 +64,18 @@ export default function DocumentDetail() {
       return;
     }
 
+    // Then get the profile separately
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('full_name, registration_number')
+      .eq('id', docData.user_id)
+      .maybeSingle();
+
     // Format document for viewer
     const formattedDoc = {
-      ...data,
-      profile: Array.isArray(data.profile) ? data.profile[0] : data.profile
+      ...docData,
+      establishment: Array.isArray(docData.establishment) ? docData.establishment[0] : docData.establishment,
+      profile: profileData
     };
     
     setDocument(formattedDoc);

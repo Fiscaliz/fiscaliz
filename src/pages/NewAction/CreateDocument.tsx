@@ -161,7 +161,7 @@ export default function CreateDocument() {
           }))
         : [];
 
-      const { error: docError } = await supabase
+      const { data: newDoc, error: docError } = await supabase
         .from('fiscal_documents')
         .insert({
           user_id: user.id,
@@ -173,16 +173,19 @@ export default function CreateDocument() {
           deadline_days: tipo === 'termo_intimacao' ? parseInt(deadlineDays) : null,
           deadline_date: tipo === 'termo_intimacao' ? deadlineDate.toISOString().split('T')[0] : null,
           priority: motivo === 'denuncia' || motivo === 'surto' ? 'high' : 'medium',
-        });
+        })
+        .select()
+        .single();
 
       if (docError) throw docError;
 
       toast({
         title: 'Documento salvo!',
-        description: `${documentTypeLabels[tipo]} criado com sucesso`,
+        description: `${documentTypeLabels[tipo]} criado com sucesso. Clique para visualizar.`,
       });
 
-      navigate('/');
+      // Navigate to document detail to view/edit/send
+      navigate(`/documento/${newDoc.id}`);
     } catch (error: any) {
       console.error('Error saving document:', error);
       toast({
