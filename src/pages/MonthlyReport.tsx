@@ -25,10 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import marcaDaguaFiscaliz from '@/assets/marca-dagua-fiscaliz.png';
-
-// Logos oficiais para o PDF
-const PREFEITURA_LOGO_URL = 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Bras%C3%A3o_de_Goi%C3%A2nia.svg/200px-Bras%C3%A3o_de_Goi%C3%A2nia.svg.png';
-const SUS_LOGO_URL = 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/SUS_logo.svg/200px-SUS_logo.svg.png';
+import { BRASAO_GOIANIA_SVG, SUS_LOGO_SVG } from '@/lib/logos';
 
 interface DocumentSummary {
   termo_intimacao: number;
@@ -391,8 +388,8 @@ export default function MonthlyReport() {
           {/* CABEÇALHO - Logo oficial da prefeitura para PDF */}
           <div className="text-center mb-6 border-b-2 border-blue-900 pb-4">
             <div className="flex justify-center items-center gap-4 mb-3">
-              <img src={PREFEITURA_LOGO_URL} alt="Brasão de Goiânia" className="h-16 w-auto" />
-              <img src={SUS_LOGO_URL} alt="SUS" className="h-10 w-auto" />
+              <img src={BRASAO_GOIANIA_SVG} alt="Brasão de Goiânia" className="h-16 w-auto" />
+              <img src={SUS_LOGO_SVG} alt="SUS" className="h-10 w-auto" />
             </div>
             <h1 className="text-sm font-bold text-blue-900">PREFEITURA MUNICIPAL DE GOIÂNIA</h1>
             <h1 className="text-sm font-bold text-blue-900">SECRETARIA MUNICIPAL DE SAÚDE</h1>
@@ -463,8 +460,8 @@ export default function MonthlyReport() {
           {/* AÇÕES DIÁRIAS */}
           <div className="text-center mb-6">
             <div className="flex justify-center items-center gap-3 mb-2">
-              <img src={PREFEITURA_LOGO_URL} alt="Brasão de Goiânia" className="h-12 w-auto" />
-              <img src={SUS_LOGO_URL} alt="SUS" className="h-8 w-auto" />
+              <img src={BRASAO_GOIANIA_SVG} alt="Brasão de Goiânia" className="h-12 w-auto" />
+              <img src={SUS_LOGO_SVG} alt="SUS" className="h-8 w-auto" />
             </div>
             <h2 className="text-xs text-gray-600">DESCRIÇÃO DETALHADA DAS AÇÕES DIÁRIAS</h2>
           </div>

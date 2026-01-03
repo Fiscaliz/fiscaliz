@@ -30,10 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 import marcaDaguaFiscaliz from '@/assets/marca-dagua-fiscaliz.png';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-// Logos oficiais para o PDF - mesmo padrão do MonthlyReport
-const PREFEITURA_LOGO_URL = 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Bras%C3%A3o_de_Goi%C3%A2nia.svg/200px-Bras%C3%A3o_de_Goi%C3%A2nia.svg.png';
-const SUS_LOGO_URL = 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/SUS_logo.svg/200px-SUS_logo.svg.png';
+import { BRASAO_GOIANIA_SVG, SUS_LOGO_SVG } from '@/lib/logos';
 
 interface DocumentViewerProps {
   document: {
@@ -247,8 +244,8 @@ export function DocumentViewer({
           {/* CABEÇALHO OFICIAL */}
           <div className="text-center mb-6 border-b-2 border-blue-900 pb-4">
             <div className="flex justify-center items-center gap-4 mb-3">
-              <img src={PREFEITURA_LOGO_URL} alt="Brasão de Goiânia" className="h-16 w-auto" />
-              <img src={SUS_LOGO_URL} alt="SUS" className="h-10 w-auto" />
+              <img src={BRASAO_GOIANIA_SVG} alt="Brasão de Goiânia" className="h-16 w-auto" />
+              <img src={SUS_LOGO_SVG} alt="SUS" className="h-10 w-auto" />
             </div>
             <h1 className="text-sm font-bold text-blue-900">PREFEITURA MUNICIPAL DE GOIÂNIA</h1>
             <h1 className="text-sm font-bold text-blue-900">SECRETARIA MUNICIPAL DE SAÚDE</h1>
@@ -407,12 +404,12 @@ export function DocumentViewer({
               <div className="flex flex-col items-center gap-1">
                 {/* Prefeitura logo - only visible in print */}
                 <img 
-                  src={PREFEITURA_LOGO_URL} 
+                  src={BRASAO_GOIANIA_SVG} 
                   alt="Prefeitura de Goiânia" 
                   className="hidden print:block h-14 w-auto object-contain"
                 />
                 <img 
-                  src={SUS_LOGO_URL} 
+                  src={SUS_LOGO_SVG} 
                   alt="SUS" 
                   className="hidden print:block h-8 w-auto object-contain"
                 />
