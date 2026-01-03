@@ -14,7 +14,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import fiscalizLogo from '@/assets/fiscaliz-logo.png';
+import fiscalizLogo from '@/assets/logo-fiscaliz.png';
 
 export default function Profile() {
   const { user, signOut } = useAuth();
