@@ -20,14 +20,18 @@ import {
   User,
   Camera,
   Upload,
-  X
+  X,
+  ArrowLeft,
+  Printer
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import marcaDaguaFiscaliz from '@/assets/marca-dagua-fiscaliz.png';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
-// Logo da prefeitura para uso no PDF
+// Logos oficiais para o PDF - mesmo padrão do MonthlyReport
 const PREFEITURA_LOGO_URL = 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Bras%C3%A3o_de_Goi%C3%A2nia.svg/200px-Bras%C3%A3o_de_Goi%C3%A2nia.svg.png';
 const SUS_LOGO_URL = 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/SUS_logo.svg/200px-SUS_logo.svg.png';
 
@@ -67,17 +71,17 @@ interface DocumentViewerProps {
 
 const documentTypeLabels: Record<string, string> = {
   termo_intimacao: 'TERMO DE INTIMAÇÃO',
-  visita_fiscal: 'VISITA FISCAL',
+  visita_fiscal: 'TERMO DE REINSPEÇÃO',
   auto_infracao: 'AUTO DE INFRAÇÃO',
   advertencia: 'ADVERTÊNCIA',
-  inutilizacao: 'INUTILIZAÇÃO',
-  apreensao: 'APREENSÃO',
-  interdicao: 'INTERDIÇÃO',
-  relatorio_tecnico: 'RELATÓRIO TÉCNICO',
+  inutilizacao: 'TERMO DE INUTILIZAÇÃO',
+  apreensao: 'TERMO DE APREENSÃO',
+  interdicao: 'TERMO DE INTERDIÇÃO',
+  relatorio_tecnico: 'PARECER TÉCNICO',
   notificacao: 'NOTIFICAÇÃO',
   replica: 'RÉPLICA',
-  certidao: 'CERTIDÃO',
-  coleta_amostra: 'COLETA DE AMOSTRA',
+  certidao: 'CERTIDÃO SANITÁRIA',
+  coleta_amostra: 'TERMO DE COLETA DE AMOSTRA',
 };
 
 export function DocumentViewer({ 
@@ -92,6 +96,7 @@ export function DocumentViewer({
   const [email, setEmail] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [showSendModal, setShowSendModal] = useState(false);
+  const [showPDFPreview, setShowPDFPreview] = useState(false);
   const [contributorPhoto, setContributorPhoto] = useState<string | null>(document.content?.contributor_photo || null);
   const [isUploading, setIsUploading] = useState(false);
   const documentRef = useRef<HTMLDivElement>(null);
@@ -212,11 +217,168 @@ export function DocumentViewer({
   };
 
   const handleGeneratePDF = () => {
-    // When generating PDF, we use the print dialog which will show the official header
-    if (onGeneratePDF) {
-      onGeneratePDF();
-    }
+    setShowPDFPreview(true);
+    setTimeout(() => {
+      window.print();
+    }, 500);
   };
+
+  const formatDateFull = (dateStr: string) => {
+    return format(new Date(dateStr), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+  };
+
+  // PDF Preview - Layout oficial igual ao MonthlyReport
+  if (showPDFPreview) {
+    return (
+      <div className="min-h-screen bg-white text-black print:text-black" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11pt' }}>
+        <style>{`
+          @media print {
+            body { margin: 0; padding: 0; }
+            .no-print { display: none !important; }
+          }
+          .doc-section { margin: 15px 0; }
+          .doc-field { display: flex; margin: 5px 0; }
+          .doc-label { font-weight: bold; width: 35%; font-size: 10pt; }
+          .doc-value { width: 65%; font-size: 10pt; }
+          .signature-line { border-top: 1px solid #333; width: 250px; margin: 0 auto; }
+        `}</style>
+
+        <div className="p-8 max-w-4xl mx-auto">
+          {/* CABEÇALHO OFICIAL */}
+          <div className="text-center mb-6 border-b-2 border-blue-900 pb-4">
+            <div className="flex justify-center items-center gap-4 mb-3">
+              <img src={PREFEITURA_LOGO_URL} alt="Brasão de Goiânia" className="h-16 w-auto" />
+              <img src={SUS_LOGO_URL} alt="SUS" className="h-10 w-auto" />
+            </div>
+            <h1 className="text-sm font-bold text-blue-900">PREFEITURA MUNICIPAL DE GOIÂNIA</h1>
+            <h1 className="text-sm font-bold text-blue-900">SECRETARIA MUNICIPAL DE SAÚDE</h1>
+            <h2 className="text-xs text-gray-600">DIRETORIA DE VIGILÂNCIA SANITÁRIA E AMBIENTAL</h2>
+            <div className="mt-4 py-2 bg-blue-900 text-white">
+              <h2 className="text-base font-bold">
+                {documentTypeLabels[document.document_type] || document.document_type}
+              </h2>
+              {document.document_number && (
+                <p className="text-sm font-semibold">Nº {document.document_number}</p>
+              )}
+            </div>
+          </div>
+
+          {/* DADOS DO ESTABELECIMENTO */}
+          {document.establishment && (
+            <div className="doc-section border border-gray-300 p-4 mb-6">
+              <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">IDENTIFICAÇÃO DO ESTABELECIMENTO</h3>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                <div className="doc-field col-span-2">
+                  <span className="doc-label">Razão Social:</span>
+                  <span className="doc-value">{document.establishment.razao_social}</span>
+                </div>
+                {document.establishment.nome_fantasia && (
+                  <div className="doc-field col-span-2">
+                    <span className="doc-label">Nome Fantasia:</span>
+                    <span className="doc-value">{document.establishment.nome_fantasia}</span>
+                  </div>
+                )}
+                <div className="doc-field">
+                  <span className="doc-label">CNPJ:</span>
+                  <span className="doc-value">{document.establishment.cnpj}</span>
+                </div>
+                <div className="doc-field col-span-2">
+                  <span className="doc-label">Endereço:</span>
+                  <span className="doc-value">{document.establishment.endereco}{document.establishment.bairro ? ` - ${document.establishment.bairro}` : ''}</span>
+                </div>
+                {document.establishment.responsavel_nome && (
+                  <>
+                    <div className="doc-field">
+                      <span className="doc-label">Responsável:</span>
+                      <span className="doc-value">{document.establishment.responsavel_nome}</span>
+                    </div>
+                    {document.establishment.responsavel_cpf && (
+                      <div className="doc-field">
+                        <span className="doc-label">CPF:</span>
+                        <span className="doc-value">{document.establishment.responsavel_cpf}</span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ESPECIFICAÇÃO DAS IRREGULARIDADES */}
+          <div className="doc-section border border-gray-300 p-4 mb-6">
+            <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">ESPECIFICAÇÃO DAS IRREGULARIDADES / OBSERVAÇÕES</h3>
+            <div className="text-sm leading-relaxed whitespace-pre-wrap min-h-[150px]">
+              {content || 'Sem irregularidades especificadas.'}
+            </div>
+          </div>
+
+          {/* PRAZO PARA ADEQUAÇÃO */}
+          {document.deadline_date && (
+            <div className="doc-section border border-yellow-400 bg-yellow-50 p-4 mb-6">
+              <h3 className="font-bold text-sm">PRAZO PARA ADEQUAÇÃO</h3>
+              <p className="text-sm mt-1">
+                Fica o responsável legal pelo estabelecimento intimado a sanar as irregularidades acima descritas no prazo de <strong>{document.deadline_days} ({document.deadline_days === 1 ? 'um' : document.deadline_days}) dias</strong>, contados a partir do recebimento deste documento.
+              </p>
+              <p className="text-sm mt-1">
+                <strong>Data limite:</strong> {formatDateFull(document.deadline_date)}
+              </p>
+            </div>
+          )}
+
+          {/* FOTO DO CONTRIBUINTE - se houver */}
+          {contributorPhoto && (
+            <div className="doc-section border border-gray-300 p-4 mb-6">
+              <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">REGISTRO FOTOGRÁFICO</h3>
+              <img 
+                src={contributorPhoto} 
+                alt="Registro fotográfico" 
+                className="max-w-[200px] rounded border"
+              />
+            </div>
+          )}
+
+          {/* ASSINATURAS */}
+          <div className="doc-section mt-12">
+            <div className="grid grid-cols-2 gap-8">
+              <div className="text-center">
+                <div className="signature-line mb-2 mt-12" />
+                <p className="font-bold text-sm">{document.profile?.full_name || 'Autoridade Fiscal'}</p>
+                {document.profile?.registration_number && (
+                  <p className="text-xs">Matrícula: {document.profile.registration_number}</p>
+                )}
+                <p className="text-xs text-gray-600">{document.profile?.division || 'Auditor Fiscal de Vigilância Sanitária'}</p>
+              </div>
+              <div className="text-center">
+                <div className="signature-line mb-2 mt-12" />
+                <p className="font-bold text-sm">Ciência do Responsável</p>
+                <p className="text-xs">Nome: _______________________</p>
+                <p className="text-xs">CPF: ________________________</p>
+              </div>
+            </div>
+          </div>
+
+          {/* RODAPÉ */}
+          <div className="mt-10 pt-4 border-t text-xs text-center text-gray-600">
+            <p>Goiânia, {formatDateFull(document.created_at)}</p>
+            <p className="mt-2">Este documento foi gerado eletronicamente e possui validade legal conforme legislação vigente.</p>
+            <p className="mt-1 text-[10px]">1ª Via: Estabelecimento | 2ª Via: Fiscalização</p>
+          </div>
+        </div>
+
+        {/* Botões (ocultos na impressão) */}
+        <div className="no-print fixed bottom-4 right-4 flex gap-2">
+          <Button variant="outline" onClick={() => setShowPDFPreview(false)}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar
+          </Button>
+          <Button onClick={() => window.print()}>
+            <Printer className="h-4 w-4 mr-2" />
+            Imprimir PDF
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
