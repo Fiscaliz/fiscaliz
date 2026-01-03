@@ -1,8 +1,9 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Header } from '@/components/layout/Header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   FileText, 
   ClipboardList, 
@@ -10,19 +11,115 @@ import {
   Bell,
   Plus,
   Calendar,
-  ChevronRight
+  ChevronRight,
+  Clock,
+  AlertTriangle
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import fiscalizLogo from '@/assets/fiscaliz-logo.png';
+
+const documentTypeLabels: Record<string, string> = {
+  termo_intimacao: 'Termo de Intimação',
+  visita_fiscal: 'Visita Fiscal',
+  auto_infracao: 'Auto de Infração',
+  advertencia: 'Advertência',
+  inutilizacao: 'Inutilização',
+  apreensao: 'Apreensão',
+  interdicao: 'Interdição',
+  relatorio_tecnico: 'Relatório Técnico',
+  notificacao: 'Notificação',
+  replica: 'Réplica',
+  certidao: 'Certidão',
+  coleta_amostra: 'Coleta de Amostra',
+};
+
+interface RecentDocument {
+  id: string;
+  document_type: string;
+  status: string;
+  created_at: string;
+  establishment?: {
+    nome_fantasia?: string;
+    razao_social: string;
+  };
+}
+
+interface PendingTask {
+  id: string;
+  title: string;
+  due_date?: string;
+  priority: string;
+  status: string;
+}
 
 export default function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [recentDocs, setRecentDocs] = useState<RecentDocument[]>([]);
+  const [pendingTasks, setPendingTasks] = useState<PendingTask[]>([]);
+  const [loading, setLoading] = useState(true);
   
   // Get first name from email or full_name
   const firstName = user?.user_metadata?.full_name?.split(' ')[0] 
     || user?.email?.split('@')[0] 
     || 'Fiscal';
+
+  useEffect(() => {
+    if (user) {
+      loadData();
+    }
+  }, [user]);
+
+  const loadData = async () => {
+    setLoading(true);
+    
+    // Load recent documents
+    const { data: docs } = await supabase
+      .from('fiscal_documents')
+      .select(`
+        id, document_type, status, created_at,
+        establishment:establishments(nome_fantasia, razao_social)
+      `)
+      .order('created_at', { ascending: false })
+      .limit(5);
+    
+    if (docs) {
+      setRecentDocs(docs.map(d => ({
+        ...d,
+        establishment: Array.isArray(d.establishment) ? d.establishment[0] : d.establishment
+      })));
+    }
+
+    // Load pending tasks
+    const { data: tasks } = await supabase
+      .from('tasks')
+      .select('id, title, due_date, priority, status')
+      .in('status', ['pending', 'in_progress'])
+      .order('due_date', { ascending: true })
+      .limit(5);
+    
+    if (tasks) {
+      setPendingTasks(tasks);
+    }
+
+    setLoading(false);
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'short'
+    });
+  };
+
+  const isUrgent = (dueDate?: string) => {
+    if (!dueDate) return false;
+    const due = new Date(dueDate);
+    const now = new Date();
+    const daysUntil = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    return daysUntil <= 7;
+  };
 
   const quickActions = [
     {
@@ -144,17 +241,48 @@ export default function Home() {
           
           <Card className="border-0 shadow-sm">
             <CardContent className="p-4">
-              <div className="flex items-center justify-center py-8 text-center">
-                <div>
-                  <ClipboardList className="mx-auto mb-2 h-10 w-10 text-muted-foreground/50" />
-                  <p className="text-sm text-muted-foreground">
-                    Nenhuma tarefa pendente
-                  </p>
-                  <p className="text-xs text-muted-foreground/70">
-                    Suas tarefas aparecerão aqui
-                  </p>
+              {pendingTasks.length === 0 ? (
+                <div className="flex items-center justify-center py-8 text-center">
+                  <div>
+                    <ClipboardList className="mx-auto mb-2 h-10 w-10 text-muted-foreground/50" />
+                    <p className="text-sm text-muted-foreground">
+                      Nenhuma tarefa pendente
+                    </p>
+                    <p className="text-xs text-muted-foreground/70">
+                      Suas tarefas aparecerão aqui
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-3">
+                  {pendingTasks.map((task) => (
+                    <Link 
+                      key={task.id} 
+                      to="/tarefas"
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className={`p-2 rounded-lg ${isUrgent(task.due_date) ? 'bg-warning/10' : 'bg-primary/10'}`}>
+                        {isUrgent(task.due_date) ? (
+                          <AlertTriangle className="h-4 w-4 text-warning" />
+                        ) : (
+                          <Clock className="h-4 w-4 text-primary" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{task.title}</p>
+                        {task.due_date && (
+                          <p className="text-xs text-muted-foreground">
+                            Prazo: {formatDate(task.due_date)}
+                          </p>
+                        )}
+                      </div>
+                      <Badge variant={task.priority === 'high' ? 'destructive' : 'secondary'} className="text-xs">
+                        {task.priority === 'high' ? 'Urgente' : 'Normal'}
+                      </Badge>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </section>
@@ -172,17 +300,49 @@ export default function Home() {
           
           <Card className="border-0 shadow-sm">
             <CardContent className="p-4">
-              <div className="flex items-center justify-center py-8 text-center">
-                <div>
-                  <FileText className="mx-auto mb-2 h-10 w-10 text-muted-foreground/50" />
-                  <p className="text-sm text-muted-foreground">
-                    Nenhum documento ainda
-                  </p>
-                  <p className="text-xs text-muted-foreground/70">
-                    Comece uma nova ação fiscal
-                  </p>
+              {recentDocs.length === 0 ? (
+                <div className="flex items-center justify-center py-8 text-center">
+                  <div>
+                    <FileText className="mx-auto mb-2 h-10 w-10 text-muted-foreground/50" />
+                    <p className="text-sm text-muted-foreground">
+                      Nenhum documento ainda
+                    </p>
+                    <p className="text-xs text-muted-foreground/70">
+                      Comece uma nova ação fiscal
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-3">
+                  {recentDocs.map((doc) => (
+                    <Link 
+                      key={doc.id} 
+                      to={`/documento/${doc.id}`}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <FileText className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {documentTypeLabels[doc.document_type] || doc.document_type}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {doc.establishment?.nome_fantasia || doc.establishment?.razao_social || 'Estabelecimento'}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant={doc.status === 'sent' ? 'default' : 'outline'} className="text-xs">
+                          {doc.status === 'sent' ? 'Enviado' : 'Rascunho'}
+                        </Badge>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {formatDate(doc.created_at)}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </section>
