@@ -1,15 +1,16 @@
 import { useAuth } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
   FileText, 
   ClipboardList, 
   BarChart3, 
   Bell,
-  ChevronRight,
-  Plus
+  Plus,
+  Calendar,
+  ChevronRight
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import fiscalizLogo from '@/assets/fiscaliz-logo.png';
@@ -106,6 +107,28 @@ export default function Home() {
               </Link>
             ))}
           </div>
+        </section>
+
+        {/* Monthly Report Link */}
+        <section className="mb-6">
+          <Link to="/relatorio-mensal">
+            <Card className="border-0 shadow-sm hover:shadow-md transition-all">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl p-2.5 bg-success/10">
+                      <Calendar className="h-5 w-5 text-success" />
+                    </div>
+                    <div>
+                      <p className="font-semibold">Relatório Mensal</p>
+                      <p className="text-sm text-muted-foreground">Produtividade e estatísticas</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
         </section>
 
         {/* Pending Tasks Preview */}
