@@ -12,13 +12,11 @@ import {
   Calendar, 
   Car, 
   Clock,
-  Download,
   Send,
   Edit3,
   Lock,
-  CheckCircle,
-  Printer,
-  FileDown
+  FileDown,
+  Building2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,6 +41,16 @@ interface DocumentSummary {
   coleta_amostra: number;
 }
 
+interface DailyAction {
+  day: number;
+  transport: string;
+  actionType: string;
+  level: string;
+  grade: number;
+  establishment: string;
+  document: string;
+}
+
 const months = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
@@ -50,17 +58,32 @@ const months = [
 
 const documentTypeLabels: Record<string, string> = {
   termo_intimacao: 'Termo de Intimação',
-  visita_fiscal: 'Visita Fiscal',
+  visita_fiscal: 'Termo de Reinspeção',
   auto_infracao: 'Auto de Infração',
   advertencia: 'Advertência',
   inutilizacao: 'Inutilização',
   apreensao: 'Apreensão',
   interdicao: 'Interdição',
-  relatorio_tecnico: 'Relatório Técnico',
+  relatorio_tecnico: 'Parecer Técnico',
   notificacao: 'Notificação',
   replica: 'Réplica',
-  certidao: 'Certidão',
+  certidao: 'Certidão Sanitária',
   coleta_amostra: 'Coleta de Amostra',
+};
+
+const documentTypeAbbreviation: Record<string, string> = {
+  termo_intimacao: 'TI',
+  visita_fiscal: 'TR',
+  auto_infracao: 'AI',
+  advertencia: 'ADV',
+  inutilizacao: 'INUT',
+  apreensao: 'APR',
+  interdicao: 'INT',
+  relatorio_tecnico: 'PAR',
+  notificacao: 'NOT',
+  replica: 'REP',
+  certidao: 'CERT',
+  coleta_amostra: 'CA',
 };
 
 export default function MonthlyReport() {
@@ -77,15 +100,19 @@ export default function MonthlyReport() {
   const [saving, setSaving] = useState(false);
   const [reportVersion, setReportVersion] = useState(1);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
+  const [dailyActions, setDailyActions] = useState<DailyAction[]>([]);
   
-  // Editable fields
+  // Editable fields - matching Bárbara's report structure
   const [workingDays, setWorkingDays] = useState('');
   const [fieldDays, setFieldDays] = useState('');
   const [internalDays, setInternalDays] = useState('');
   const [dutyDays, setDutyDays] = useState('');
+  const [specialDutyDays, setSpecialDutyDays] = useState('');
   const [totalKm, setTotalKm] = useState('');
-  const [transportMode, setTransportMode] = useState('');
+  const [transportMode, setTransportMode] = useState('CP'); // Carro Próprio
   const [osNumber, setOsNumber] = useState('');
+  const [posProgrammed, setPosProgrammed] = useState('');
+  const [posExecuted, setPosExecuted] = useState('');
   
   const [documentSummary, setDocumentSummary] = useState<DocumentSummary>({
     termo_intimacao: 0,
@@ -107,6 +134,7 @@ export default function MonthlyReport() {
       loadProfile();
       loadReport();
       loadDocumentStats();
+      loadDailyActions();
     }
   }, [user, selectedMonth, selectedYear]);
 
@@ -124,13 +152,13 @@ export default function MonthlyReport() {
     if (!user) return;
     setLoading(true);
     
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('monthly_reports')
       .select('*')
       .eq('user_id', user.id)
       .eq('month', selectedMonth)
       .eq('year', selectedYear)
-      .single();
+      .maybeSingle();
 
     if (data) {
       setReport(data);
@@ -139,7 +167,7 @@ export default function MonthlyReport() {
       setInternalDays(data.internal_days?.toString() || '');
       setDutyDays(data.duty_days?.toString() || '');
       setTotalKm(data.total_km?.toString() || '');
-      setTransportMode(data.transportation_mode || '');
+      setTransportMode(data.transportation_mode || 'CP');
       setOsNumber(data.os_number || '');
       if (data.documents_summary) {
         setDocumentSummary(data.documents_summary as unknown as DocumentSummary);
@@ -151,7 +179,7 @@ export default function MonthlyReport() {
       setInternalDays('');
       setDutyDays('');
       setTotalKm('');
-      setTransportMode('');
+      setTransportMode('CP');
       setOsNumber('');
     }
     
@@ -164,7 +192,7 @@ export default function MonthlyReport() {
     const startDate = new Date(selectedYear, selectedMonth - 1, 1);
     const endDate = new Date(selectedYear, selectedMonth, 0);
     
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('fiscal_documents')
       .select('document_type')
       .eq('user_id', user.id)
@@ -195,6 +223,47 @@ export default function MonthlyReport() {
       });
       
       setDocumentSummary(summary);
+      setPosExecuted(data.length.toString());
+      setPosProgrammed(data.length.toString());
+    }
+  };
+
+  const loadDailyActions = async () => {
+    if (!user) return;
+    
+    const startDate = new Date(selectedYear, selectedMonth - 1, 1);
+    const endDate = new Date(selectedYear, selectedMonth, 0);
+    
+    const { data } = await supabase
+      .from('fiscal_documents')
+      .select(`
+        id,
+        document_type,
+        document_number,
+        created_at,
+        content,
+        establishments(nome_fantasia)
+      `)
+      .eq('user_id', user.id)
+      .gte('created_at', startDate.toISOString())
+      .lte('created_at', endDate.toISOString())
+      .order('created_at', { ascending: true });
+
+    if (data) {
+      const actions: DailyAction[] = data.map((doc: any) => {
+        const content = doc.content || {};
+        const date = new Date(doc.created_at);
+        return {
+          day: date.getDate(),
+          transport: 'CP',
+          actionType: content.action_type || 'Inspeção',
+          level: content.nivel || 'M',
+          grade: content.grau || 2,
+          establishment: doc.establishments?.nome_fantasia || 'Estabelecimento',
+          document: doc.document_number || `${documentTypeAbbreviation[doc.document_type] || 'DOC'} ${doc.id.slice(0,4)}`,
+        };
+      });
+      setDailyActions(actions);
     }
   };
 
@@ -289,115 +358,183 @@ export default function MonthlyReport() {
 
   const totalDocuments = Object.values(documentSummary).reduce((a, b) => a + b, 0);
   const isLocked = report?.is_locked;
+  const completionRate = posProgrammed ? Math.round((parseInt(posExecuted) / parseInt(posProgrammed)) * 100) : 100;
 
-  // PDF Preview Component
+  // PDF Preview Component - matching Bárbara's report layout exactly
   if (showPDFPreview) {
     return (
-      <div className="min-h-screen bg-white text-black p-8 print:p-0">
-        {/* Print Header */}
-        <div className="flex items-center justify-between mb-8 print:mb-4">
-          <img src={fiscalizLogo} alt="Fiscaliz" className="h-16" />
-          <div className="text-center flex-1">
-            <p className="text-xs font-bold">PREFEITURA DE GOIÂNIA</p>
-            <p className="text-xs">SECRETARIA MUNICIPAL DE SAÚDE</p>
-            <p className="text-xs">DIRETORIA DE VIGILÂNCIA SANITÁRIA E AMBIENTAL</p>
-          </div>
-          <div className="text-right">
-            <Badge variant="outline">v{reportVersion}</Badge>
-          </div>
-        </div>
+      <div className="min-h-screen bg-white text-black print:text-black" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11pt' }}>
+        <style>{`
+          @media print {
+            body { margin: 0; padding: 0; }
+            .no-print { display: none !important; }
+            .page-break { page-break-after: always; }
+          }
+          .section-title { background: #003366; color: white; padding: 8px; font-weight: bold; margin-bottom: 10px; }
+          .info-row { display: flex; margin: 5px 0; }
+          .info-label { font-weight: bold; width: 40%; }
+          .info-value { width: 60%; }
+          table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+          th, td { border: 1px solid #333; padding: 6px; text-align: left; font-size: 10pt; }
+          th { background: #f0f0f0; font-weight: bold; }
+        `}</style>
 
-        <h1 className="text-xl font-bold text-center mb-6">
-          RELATÓRIO MENSAL DE PRODUTIVIDADE
-        </h1>
-        <h2 className="text-lg text-center mb-8">
-          {months[selectedMonth - 1]} / {selectedYear}
-        </h2>
+        <div className="p-8 max-w-4xl mx-auto">
+          {/* CABEÇALHO */}
+          <div className="text-center mb-6 border-b-2 border-blue-900 pb-4">
+            <img src={fiscalizLogo} alt="Fiscaliz" className="h-20 mx-auto mb-3" />
+            <h1 className="text-sm font-bold text-blue-900">PREFEITURA MUNICIPAL DE GOIÂNIA</h1>
+            <h1 className="text-sm font-bold text-blue-900">SECRETARIA MUNICIPAL DE SAÚDE</h1>
+            <h2 className="text-xs text-gray-600">DIRETORIA DE VIGILÂNCIA SANITÁRIA E AMBIENTAL</h2>
+            <h2 className="text-xs text-gray-600 mt-2">
+              RELATÓRIO MENSAL DE PRODUTIVIDADE - {months[selectedMonth - 1].toUpperCase()}/{selectedYear}
+            </h2>
+          </div>
 
-        {/* Fiscal Info */}
-        <div className="border p-4 mb-6">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <strong>Fiscal:</strong> {profile?.full_name}
-            </div>
-            <div>
-              <strong>Matrícula:</strong> {profile?.registration_number || '-'}
-            </div>
-            <div>
-              <strong>POS:</strong> {osNumber || '-'}
-            </div>
-            <div>
-              <strong>Divisão:</strong> {profile?.division || '-'}
-            </div>
+          {/* IDENTIFICAÇÃO DO SERVIDOR */}
+          <div className="mb-6">
+            <div className="section-title">IDENTIFICAÇÃO DO SERVIDOR</div>
+            <div className="info-row"><span className="info-label">Nome:</span><span className="info-value">{profile?.full_name}</span></div>
+            <div className="info-row"><span className="info-label">Matrícula:</span><span className="info-value">{profile?.registration_number || '-'}</span></div>
+            <div className="info-row"><span className="info-label">Coordenação:</span><span className="info-value">{profile?.division || 'CFA - Coordenação de Fiscalização de Alimentos'}</span></div>
+            <div className="info-row"><span className="info-label">Período:</span><span className="info-value">01 a {new Date(selectedYear, selectedMonth, 0).getDate()}/{selectedMonth.toString().padStart(2, '0')}/{selectedYear}</span></div>
+            <div className="info-row"><span className="info-label">Data do Relatório:</span><span className="info-value">{format(new Date(), 'dd/MM/yyyy')}</span></div>
           </div>
-        </div>
 
-        {/* Statistics */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          <div className="border p-3 text-center">
-            <p className="text-2xl font-bold">{workingDays || 0}</p>
-            <p className="text-xs">Dias Úteis</p>
+          {/* PROGRAMAÇÃO DE ORDENS DE SERVIÇO */}
+          <div className="mb-6">
+            <div className="section-title">PROGRAMAÇÃO DE ORDENS DE SERVIÇO (POS)</div>
+            <table>
+              <thead>
+                <tr><th>Descrição</th><th>Quantidade</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>POS Programadas</td><td>{posProgrammed || totalDocuments}</td></tr>
+                <tr><td>POS Executadas</td><td>{posExecuted || totalDocuments}</td></tr>
+                <tr><td>Taxa de Cumprimento</td><td>{completionRate}%</td></tr>
+              </tbody>
+            </table>
           </div>
-          <div className="border p-3 text-center">
-            <p className="text-2xl font-bold">{fieldDays || 0}</p>
-            <p className="text-xs">Dias Campo</p>
-          </div>
-          <div className="border p-3 text-center">
-            <p className="text-2xl font-bold">{internalDays || 0}</p>
-            <p className="text-xs">Dias Internos</p>
-          </div>
-          <div className="border p-3 text-center">
-            <p className="text-2xl font-bold">{totalKm || 0}</p>
-            <p className="text-xs">Km ({transportMode || 'MPL'})</p>
-          </div>
-        </div>
 
-        {/* Document Summary */}
-        <h3 className="font-bold mb-2">PEÇAS FISCAIS EMITIDAS:</h3>
-        <table className="w-full border-collapse border mb-6 text-sm">
-          <thead>
-            <tr className="bg-muted">
-              <th className="border p-2 text-left">Tipo de Documento</th>
-              <th className="border p-2 text-center w-20">Qtd</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.entries(documentSummary).map(([key, value]) => (
-              value > 0 && (
-                <tr key={key}>
-                  <td className="border p-2">{documentTypeLabels[key] || key}</td>
-                  <td className="border p-2 text-center font-bold">{value}</td>
+          {/* ESCALA DE TRABALHO */}
+          <div className="mb-6">
+            <div className="section-title">ESCALA DE TRABALHO</div>
+            <table>
+              <thead>
+                <tr><th>Tipo de Atividade</th><th>Quantidade</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Fiscalização em Área</td><td>{fieldDays || 0}</td></tr>
+                <tr><td>Ação Interna</td><td>{internalDays || 0}</td></tr>
+                <tr><td>Plantão Fiscal</td><td>{dutyDays || 0}</td></tr>
+                <tr><td>Plantão Fiscal Especial</td><td>{specialDutyDays || 0}</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* MEIO DE LOCOMOÇÃO */}
+          <div className="mb-6">
+            <div className="section-title">MEIO DE LOCOMOÇÃO</div>
+            <table>
+              <thead>
+                <tr><th>Tipo</th><th>Dias Utilizados</th><th>Quilometragem</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Carro Oficial</td><td>{transportMode === 'CO' ? fieldDays : 0}</td><td>-</td></tr>
+                <tr><td>Carro Próprio</td><td>{transportMode === 'CP' ? fieldDays : 0}</td><td>{totalKm || 0} km</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Page Break */}
+          <div className="page-break" />
+
+          {/* AÇÕES DIÁRIAS */}
+          <div className="text-center mb-6">
+            <img src={fiscalizLogo} alt="Fiscaliz" className="h-16 mx-auto mb-2" />
+            <h2 className="text-xs text-gray-600">DESCRIÇÃO DETALHADA DAS AÇÕES DIÁRIAS</h2>
+          </div>
+
+          <div className="mb-6">
+            <table>
+              <thead>
+                <tr>
+                  <th>Dia</th>
+                  <th>ML</th>
+                  <th>Tipo Ação</th>
+                  <th>Nível</th>
+                  <th>Grau</th>
+                  <th>Descrição</th>
+                  <th>Doc. Emitido</th>
                 </tr>
-              )
-            ))}
-            <tr className="bg-muted font-bold">
-              <td className="border p-2">TOTAL</td>
-              <td className="border p-2 text-center">{totalDocuments}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        {/* Signature */}
-        <div className="mt-12 pt-8">
-          <div className="w-64 mx-auto text-center">
-            <div className="border-b border-black mb-2 h-12" />
-            <p className="font-bold">{profile?.full_name}</p>
-            <p className="text-sm">Auditor Fiscal de Saúde Pública</p>
-            {profile?.registration_number && (
-              <p className="text-sm">Mat. {profile.registration_number}</p>
-            )}
+              </thead>
+              <tbody>
+                {dailyActions.map((action, idx) => (
+                  <tr key={idx}>
+                    <td>{action.day}</td>
+                    <td>{action.transport}</td>
+                    <td>{action.actionType}</td>
+                    <td>{action.level}</td>
+                    <td>{action.grade}</td>
+                    <td>{action.establishment}</td>
+                    <td>{action.document}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
 
-        <div className="mt-8 text-center text-xs text-muted-foreground">
-          <p>Documento gerado por <strong>fiscaliz.app</strong></p>
-          <p>Goiânia, {format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
+          {/* DESCRIÇÃO DAS AÇÕES */}
+          <div className="mb-6">
+            <div className="section-title">DESCRIÇÃO RESUMIDA DAS AÇÕES REALIZADAS</div>
+            <p className="text-justify text-sm p-2">
+              Durante o mês de {months[selectedMonth - 1].toLowerCase()} de {selectedYear}, foram realizadas {totalDocuments} ordens de serviço conforme programação estabelecida pela coordenação. As atividades incluíram inspeções sanitárias em estabelecimentos, reinspecções para verificação de correções, emissão de certidões sanitárias, coletas de amostras para análise laboratorial, atendimentos a denúncias e orientações técnicas aos responsáveis. Todas as ações foram devidamente documentadas através de autos de infração, termos de reinspeção, pareceres técnicos e certidões, conforme anexos comprobatórios.
+            </p>
+          </div>
+
+          {/* DOCUMENTOS ANEXADOS */}
+          <div className="mb-6">
+            <div className="section-title">DOCUMENTAÇÃO COMPROBATÓRIA ANEXADA</div>
+            <table>
+              <thead>
+                <tr><th>Nº</th><th>Tipo de Documento</th><th>Descrição</th></tr>
+              </thead>
+              <tbody>
+                {dailyActions.slice(0, 10).map((action, idx) => (
+                  <tr key={idx}>
+                    <td>{idx + 1}</td>
+                    <td>{action.actionType === 'Inspeção' ? 'Auto de Infração' : action.actionType === 'Reinspeção' ? 'Termo de Reinspeção' : action.actionType === 'Certidão' ? 'Certidão Sanitária' : action.actionType === 'Coleta' ? 'Coleta de Amostra' : 'Documento'}</td>
+                    <td>{action.document} - {action.establishment}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ASSINATURA */}
+          <div className="mt-16 text-center">
+            <div className="w-72 mx-auto">
+              <div className="border-t border-black mb-2 mt-12" />
+              <p className="font-bold">{profile?.full_name}</p>
+              <p className="text-sm">Matrícula: {profile?.registration_number}</p>
+            </div>
+          </div>
+
+          {/* FOOTER */}
+          <div className="mt-10 border-t pt-2 text-xs">
+            <p><strong>NOTA:</strong> Eventualmente o número de OS executado poderá exceder o número de OS programado para fechamento de produção.</p>
+            <p><strong>1ª VIA:</strong> CAAIF | <strong>2ª VIA:</strong> DIVISÃO DE FISCALIZAÇÃO</p>
+            <p className="mt-2">Gerado em: {format(new Date(), 'dd/MM/yyyy')} | <strong>fiscaliz.app</strong></p>
+          </div>
         </div>
 
         {/* Back button (hidden in print) */}
-        <div className="print:hidden fixed bottom-4 right-4">
-          <Button onClick={() => setShowPDFPreview(false)}>
+        <div className="no-print fixed bottom-4 right-4 flex gap-2">
+          <Button variant="outline" onClick={() => setShowPDFPreview(false)}>
             Voltar
+          </Button>
+          <Button onClick={() => window.print()}>
+            Imprimir PDF
           </Button>
         </div>
       </div>
@@ -463,10 +600,11 @@ export default function MonthlyReport() {
         )}
 
         <Tabs defaultValue="resumo" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="resumo">Resumo</TabsTrigger>
             <TabsTrigger value="dados">Dados</TabsTrigger>
-            <TabsTrigger value="documentos">Documentos</TabsTrigger>
+            <TabsTrigger value="acoes">Ações</TabsTrigger>
+            <TabsTrigger value="documentos">Docs</TabsTrigger>
           </TabsList>
           
           <TabsContent value="resumo" className="space-y-4">
@@ -480,7 +618,7 @@ export default function MonthlyReport() {
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{totalDocuments}</p>
-                      <p className="text-xs text-muted-foreground">Documentos</p>
+                      <p className="text-xs text-muted-foreground">POS Executadas</p>
                     </div>
                   </div>
                 </CardContent>
@@ -532,24 +670,15 @@ export default function MonthlyReport() {
             {/* Document Breakdown */}
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Peças Fiscais</CardTitle>
+                <CardTitle className="text-sm font-medium">Peças Fiscais Emitidas</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {[
-                  { key: 'termo_intimacao', label: 'Termos de Intimação' },
-                  { key: 'visita_fiscal', label: 'Visitas Fiscais' },
-                  { key: 'auto_infracao', label: 'Autos de Infração' },
-                  { key: 'advertencia', label: 'Advertências' },
-                  { key: 'inutilizacao', label: 'Inutilizações' },
-                  { key: 'apreensao', label: 'Apreensões' },
-                  { key: 'interdicao', label: 'Interdições' },
-                ].map(({ key, label }) => {
-                  const value = documentSummary[key as keyof DocumentSummary];
+                {Object.entries(documentSummary).map(([key, value]) => {
                   if (value === 0) return null;
                   return (
                     <div key={key} className="flex items-center justify-between py-1">
-                      <span className="text-sm">{label}</span>
-                      <span className="font-semibold">{value}</span>
+                      <span className="text-sm">{documentTypeLabels[key] || key}</span>
+                      <Badge variant="secondary">{value}</Badge>
                     </div>
                   );
                 })}
@@ -558,27 +687,25 @@ export default function MonthlyReport() {
                     Nenhum documento gerado neste período
                   </p>
                 )}
+                {totalDocuments > 0 && (
+                  <div className="flex items-center justify-between py-2 border-t mt-2">
+                    <span className="font-medium">Total</span>
+                    <Badge>{totalDocuments}</Badge>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
           
           <TabsContent value="dados" className="space-y-4">
             <Card className="border-0 shadow-sm">
-              <CardContent className="p-4 space-y-4">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Escala de Trabalho</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="workingDays">Dias Úteis</Label>
-                    <Input
-                      id="workingDays"
-                      type="number"
-                      value={workingDays}
-                      onChange={(e) => setWorkingDays(e.target.value)}
-                      disabled={isLocked}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="fieldDays">Dias em Campo</Label>
+                    <Label htmlFor="fieldDays">Fiscalização em Área</Label>
                     <Input
                       id="fieldDays"
                       type="number"
@@ -589,7 +716,7 @@ export default function MonthlyReport() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="internalDays">Dias Internos</Label>
+                    <Label htmlFor="internalDays">Ação Interna</Label>
                     <Input
                       id="internalDays"
                       type="number"
@@ -600,7 +727,7 @@ export default function MonthlyReport() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="dutyDays">Dias de Plantão</Label>
+                    <Label htmlFor="dutyDays">Plantão Fiscal</Label>
                     <Input
                       id="dutyDays"
                       type="number"
@@ -610,23 +737,68 @@ export default function MonthlyReport() {
                       className="mt-1"
                     />
                   </div>
+                  <div>
+                    <Label htmlFor="specialDutyDays">Plantão Especial</Label>
+                    <Input
+                      id="specialDutyDays"
+                      type="number"
+                      value={specialDutyDays}
+                      onChange={(e) => setSpecialDutyDays(e.target.value)}
+                      disabled={isLocked}
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
+              </CardContent>
+            </Card>
 
-                <div>
-                  <Label htmlFor="osNumber">Número da POS</Label>
-                  <Input
-                    id="osNumber"
-                    value={osNumber}
-                    onChange={(e) => setOsNumber(e.target.value)}
-                    placeholder="Ex: 19/12"
-                    disabled={isLocked}
-                    className="mt-1"
-                  />
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">POS e Locomoção</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="posProgrammed">POS Programadas</Label>
+                    <Input
+                      id="posProgrammed"
+                      type="number"
+                      value={posProgrammed}
+                      onChange={(e) => setPosProgrammed(e.target.value)}
+                      disabled={isLocked}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="posExecuted">POS Executadas</Label>
+                    <Input
+                      id="posExecuted"
+                      type="number"
+                      value={posExecuted}
+                      disabled
+                      className="mt-1 bg-muted"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="totalKm">Km Rodados (MPL)</Label>
+                    <Label htmlFor="transport">Locomoção</Label>
+                    <select
+                      id="transport"
+                      value={transportMode}
+                      onChange={(e) => setTransportMode(e.target.value)}
+                      disabled={isLocked}
+                      className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="CP">Carro Próprio</option>
+                      <option value="CO">Carro Oficial</option>
+                      <option value="MPL">Moto Própria</option>
+                      <option value="TP">Transporte Público</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="totalKm">Km Rodados</Label>
                     <Input
                       id="totalKm"
                       type="number"
@@ -636,18 +808,42 @@ export default function MonthlyReport() {
                       className="mt-1"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="transport">Locomoção</Label>
-                    <Input
-                      id="transport"
-                      value={transportMode}
-                      onChange={(e) => setTransportMode(e.target.value)}
-                      placeholder="MPL, CO, etc"
-                      disabled={isLocked}
-                      className="mt-1"
-                    />
-                  </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="acoes" className="space-y-4">
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  Ações Diárias - {months[selectedMonth - 1]}/{selectedYear}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {dailyActions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Nenhuma ação registrada neste período
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {dailyActions.map((action, idx) => (
+                      <div key={idx} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold">
+                          {action.day}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{action.establishment}</p>
+                          <p className="text-xs text-muted-foreground">{action.actionType} • {action.document}</p>
+                        </div>
+                        <Badge variant="outline" className="shrink-0">
+                          {action.level}{action.grade}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -656,7 +852,7 @@ export default function MonthlyReport() {
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Documentos Gerados - {months[selectedMonth - 1]}/{selectedYear}
+                  Documentos - {months[selectedMonth - 1]}/{selectedYear}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
