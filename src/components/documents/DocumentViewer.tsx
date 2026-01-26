@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import marcaDaguaFiscaliz from '@/assets/marca-dagua-fiscaliz.png';
+import fiscalizLogo from '@/assets/fiscaliz-logo.png';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BRASAO_GOIANIA_SVG, SUS_LOGO_SVG } from '@/lib/logos';
@@ -415,9 +416,9 @@ export function DocumentViewer({
                 />
                 {/* Fiscaliz logo - only visible in app */}
                 <img 
-                  src={marcaDaguaFiscaliz} 
+                  src={fiscalizLogo} 
                   alt="Fiscaliz" 
-                  className="block print:hidden h-16 w-16 object-contain opacity-80"
+                  className="block print:hidden h-16 w-16 object-contain"
                 />
               </div>
               <div className="flex-1 text-center">

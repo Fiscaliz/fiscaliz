@@ -65,17 +65,31 @@ export default function DocumentDetail() {
     }
 
     // Then get the profile separately
-    const { data: profileData } = await supabase
+    const { data: profileData, error: profileError } = await supabase
       .from('profiles')
-      .select('full_name, registration_number')
+      .select('full_name, registration_number, division')
       .eq('id', docData.user_id)
       .maybeSingle();
+
+    if (profileError) {
+      console.error('Error loading profile:', profileError);
+    }
+
+    const fallbackProfile =
+      user?.id === docData.user_id
+        ? {
+            full_name:
+              (user.user_metadata as any)?.full_name ||
+              user.email?.split('@')[0] ||
+              'Autoridade Fiscal',
+          }
+        : null;
 
     // Format document for viewer
     const formattedDoc = {
       ...docData,
       establishment: Array.isArray(docData.establishment) ? docData.establishment[0] : docData.establishment,
-      profile: profileData
+      profile: profileData || fallbackProfile
     };
     
     setDocument(formattedDoc);
