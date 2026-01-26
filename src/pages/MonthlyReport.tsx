@@ -143,12 +143,39 @@ export default function MonthlyReport() {
 
   const loadProfile = async () => {
     if (!user) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
-      .single();
-    if (data) setProfile(data);
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error loading profile:', error);
+      // Não bloqueia a tela inteira por falha de perfil
+      return;
+    }
+
+    // Se não existir perfil (ex.: usuário antigo), cria um básico e segue
+    if (!data) {
+      const fallbackFullName =
+        (user.user_metadata as any)?.full_name ||
+        user.email?.split('@')[0] ||
+        'Usuário';
+
+      const { data: created, error: createError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          full_name: fallbackFullName,
+        })
+        .select('*')
+        .maybeSingle();
+
+      if (!createError && created) setProfile(created);
+      return;
+    }
+
+    setProfile(data);
   };
 
   const loadReport = async () => {
