@@ -75,39 +75,42 @@ export default function DocumentDetail() {
       console.error('Error loading profile:', profileError);
     }
 
-    const fallbackProfile =
-      user?.id === docData.user_id
-        ? {
-            full_name:
-              (user.user_metadata as any)?.full_name ||
-              user.email?.split('@')[0] ||
-              'Autoridade Fiscal',
-            registration_number: (user.user_metadata as any)?.registration_number,
-            division: (user.user_metadata as any)?.division,
-          }
-        : null;
+    // Se for o próprio usuário logado, SEMPRE usar metadata (fonte mais atualizada)
+    const isCurrentUser = user?.id === docData.user_id;
+    const userMeta = user?.user_metadata as any;
 
-    // Se for o usuário logado, preferir o nome do metadata (evita “assinatura antiga”)
-    const normalizedProfile =
-      user?.id === docData.user_id
-        ? {
-            ...profileData,
-            full_name:
-              (user.user_metadata as any)?.full_name ||
-              profileData?.full_name,
-            registration_number:
-              (user.user_metadata as any)?.registration_number ||
-              profileData?.registration_number,
-            division:
-              (user.user_metadata as any)?.division || profileData?.division,
-          }
-        : profileData;
+    let finalProfile: { full_name: string; registration_number?: string; division?: string } | null;
+
+    if (isCurrentUser && userMeta?.full_name) {
+      // Prioridade 1: Metadata do usuário logado (mais atual)
+      finalProfile = {
+        full_name: userMeta.full_name,
+        registration_number: userMeta.registration_number || profileData?.registration_number,
+        division: userMeta.division || profileData?.division,
+      };
+    } else if (profileData?.full_name) {
+      // Prioridade 2: Dados da tabela profiles
+      finalProfile = {
+        full_name: profileData.full_name,
+        registration_number: profileData.registration_number,
+        division: profileData.division,
+      };
+    } else if (isCurrentUser) {
+      // Fallback: email do usuário
+      finalProfile = {
+        full_name: user?.email?.split('@')[0] || 'Autoridade Fiscal',
+        registration_number: undefined,
+        division: undefined,
+      };
+    } else {
+      finalProfile = null;
+    }
 
     // Format document for viewer
     const formattedDoc = {
       ...docData,
       establishment: Array.isArray(docData.establishment) ? docData.establishment[0] : docData.establishment,
-      profile: normalizedProfile || fallbackProfile
+      profile: finalProfile,
     };
     
     setDocument(formattedDoc);
