@@ -82,14 +82,32 @@ export default function DocumentDetail() {
               (user.user_metadata as any)?.full_name ||
               user.email?.split('@')[0] ||
               'Autoridade Fiscal',
+            registration_number: (user.user_metadata as any)?.registration_number,
+            division: (user.user_metadata as any)?.division,
           }
         : null;
+
+    // Se for o usuário logado, preferir o nome do metadata (evita “assinatura antiga”)
+    const normalizedProfile =
+      user?.id === docData.user_id
+        ? {
+            ...profileData,
+            full_name:
+              (user.user_metadata as any)?.full_name ||
+              profileData?.full_name,
+            registration_number:
+              (user.user_metadata as any)?.registration_number ||
+              profileData?.registration_number,
+            division:
+              (user.user_metadata as any)?.division || profileData?.division,
+          }
+        : profileData;
 
     // Format document for viewer
     const formattedDoc = {
       ...docData,
       establishment: Array.isArray(docData.establishment) ? docData.establishment[0] : docData.establishment,
-      profile: profileData || fallbackProfile
+      profile: normalizedProfile || fallbackProfile
     };
     
     setDocument(formattedDoc);
