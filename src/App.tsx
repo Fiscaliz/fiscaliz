@@ -12,6 +12,7 @@ import Home from "./pages/Home";
 import Tasks from "./pages/Tasks";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
+import EditProfile from "./pages/EditProfile";
 import NewAction from "./pages/NewAction";
 import EstablishmentEntry from "./pages/NewAction/EstablishmentEntry";
 import DocumentTypeSelection from "./pages/NewAction/DocumentTypeSelection";
@@ -52,6 +53,11 @@ const App = () => (
             <Route path="/perfil" element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            } />
+            <Route path="/perfil/editar" element={
+              <ProtectedRoute>
+                <EditProfile />
               </ProtectedRoute>
             } />
             <Route path="/nova-acao" element={

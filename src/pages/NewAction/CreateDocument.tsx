@@ -28,6 +28,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
+type UploadedImage = {
+  id: string;
+  file: File;
+  previewUrl: string;
+};
+
 const creationMethods = [
   { id: 'upload', icon: Upload, label: 'Upload de Documento', description: 'Foto do documento em papel' },
   { id: 'checklist', icon: CheckSquare, label: 'Checklist Pré-Atestado', description: 'Por tipo de estabelecimento' },
@@ -69,7 +75,7 @@ export default function CreateDocument() {
   const [manualContent, setManualContent] = useState('');
   const [deadlineDays, setDeadlineDays] = useState('15');
   const [saving, setSaving] = useState(false);
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [otrosContent, setOtrosContent] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const aiFileInputRef = useRef<HTMLInputElement>(null);
@@ -120,22 +126,24 @@ export default function CreateDocument() {
       return;
     }
 
-    Array.from(files).forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setUploadedImages(prev => [...prev, event.target!.result as string]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+    const toAdd: UploadedImage[] = Array.from(files).map((file) => ({
+      id: crypto.randomUUID(),
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }));
+    setUploadedImages((prev) => [...prev, ...toAdd]);
 
     // Reset input
     e.target.value = '';
   };
 
   const removeImage = (index: number) => {
-    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+    setUploadedImages((prev) => {
+      const next = [...prev];
+      const removed = next.splice(index, 1)[0];
+      if (removed?.previewUrl) URL.revokeObjectURL(removed.previewUrl);
+      return next;
+    });
   };
 
   const generateDocumentContent = () => {
@@ -194,8 +202,48 @@ export default function CreateDocument() {
       const deadlineDate = new Date();
       deadlineDate.setDate(deadlineDate.getDate() + parseInt(deadlineDays));
 
+      // Upload photos (if any) to storage, and keep only URLs in DB
+      const plannedDocId = crypto.randomUUID();
+      const uploadedUrls: string[] = [];
+
+      if (uploadedImages.length > 0) {
+        for (const img of uploadedImages) {
+          const fileExt = img.file.name.split('.').pop() || 'jpg';
+          const fileName = `${user.id}/${plannedDocId}_${img.id}.${fileExt}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('fiscal-photos')
+            .upload(fileName, img.file, { upsert: true });
+          if (uploadError) throw uploadError;
+
+          const { data: urlData } = supabase.storage.from('fiscal-photos').getPublicUrl(fileName);
+          if (urlData?.publicUrl) uploadedUrls.push(urlData.publicUrl);
+        }
+      }
+
       // Create document
-      const content = generateDocumentContent();
+      let content = generateDocumentContent();
+
+      // If AI method, call backend to analyze uploaded photos
+      if (method === 'ai') {
+        if (uploadedUrls.length === 0) {
+          throw new Error('Adicione pelo menos 1 foto para análise.');
+        }
+
+        const { data: aiData, error: aiError } = await supabase.functions.invoke('analyze-photos', {
+          body: {
+            documentType: tipo,
+            photos: uploadedUrls,
+          },
+        });
+
+        if (aiError) throw aiError;
+        const aiText = (aiData as any)?.text as string | undefined;
+        if (!aiText?.trim()) {
+          throw new Error('A IA não retornou texto. Tente novamente com fotos mais nítidas.');
+        }
+        content = aiText;
+      }
       const irregularities = method === 'checklist' && currentChecklist
         ? currentChecklist.items.filter(item => selectedItems.includes(item.id)).map(item => ({
             id: item.id,
@@ -205,16 +253,19 @@ export default function CreateDocument() {
           }))
         : [];
 
-      // Prepare attachments (base64 images)
-      const attachments = uploadedImages.length > 0 ? uploadedImages.map((img, idx) => ({
-        id: `img_${idx}`,
-        data: img,
-        type: 'image',
-      })) : null;
+      // Prepare attachments (URLs only)
+      const attachments = uploadedUrls.length > 0
+        ? uploadedUrls.map((url, idx) => ({
+            id: `img_${idx}`,
+            url,
+            type: 'image',
+          }))
+        : null;
 
       const { data: newDoc, error: docError } = await supabase
         .from('fiscal_documents')
         .insert({
+          id: plannedDocId,
           user_id: user.id,
           establishment_id: establishmentId,
           fiscal_action_id: action.id,
@@ -519,7 +570,7 @@ export default function CreateDocument() {
                 <div className="grid grid-cols-3 gap-2">
                   {uploadedImages.map((img, idx) => (
                     <div key={idx} className="relative aspect-square rounded-lg overflow-hidden">
-                      <img src={img} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                      <img src={img.previewUrl} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
                       <button
                         onClick={() => removeImage(idx)}
                         className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
@@ -610,7 +661,7 @@ export default function CreateDocument() {
                 <div className="grid grid-cols-2 gap-2">
                   {uploadedImages.map((img, idx) => (
                     <div key={idx} className="relative aspect-[3/4] rounded-lg overflow-hidden">
-                      <img src={img} alt={`Documento ${idx + 1}`} className="w-full h-full object-cover" />
+                      <img src={img.previewUrl} alt={`Documento ${idx + 1}`} className="w-full h-full object-cover" />
                       <button
                         onClick={() => removeImage(idx)}
                         className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
@@ -707,7 +758,7 @@ export default function CreateDocument() {
                   <div className="grid grid-cols-4 gap-2 mt-2">
                     {uploadedImages.map((img, idx) => (
                       <div key={idx} className="relative aspect-square rounded-lg overflow-hidden">
-                        <img src={img} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                        <img src={img.previewUrl} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
                         <button
                           onClick={() => removeImage(idx)}
                           className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
