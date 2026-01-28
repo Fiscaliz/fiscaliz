@@ -14,7 +14,9 @@ import {
   Building2,
   MapPin,
   Navigation,
-  Locate
+  Locate,
+  AlertTriangle,
+  CheckCircle2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -99,6 +101,7 @@ export default function EstablishmentEntry() {
           cep: data.cep?.replace(/\D/g, '') || '',
           cnae_principal: data.cnae_fiscal?.toString() || '',
           cnae_descricao: data.cnae_fiscal_descricao || '',
+          situacao_cadastral: data.descricao_situacao_cadastral || '',
           responsavel_nome: data.qsa?.[0]?.nome_socio || '',
         });
         
@@ -437,6 +440,35 @@ export default function EstablishmentEntry() {
                     onChange={(e) => setEstablishment({...establishment, cnpj: e.target.value.replace(/\D/g, '')})}
                   />
                 </div>
+
+                {/* Situação Cadastral Badge */}
+                {establishment?.situacao_cadastral && (
+                  <div className={`rounded-lg p-3 flex items-center gap-2 ${
+                    establishment.situacao_cadastral === 'ATIVA' 
+                      ? 'bg-green-50 border border-green-200' 
+                      : 'bg-amber-50 border border-amber-200'
+                  }`}>
+                    {establishment.situacao_cadastral === 'ATIVA' ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    ) : (
+                      <AlertTriangle className="h-5 w-5 text-amber-600" />
+                    )}
+                    <div>
+                      <span className={`text-sm font-medium ${
+                        establishment.situacao_cadastral === 'ATIVA' 
+                          ? 'text-green-700' 
+                          : 'text-amber-700'
+                      }`}>
+                        Situação Cadastral: {establishment.situacao_cadastral}
+                      </span>
+                      {establishment.situacao_cadastral !== 'ATIVA' && (
+                        <p className="text-xs text-amber-600 mt-0.5">
+                          Atenção: CNPJ não está ativo na Receita Federal
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
                 
                 <div className="flex items-center gap-2 pt-2">
                   <MapPin className="h-5 w-5 text-primary" />
