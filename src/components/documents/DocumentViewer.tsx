@@ -79,7 +79,7 @@ interface DocumentViewerProps {
 
 const documentTypeLabels: Record<string, string> = {
   termo_intimacao: 'TERMO DE INTIMAÇÃO',
-  visita_fiscal: 'TERMO DE REINSPEÇÃO',
+  visita_fiscal: 'VISITA FISCAL',
   auto_infracao: 'AUTO DE INFRAÇÃO',
   advertencia: 'ADVERTÊNCIA',
   inutilizacao: 'TERMO DE INUTILIZAÇÃO',
@@ -800,11 +800,11 @@ export function DocumentViewer({
                   alt="SUS" 
                   className="hidden print:block h-8 w-auto object-contain"
                 />
-                {/* Fiscaliz logo - only visible in app - TAMANHO PADRÃO h-12 */}
+                {/* Fiscaliz logo - only visible in app - TAMANHO MAIOR para rascunho */}
                 <img 
                   src={logoFiscaliz}
                   alt="Fiscaliz" 
-                  className="block print:hidden h-12 w-auto object-contain"
+                  className="block print:hidden h-20 w-auto object-contain"
                 />
               </div>
               <div className="flex-1 text-center">
