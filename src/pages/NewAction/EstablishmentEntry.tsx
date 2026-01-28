@@ -684,96 +684,181 @@ export default function EstablishmentEntry() {
           </Card>
         )}
 
-        {/* Documento Anterior - Lista de documentos do banco */}
+        {/* Documento Anterior - Foto/Upload ou Lista */}
         {method === 'documento_anterior' && !establishment && (
           <Card className="border-0 shadow-sm">
             <CardContent className="p-4 space-y-4">
+              {/* Hidden file inputs for documento anterior */}
+              <input
+                type="file"
+                ref={docAnteriorInputRef}
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleFileSelect(e, setDocumentoAnteriorImage, false)}
+              />
+              <input
+                type="file"
+                ref={docAnteriorCameraRef}
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => handleFileSelect(e, setDocumentoAnteriorImage, false)}
+              />
+
               <div className="flex items-center gap-2 mb-2">
                 <FileText className="h-5 w-5 text-primary" />
-                <h3 className="font-semibold">Peças Fiscais Anteriores</h3>
+                <h3 className="font-semibold">Peça Fiscal Anterior</h3>
               </div>
               
-              <p className="text-sm text-muted-foreground">
-                Selecione um estabelecimento de documentos já criados:
-              </p>
-
-              {loadingDocuments ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : previousDocuments.length === 0 ? (
+              {/* Photo/Upload Section */}
+              {!documentoAnteriorImage && (
                 <div className="border-2 border-dashed border-muted rounded-xl p-6 text-center">
-                  <FileText className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
-                  <p className="font-medium text-muted-foreground">Nenhum documento encontrado</p>
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <Camera className="h-10 w-10 text-primary" />
+                  </div>
+                  <p className="font-medium">Foto de Peça Fiscal Anterior</p>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Você ainda não criou documentos fiscais com estabelecimentos
+                    Tire uma foto ou faça upload de um documento fiscal anterior
                   </p>
-                  <Button variant="outline" onClick={() => setMethod('manual')}>
-                    <Edit3 className="mr-2 h-4 w-4" />
-                    Preencher manualmente
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                  {previousDocuments.map((doc) => {
-                    const est = doc.establishment;
-                    const docTypeLabels: Record<string, string> = {
-                      termo_intimacao: 'T.I.',
-                      visita_fiscal: 'V.F.',
-                      auto_infracao: 'A.I.',
-                      certidao: 'Cert.',
-                      interdicao: 'Int.',
-                      apreensao: 'Apr.',
-                      inutilizacao: 'Inut.',
-                      advertencia: 'Adv.',
-                      notificacao: 'Not.',
-                      relatorio_tecnico: 'R.T.',
-                    };
-                    
-                    return (
-                      <Card 
-                        key={doc.id}
-                        className="border cursor-pointer transition-all hover:shadow-md hover:border-primary/50 active:scale-[0.98]"
-                        onClick={() => handleSelectPreviousDocument(doc)}
-                      >
-                        <CardContent className="p-3">
-                          <div className="flex items-start gap-3">
-                            <div className="rounded-lg p-2 bg-primary/10 flex-shrink-0">
-                              <Building2 className="h-5 w-5 text-primary" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">
-                                {est.nome_fantasia || est.razao_social}
-                              </p>
-                              {est.nome_fantasia && est.razao_social !== est.nome_fantasia && (
-                                <p className="text-xs text-muted-foreground truncate">
-                                  {est.razao_social}
-                                </p>
-                              )}
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-xs text-muted-foreground">
-                                  CNPJ: {est.cnpj?.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') || 'N/A'}
-                                </span>
-                                <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                                  {docTypeLabels[doc.document_type] || doc.document_type}
-                                </span>
-                              </div>
-                              {est.endereco && (
-                                <p className="text-xs text-muted-foreground mt-1 truncate flex items-center gap-1">
-                                  <MapPin className="h-3 w-3 flex-shrink-0" />
-                                  {est.endereco}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                  <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                    <Button onClick={() => docAnteriorCameraRef.current?.click()}>
+                      <Camera className="mr-2 h-4 w-4" />
+                      Tirar Foto
+                    </Button>
+                    <Button variant="outline" onClick={() => docAnteriorInputRef.current?.click()}>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload
+                    </Button>
+                  </div>
                 </div>
               )}
+
+              {/* Image Preview */}
+              {documentoAnteriorImage && (
+                <div className="space-y-3">
+                  <div className="relative">
+                    <img 
+                      src={documentoAnteriorImage} 
+                      alt="Documento Anterior" 
+                      className="w-full rounded-lg border max-h-64 object-contain"
+                    />
+                    <Button 
+                      variant="destructive" 
+                      size="icon"
+                      className="absolute top-2 right-2"
+                      onClick={() => setDocumentoAnteriorImage(null)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground text-center">
+                    Imagem capturada. Preencha os dados manualmente ou selecione de documentos anteriores.
+                  </p>
+                  <Button 
+                    className="w-full" 
+                    onClick={() => setEstablishment({ razao_social: '', nome_fantasia: '', cnpj: '', endereco: '', bairro: '', cep: '' })}
+                  >
+                    <Edit3 className="mr-2 h-4 w-4" />
+                    Preencher Dados Manualmente
+                  </Button>
+                </div>
+              )}
+
+              {/* Divider */}
+              {!documentoAnteriorImage && (
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 border-t border-muted" />
+                  <span className="text-xs text-muted-foreground">ou selecione do histórico</span>
+                  <div className="flex-1 border-t border-muted" />
+                </div>
+              )}
+
+              {/* Previous Documents List */}
+              {!documentoAnteriorImage && (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    Selecione um estabelecimento de documentos já criados:
+                  </p>
+
+                  {loadingDocuments ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : previousDocuments.length === 0 ? (
+                    <div className="border-2 border-dashed border-muted rounded-xl p-6 text-center">
+                      <FileText className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
+                      <p className="font-medium text-muted-foreground">Nenhum documento encontrado</p>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Você ainda não criou documentos fiscais com estabelecimentos
+                      </p>
+                      <Button variant="outline" onClick={() => setMethod('manual')}>
+                        <Edit3 className="mr-2 h-4 w-4" />
+                        Preencher manualmente
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                      {previousDocuments.map((doc) => {
+                        const est = doc.establishment;
+                        const docTypeLabels: Record<string, string> = {
+                          termo_intimacao: 'T.I.',
+                          visita_fiscal: 'V.F.',
+                          auto_infracao: 'A.I.',
+                          certidao: 'Cert.',
+                          interdicao: 'Int.',
+                          apreensao: 'Apr.',
+                          inutilizacao: 'Inut.',
+                          advertencia: 'Adv.',
+                          notificacao: 'Not.',
+                          relatorio_tecnico: 'R.T.',
+                        };
+                        
+                        return (
+                          <Card 
+                            key={doc.id}
+                            className="border cursor-pointer transition-all hover:shadow-md hover:border-primary/50 active:scale-[0.98]"
+                            onClick={() => handleSelectPreviousDocument(doc)}
+                          >
+                            <CardContent className="p-3">
+                              <div className="flex items-start gap-3">
+                                <div className="rounded-lg p-2 bg-primary/10 flex-shrink-0">
+                                  <Building2 className="h-5 w-5 text-primary" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm truncate">
+                                    {est.nome_fantasia || est.razao_social}
+                                  </p>
+                                  {est.nome_fantasia && est.razao_social !== est.nome_fantasia && (
+                                    <p className="text-xs text-muted-foreground truncate">
+                                      {est.razao_social}
+                                    </p>
+                                  )}
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-xs text-muted-foreground">
+                                      CNPJ: {est.cnpj?.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') || 'N/A'}
+                                    </span>
+                                    <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                      {docTypeLabels[doc.document_type] || doc.document_type}
+                                    </span>
+                                  </div>
+                                  {est.endereco && (
+                                    <p className="text-xs text-muted-foreground mt-1 truncate flex items-center gap-1">
+                                      <MapPin className="h-3 w-3 flex-shrink-0" />
+                                      {est.endereco}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
               
-              <Button variant="outline" className="w-full" onClick={() => { setMethod(null); setPreviousDocuments([]); }}>
+              <Button variant="outline" className="w-full" onClick={() => { setMethod(null); setPreviousDocuments([]); setDocumentoAnteriorImage(null); }}>
                 Voltar
               </Button>
             </CardContent>
