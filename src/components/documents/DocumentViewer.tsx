@@ -29,7 +29,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import marcaDaguaFiscaliz from '@/assets/marca-dagua-fiscaliz.png';
-import fiscalizLogo from '@/assets/fiscaliz-logo.png';
+import logoFiscaliz from '@/assets/logo-fiscaliz.png';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BRASAO_GOIANIA_SVG, SUS_LOGO_SVG, FISCALIZ_LOGO } from '@/lib/logos';
@@ -405,7 +405,8 @@ export function DocumentViewer({
         <style>{`
           @media print {
             body { margin: 0; padding: 0; }
-            .no-print { display: none !important; }
+            .no-print, nav, .bottom-nav, [class*="bottom-"], footer:not(.doc-footer) { display: none !important; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           }
           .doc-section { margin: 15px 0; }
           .doc-field { display: flex; margin: 5px 0; }
@@ -707,7 +708,7 @@ export function DocumentViewer({
                 />
                 {/* Fiscaliz logo - only visible in app - TAMANHO PADRÃO h-12 */}
                 <img 
-                  src={fiscalizLogo} 
+                  src={logoFiscaliz}
                   alt="Fiscaliz" 
                   className="block print:hidden h-12 w-auto object-contain"
                 />

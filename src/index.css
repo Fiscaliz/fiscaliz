@@ -205,7 +205,20 @@
   
   @media print {
     .app-watermark {
-      display: none;
+      display: none !important;
+    }
+    
+    /* Ocultar completamente a barra de navegação na impressão */
+    nav,
+    .bottom-nav,
+    [class*="BottomNav"],
+    [class*="bottom-nav"],
+    footer:not(.doc-footer) {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      height: 0 !important;
+      overflow: hidden !important;
     }
   }
 }
