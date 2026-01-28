@@ -2,3 +2,6 @@ project_id = "myirqijaioafxndnvdkc"
 
 [functions.analyze-photos]
 verify_jwt = false
+
+[functions.extract-alvara-data]
+verify_jwt = false
