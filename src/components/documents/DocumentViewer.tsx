@@ -674,17 +674,62 @@ export function DocumentViewer({
               </div>
             )}
 
-            {/* Contributor Photo - if exists */}
-            {contributorPhoto && (
-              <div className="p-4 bg-muted/20 rounded-lg print:bg-transparent">
-                <p className="text-sm font-semibold mb-2">Foto do Contribuinte:</p>
-                <img 
-                  src={contributorPhoto} 
-                  alt="Contribuinte" 
-                  className="max-w-xs rounded-lg border shadow-sm"
-                />
-              </div>
-            )}
+            {/* Contributor Photo Section */}
+            <div className="p-4 bg-muted/20 rounded-lg print:bg-transparent">
+              <p className="text-sm font-semibold mb-2 flex items-center gap-2">
+                <Camera className="h-4 w-4" />
+                Registro Fotográfico (Estabelecimento)
+              </p>
+              {contributorPhoto ? (
+                <div className="relative inline-block">
+                  <img 
+                    src={contributorPhoto} 
+                    alt="Registro fotográfico" 
+                    className="max-w-xs rounded-lg border shadow-sm"
+                  />
+                  {canEdit && (
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2 h-6 w-6 print:hidden"
+                      onClick={removePhoto}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              ) : canEdit ? (
+                <div className="flex gap-2 print:hidden">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCapturePhoto}
+                    disabled={isUploading}
+                  >
+                    <Camera className="h-4 w-4 mr-1" />
+                    Tirar foto
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                  >
+                    <Upload className="h-4 w-4 mr-1" />
+                    Upload
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                  />
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhuma foto adicionada</p>
+              )}
+            </div>
 
             {/* Preposto/Responsável Section - Editable */}
             {canEdit && (
