@@ -33,6 +33,7 @@ import fiscalizLogo from '@/assets/fiscaliz-logo.png';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BRASAO_GOIANIA_SVG, SUS_LOGO_SVG, FISCALIZ_LOGO } from '@/lib/logos';
+import { SignatureCanvas } from './SignatureCanvas';
 
 interface AttachmentPhoto {
   id?: string;
@@ -555,11 +556,11 @@ export function DocumentViewer({
             <div className="grid grid-cols-2 gap-8">
               <div className="text-center">
                 <div className="signature-line mb-2 mt-8" />
-                <p className="font-bold text-sm">{document.profile?.full_name || 'Autoridade Fiscal'}</p>
+                <p className="font-bold text-sm">{document.profile?.full_name || 'Auditor Fiscal'}</p>
                 {document.profile?.registration_number && (
                   <p className="text-xs">Matrícula: {document.profile.registration_number}</p>
                 )}
-                <p className="text-xs text-gray-600">{document.profile?.division || 'Auditor Fiscal de Vigilância Sanitária'}</p>
+                <p className="text-xs text-gray-600">Auditor Fiscal de Saúde Pública</p>
               </div>
               <div className="text-center">
                 {prepostoPhoto ? (
@@ -579,14 +580,10 @@ export function DocumentViewer({
                 )}
                 <p className="font-bold text-sm">Ciência do Responsável</p>
                 {prepostoName ? (
-                  <>
-                    <p className="text-xs">Nome: {prepostoName}</p>
-                    <p className="text-xs">CPF: {prepostoCpf || '________________________'}</p>
-                  </>
+                  <p className="text-xs">Nome: {prepostoName}</p>
                 ) : (
                   <>
                     <p className="text-xs">Nome: _______________________</p>
-                    <p className="text-xs">CPF: ________________________</p>
                     <p className="text-xs text-gray-500 italic mt-1">(Assinatura opcional)</p>
                   </>
                 )}
@@ -598,6 +595,7 @@ export function DocumentViewer({
           <div className="mt-10 pt-4 border-t text-xs text-center text-gray-600">
             <p>Goiânia, {formatDateFull(document.created_at)}</p>
             <p className="mt-2">Este documento foi gerado eletronicamente e possui validade legal conforme legislação vigente.</p>
+            <p className="mt-1 font-semibold">Lei Municipal 8.741/08</p>
             <p className="mt-1 text-[10px]">1ª Via: Estabelecimento | 2ª Via: Fiscalização</p>
             <p className="mt-3 text-[9px] font-semibold text-gray-500">
               Criado por FISCALIZ<sup>®</sup>
@@ -660,7 +658,7 @@ export function DocumentViewer({
                 <img 
                   src={fiscalizLogo} 
                   alt="Fiscaliz" 
-                  className="block print:hidden h-16 w-16 object-contain"
+                  className="block print:hidden h-12 w-auto object-contain"
                 />
               </div>
               <div className="flex-1 text-center">
@@ -1008,30 +1006,18 @@ export function DocumentViewer({
               <div className="p-4 bg-muted/30 rounded-lg space-y-4 print:hidden">
                 <p className="text-sm font-semibold flex items-center gap-2">
                   <User className="h-4 w-4" />
-                  Assinatura do Contribuinte/Preposto (opcional)
+                  Ciência do Responsável (opcional)
                 </p>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="prepostoName" className="text-xs">Nome</Label>
-                    <Input
-                      id="prepostoName"
-                      value={prepostoName}
-                      onChange={(e) => setPrepostoName(e.target.value)}
-                      placeholder="Nome do responsável"
-                      className="text-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="prepostoCpf" className="text-xs">CPF</Label>
-                    <Input
-                      id="prepostoCpf"
-                      value={prepostoCpf}
-                      onChange={(e) => setPrepostoCpf(e.target.value)}
-                      placeholder="000.000.000-00"
-                      className="text-sm"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="prepostoName" className="text-xs">Nome do Responsável</Label>
+                  <Input
+                    id="prepostoName"
+                    value={prepostoName}
+                    onChange={(e) => setPrepostoName(e.target.value)}
+                    placeholder="Nome completo do responsável"
+                    className="text-sm"
+                  />
                 </div>
 
                 {/* Opção de Foto OU Rubrica */}
@@ -1104,9 +1090,10 @@ export function DocumentViewer({
                           </Button>
                         </div>
                       ) : (
-                        <p className="text-xs text-muted-foreground text-center py-4">
-                          Use a captura de assinatura no dispositivo móvel
-                        </p>
+                        <SignatureCanvas
+                          documentId={document.id}
+                          onSave={(url) => setContributorSignatureUrl(url)}
+                        />
                       )}
                     </div>
                   </div>
@@ -1190,15 +1177,12 @@ export function DocumentViewer({
             <div className="grid grid-cols-2 gap-8 pt-8 border-t print:pt-6">
               <div className="text-center space-y-2">
                 <div className="h-16 border-b border-dashed border-muted-foreground print:border-gray-400" />
-                <p className="text-sm font-semibold">Autoridade Fiscal</p>
+                <p className="text-sm font-semibold">Auditor Fiscal de Saúde Pública</p>
                 {document.profile && (
                   <div className="text-xs text-muted-foreground print:text-gray-600">
                     <p>{document.profile.full_name}</p>
                     {document.profile.registration_number && (
                       <p>Mat. {document.profile.registration_number}</p>
-                    )}
-                    {document.profile.division && (
-                      <p>{document.profile.division}</p>
                     )}
                   </div>
                 )}
@@ -1210,15 +1194,18 @@ export function DocumentViewer({
                     alt="Preposto" 
                     className="w-16 h-16 object-cover rounded-full border mx-auto"
                   />
+                ) : contributorSignatureUrl ? (
+                  <img 
+                    src={contributorSignatureUrl} 
+                    alt="Assinatura" 
+                    className="h-12 mx-auto border-b border-muted-foreground"
+                  />
                 ) : (
                   <div className="h-16 border-b border-dashed border-muted-foreground print:border-gray-400" />
                 )}
                 <p className="text-sm font-semibold">Ciência do Responsável</p>
                 {prepostoName ? (
-                  <div className="text-xs text-muted-foreground print:text-gray-600">
-                    <p>{prepostoName}</p>
-                    {prepostoCpf && <p>CPF: {prepostoCpf}</p>}
-                  </div>
+                  <p className="text-xs text-muted-foreground print:text-gray-600">{prepostoName}</p>
                 ) : (
                   <p className="text-xs text-muted-foreground print:text-gray-600">Assinatura / Data</p>
                 )}
@@ -1228,6 +1215,7 @@ export function DocumentViewer({
             {/* Footer */}
             <div className="pt-4 border-t text-center text-xs text-muted-foreground print:text-gray-600">
               <p>Goiânia, {formatDate(document.created_at)}</p>
+              <p className="mt-1 font-semibold">Lei Municipal 8.741/08</p>
               <p className="mt-2 font-medium print:hidden">
                 Documento gerado por{' '}
                 <span className="text-primary font-bold">fiscaliz.app</span>
@@ -1312,82 +1300,6 @@ export function DocumentViewer({
             </div>
           )}
         </div>
-      )}
-
-      {/* Contributor Photo Area - Upload functional */}
-      {!isLocked && (
-        <Card className="border-0 shadow-sm print:hidden">
-          <CardContent className="p-4">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handlePhotoUpload}
-              className="hidden"
-            />
-            
-            {contributorPhoto ? (
-              <div className="flex items-start gap-4">
-                <div className="relative">
-                  <img 
-                    src={contributorPhoto} 
-                    alt="Contribuinte" 
-                    className="w-24 h-24 object-cover rounded-lg border"
-                  />
-                  {canEdit && (
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                      onClick={removePhoto}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-sm">Foto do Contribuinte</p>
-                  <p className="text-xs text-muted-foreground">
-                    Foto adicionada com sucesso
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-4">
-                <div className="rounded-lg bg-muted/50 p-6 flex items-center justify-center">
-                  <Camera className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-sm">Foto do Contribuinte</p>
-                  <p className="text-xs text-muted-foreground">
-                    Adicione foto do responsável presente na inspeção
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleCapturePhoto}
-                    disabled={isUploading}
-                  >
-                    <Camera className="h-4 w-4 mr-1" />
-                    Capturar
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading}
-                  >
-                    <Upload className="h-4 w-4 mr-1" />
-                    Galeria
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
       )}
     </div>
   );
