@@ -68,11 +68,67 @@ export default function EstablishmentEntry() {
     if (localData) {
       setEstablishment(localData);
       setLoading(false);
+      toast({
+        title: 'Estabelecimento encontrado',
+        description: 'Dados carregados do banco local',
+      });
       return;
     }
 
-    // TODO: Integrate with ReceitaWS API for CNPJ lookup
-    // For now, show empty form for manual entry
+    // Query Brasil API (free, no API key required)
+    try {
+      const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCNPJ}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Build address from API response
+        const endereco = [
+          data.descricao_tipo_de_logradouro,
+          data.logradouro,
+          data.numero,
+          data.complemento
+        ].filter(Boolean).join(' ').trim();
+        
+        setEstablishment({
+          cnpj: cleanCNPJ,
+          razao_social: data.razao_social || '',
+          nome_fantasia: data.nome_fantasia || '',
+          endereco: endereco || '',
+          bairro: data.bairro || '',
+          cep: data.cep?.replace(/\D/g, '') || '',
+          cnae_principal: data.cnae_fiscal?.toString() || '',
+          responsavel_nome: data.qsa?.[0]?.nome_socio || '',
+        });
+        
+        setLoading(false);
+        toast({
+          title: 'CNPJ encontrado!',
+          description: `${data.razao_social}`,
+        });
+        return;
+      }
+      
+      // API returned error (CNPJ not found or invalid)
+      if (response.status === 404) {
+        toast({
+          title: 'CNPJ não encontrado na Receita Federal',
+          description: 'Verifique o número ou preencha manualmente',
+          variant: 'destructive',
+        });
+      } else {
+        throw new Error('API error');
+      }
+    } catch (error) {
+      console.error('Error fetching CNPJ:', error);
+      toast({
+        title: 'Erro ao consultar CNPJ',
+        description: 'Tente novamente ou preencha manualmente',
+        variant: 'destructive',
+      });
+    }
+    
+    // Fallback: show empty form for manual entry
     setEstablishment({
       cnpj: cleanCNPJ,
       razao_social: '',
@@ -83,10 +139,6 @@ export default function EstablishmentEntry() {
     });
     
     setLoading(false);
-    toast({
-      title: 'CNPJ não encontrado',
-      description: 'Preencha os dados manualmente',
-    });
   };
 
   const handleGetLocation = () => {
