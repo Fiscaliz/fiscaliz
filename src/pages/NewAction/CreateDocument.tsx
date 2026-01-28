@@ -27,6 +27,7 @@ import { checklistTemplates, getAllCategories, type ChecklistItem } from '@/data
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { CertidaoForm, formatCertidaoContent } from '@/components/documents/CertidaoForm';
 
 type UploadedImage = {
   id: string;
@@ -34,11 +35,17 @@ type UploadedImage = {
   previewUrl: string;
 };
 
+// Métodos de criação para Certidão - simplificado
+const certidaoMethods = [
+  { id: 'certidao', icon: FileText, label: 'Preenchimento Padrão', description: 'Formulário com opções de certidão' },
+];
+
+// Métodos de criação para outros documentos
 const creationMethods = [
-  { id: 'upload', icon: Upload, label: 'Upload de Documento', description: 'Foto do documento em papel' },
-  { id: 'checklist', icon: CheckSquare, label: 'Checklist Pré-Atestado', description: 'Por tipo de estabelecimento' },
   { id: 'manual', icon: Edit3, label: 'Preenchimento Manual', description: 'Editor de texto' },
   { id: 'ai', icon: Sparkles, label: 'Fiscalização por IA', description: 'Upload de até 50 fotos' },
+  { id: 'checklist', icon: CheckSquare, label: 'Checklist Pré-Atestado', description: 'Por tipo de estabelecimento' },
+  { id: 'upload', icon: Upload, label: 'Upload de Documento', description: 'Foto do documento em papel' },
   { id: 'outros', icon: MoreHorizontal, label: 'Outros', description: 'Campo livre' },
 ];
 
@@ -77,9 +84,18 @@ export default function CreateDocument() {
   const [saving, setSaving] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [otrosContent, setOtrosContent] = useState('');
+  const [certidaoData, setCertidaoData] = useState({
+    selectedOptions: [] as string[],
+    observations: {} as Record<string, string>,
+    otherText: '',
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const aiFileInputRef = useRef<HTMLInputElement>(null);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
 
+  // Auto-select certidao method for certidao type
+  const isCertidao = tipo === 'certidao';
+  const availableMethods = isCertidao ? certidaoMethods : creationMethods;
   const currentChecklist = useMemo(() => {
     return checklistTemplates.find(c => c.id === selectedChecklist);
   }, [selectedChecklist]);
@@ -147,6 +163,9 @@ export default function CreateDocument() {
   };
 
   const generateDocumentContent = () => {
+    if (method === 'certidao' || (isCertidao && method === null)) {
+      return formatCertidaoContent(certidaoData);
+    }
     if (method === 'checklist' && currentChecklist) {
       const selectedItemsData = currentChecklist.items.filter(item => selectedItems.includes(item.id));
       return selectedItemsData.map((item, idx) => `${idx + 1}. ${item.text}`).join('\n');
@@ -310,8 +329,91 @@ export default function CreateDocument() {
       />
       
       <div className="p-4 space-y-4">
-        {/* Method Selection */}
-        {!method && (
+        {/* Certidão Form - auto-shown for certidao type */}
+        {isCertidao && (
+          <>
+            <Card className="border-0 shadow-sm bg-primary/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="font-medium">{establishment?.nome_fantasia || establishment?.razao_social}</p>
+                    <p className="text-sm text-muted-foreground">{establishment?.endereco}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <CertidaoForm
+              value={certidaoData}
+              onChange={setCertidaoData}
+            />
+
+            {/* Photo Attachment Section */}
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">Anexar Fotos (opcional)</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{uploadedImages.length}/10</span>
+                </div>
+                
+                <input
+                  ref={attachmentInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => handleImageUpload(e, false)}
+                />
+
+                {uploadedImages.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {uploadedImages.map((img, idx) => (
+                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden">
+                        <img src={img.previewUrl} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => removeImage(idx)}
+                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {uploadedImages.length < 10 && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => attachmentInputRef.current?.click()}
+                      className="flex-1"
+                    >
+                      <Camera className="h-4 w-4 mr-1" />
+                      Adicionar Fotos
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Button 
+              className="w-full" 
+              onClick={handleSave}
+              disabled={certidaoData.selectedOptions.length === 0 || saving}
+            >
+              {saving ? 'Salvando...' : 'Salvar Certidão'}
+            </Button>
+          </>
+        )}
+
+        {/* Method Selection - for non-certidao types */}
+        {!method && !isCertidao && (
           <>
             <Card className="border-0 shadow-sm bg-primary/5">
               <CardContent className="p-4">
@@ -330,7 +432,7 @@ export default function CreateDocument() {
             </p>
             
             <div className="grid gap-3">
-              {creationMethods.map((m) => (
+              {availableMethods.map((m) => (
                 <Card 
                   key={m.id}
                   className="border-0 shadow-sm cursor-pointer transition-all hover:shadow-md active:scale-[0.98]"
