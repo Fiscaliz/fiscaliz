@@ -126,7 +126,30 @@ export function DocumentViewer({
     setIsEditing(false);
   };
 
+  const isTermoIntimacao = document.document_type === 'termo_intimacao';
+  const hasDeadline = Boolean(deadlineDays && deadlineDate);
+
+  const handleOpenSendModal = () => {
+    if (isTermoIntimacao && !hasDeadline) {
+      toast({
+        title: "Prazo obrigatório",
+        description: "O Termo de Intimação requer um prazo definido antes do envio. Por favor, defina o prazo para adequação.",
+        variant: "destructive"
+      });
+      return;
+    }
+    setShowSendModal(true);
+  };
+
   const handleSend = () => {
+    if (isTermoIntimacao && !hasDeadline) {
+      toast({
+        title: "Prazo obrigatório",
+        description: "O Termo de Intimação requer um prazo definido antes do envio.",
+        variant: "destructive"
+      });
+      return;
+    }
     if (onSend) {
       onSend({ email, whatsapp });
     }
@@ -1018,7 +1041,7 @@ export function DocumentViewer({
                 Gerar PDF
               </Button>
               <Button 
-                onClick={() => setShowSendModal(true)}
+                onClick={handleOpenSendModal}
                 className="gap-2"
               >
                 <Send className="h-4 w-4" />
