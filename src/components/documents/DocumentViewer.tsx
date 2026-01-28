@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -33,6 +33,12 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BRASAO_GOIANIA_SVG, SUS_LOGO_SVG } from '@/lib/logos';
 
+interface AttachmentPhoto {
+  id?: string;
+  url: string;
+  type?: string;
+}
+
 interface DocumentViewerProps {
   document: {
     id: string;
@@ -40,6 +46,7 @@ interface DocumentViewerProps {
     document_number?: string;
     content: any;
     irregularities?: any[];
+    attachments?: AttachmentPhoto[] | null;
     deadline_days?: number;
     deadline_date?: string;
     status: string;
@@ -102,10 +109,19 @@ export function DocumentViewer({
   const [deadlineDays, setDeadlineDays] = useState<number | undefined>(document.deadline_days);
   const [deadlineDate, setDeadlineDate] = useState<string | undefined>(document.deadline_date);
   const [isUploading, setIsUploading] = useState(false);
+  const [contributorSignatureUrl, setContributorSignatureUrl] = useState<string | null>(document.content?.contributor_signature || null);
   const documentRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const prepostoFileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Get attached photos from document
+  const attachedPhotos: string[] = useMemo(() => {
+    if (!document.attachments) return [];
+    return (document.attachments as AttachmentPhoto[])
+      .filter(a => a.url)
+      .map(a => a.url);
+  }, [document.attachments]);
 
   const isLocked = document.is_locked || document.status === 'sent';
   const canEdit = editable && !isLocked;
@@ -117,6 +133,7 @@ export function DocumentViewer({
           ...document.content, 
           text: content, 
           contributor_photo: contributorPhoto,
+          contributor_signature: contributorSignatureUrl,
           preposto_photo: prepostoPhoto,
           preposto_name: prepostoName,
           preposto_cpf: prepostoCpf,
@@ -332,11 +349,21 @@ export function DocumentViewer({
 
   const savePrepostoData = () => {
     if (onSave) {
-      onSave({ content: { ...document.content, text: content, contributor_photo: contributorPhoto, preposto_photo: prepostoPhoto, preposto_name: prepostoName, preposto_cpf: prepostoCpf } });
+      onSave({ 
+        content: { 
+          ...document.content, 
+          text: content, 
+          contributor_photo: contributorPhoto, 
+          contributor_signature: contributorSignatureUrl,
+          preposto_photo: prepostoPhoto, 
+          preposto_name: prepostoName, 
+          preposto_cpf: prepostoCpf 
+        } 
+      });
     }
     toast({
       title: "Dados salvos",
-      description: "Dados do preposto salvos com sucesso"
+      description: "Dados do contribuinte salvos com sucesso"
     });
   };
 
@@ -457,14 +484,37 @@ export function DocumentViewer({
             </div>
           )}
 
-          {/* FOTO DO CONTRIBUINTE - se houver */}
-          {contributorPhoto && (
+          {/* REGISTRO FOTOGRÁFICO - Layout 2x4 (8 fotos por página) */}
+          {attachedPhotos.length > 0 && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">REGISTRO FOTOGRÁFICO</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {attachedPhotos.map((photoUrl, idx) => (
+                  <div key={idx} className="aspect-[4/3] border border-gray-200 rounded overflow-hidden">
+                    <img 
+                      src={photoUrl} 
+                      alt={`Foto ${idx + 1}`} 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+              {attachedPhotos.length > 8 && (
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  Página 1 de {Math.ceil(attachedPhotos.length / 8)}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* FOTO DO CONTRIBUINTE/PREPOSTO - se houver separadamente */}
+          {contributorPhoto && (
+            <div className="doc-section border border-gray-300 p-4 mb-6">
+              <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">IDENTIFICAÇÃO DO RESPONSÁVEL PRESENTE</h3>
               <img 
                 src={contributorPhoto} 
-                alt="Registro fotográfico" 
-                className="max-w-[200px] rounded border"
+                alt="Responsável presente" 
+                className="w-24 h-24 object-cover rounded border"
               />
             </div>
           )}
@@ -473,7 +523,7 @@ export function DocumentViewer({
           <div className="doc-section mt-12">
             <div className="grid grid-cols-2 gap-8">
               <div className="text-center">
-                <div className="signature-line mb-2 mt-12" />
+                <div className="signature-line mb-2 mt-8" />
                 <p className="font-bold text-sm">{document.profile?.full_name || 'Autoridade Fiscal'}</p>
                 {document.profile?.registration_number && (
                   <p className="text-xs">Matrícula: {document.profile.registration_number}</p>
@@ -487,8 +537,14 @@ export function DocumentViewer({
                     alt="Preposto" 
                     className="w-16 h-16 object-cover rounded-full border mx-auto mb-2"
                   />
+                ) : contributorSignatureUrl ? (
+                  <img 
+                    src={contributorSignatureUrl} 
+                    alt="Assinatura" 
+                    className="h-12 mx-auto mb-2 border-b border-gray-400"
+                  />
                 ) : (
-                  <div className="signature-line mb-2 mt-12" />
+                  <div className="signature-line mb-2 mt-8" />
                 )}
                 <p className="font-bold text-sm">Ciência do Responsável</p>
                 {prepostoName ? (
@@ -500,6 +556,7 @@ export function DocumentViewer({
                   <>
                     <p className="text-xs">Nome: _______________________</p>
                     <p className="text-xs">CPF: ________________________</p>
+                    <p className="text-xs text-gray-500 italic mt-1">(Assinatura opcional)</p>
                   </>
                 )}
               </div>
@@ -841,7 +898,7 @@ export function DocumentViewer({
               <div className="p-4 bg-muted/30 rounded-lg space-y-4 print:hidden">
                 <p className="text-sm font-semibold flex items-center gap-2">
                   <User className="h-4 w-4" />
-                  Dados do Preposto / Responsável
+                  Assinatura do Contribuinte/Preposto (opcional)
                 </p>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -851,7 +908,7 @@ export function DocumentViewer({
                       id="prepostoName"
                       value={prepostoName}
                       onChange={(e) => setPrepostoName(e.target.value)}
-                      placeholder="Nome do preposto"
+                      placeholder="Nome do responsável"
                       className="text-sm"
                     />
                   </div>
@@ -867,59 +924,95 @@ export function DocumentViewer({
                   </div>
                 </div>
 
-                {/* Preposto Photo */}
-                <div className="space-y-2">
-                  <Label className="text-xs">Foto do Preposto</Label>
-                  {prepostoPhoto ? (
-                    <div className="relative inline-block">
-                      <img 
-                        src={prepostoPhoto} 
-                        alt="Preposto" 
-                        className="w-24 h-24 object-cover rounded-lg border"
-                      />
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute -top-2 -right-2 h-6 w-6"
-                        onClick={removePrepostoPhoto}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
+                {/* Opção de Foto OU Rubrica */}
+                <div className="space-y-3">
+                  <Label className="text-xs">Identificação (escolha uma opção)</Label>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Foto do Preposto */}
+                    <div className="border rounded-lg p-3 space-y-2">
+                      <p className="text-xs font-medium text-center">Foto</p>
+                      {prepostoPhoto ? (
+                        <div className="relative inline-block mx-auto">
+                          <img 
+                            src={prepostoPhoto} 
+                            alt="Preposto" 
+                            className="w-20 h-20 object-cover rounded-lg border mx-auto"
+                          />
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-5 w-5"
+                            onClick={removePrepostoPhoto}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCapturePrepostoPhoto}
+                            disabled={isUploading}
+                            className="w-full text-xs"
+                          >
+                            <Camera className="h-3 w-3 mr-1" />
+                            Capturar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => prepostoFileInputRef.current?.click()}
+                            disabled={isUploading}
+                            className="w-full text-xs"
+                          >
+                            <Upload className="h-3 w-3 mr-1" />
+                            Galeria
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCapturePrepostoPhoto}
-                        disabled={isUploading}
-                      >
-                        <Camera className="h-4 w-4 mr-1" />
-                        Tirar foto
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => prepostoFileInputRef.current?.click()}
-                        disabled={isUploading}
-                      >
-                        <Upload className="h-4 w-4 mr-1" />
-                        Upload
-                      </Button>
-                      <input
-                        ref={prepostoFileInputRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handlePrepostoPhotoUpload}
-                      />
+
+                    {/* Rubrica/Assinatura */}
+                    <div className="border rounded-lg p-3 space-y-2">
+                      <p className="text-xs font-medium text-center">Rubrica</p>
+                      {contributorSignatureUrl ? (
+                        <div className="relative inline-block mx-auto">
+                          <img 
+                            src={contributorSignatureUrl} 
+                            alt="Assinatura" 
+                            className="h-16 border rounded mx-auto"
+                          />
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-5 w-5"
+                            onClick={() => setContributorSignatureUrl(null)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground text-center py-4">
+                          Use a captura de assinatura no dispositivo móvel
+                        </p>
+                      )}
                     </div>
-                  )}
+                  </div>
+
+                  <input
+                    ref={prepostoFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePrepostoPhotoUpload}
+                  />
                 </div>
 
                 <Button size="sm" onClick={savePrepostoData} className="w-full">
                   <Save className="h-4 w-4 mr-1" />
-                  Salvar dados do preposto
+                  Salvar dados do contribuinte
                 </Button>
               </div>
             )}
