@@ -631,8 +631,8 @@ export function DocumentViewer({
             </div>
           )}
 
-          {/* PRAZO PARA ADEQUAÇÃO */}
-          {(deadlineDate || document.deadline_date) && (
+          {/* PRAZO PARA ADEQUAÇÃO - Apenas para Termo de Intimação */}
+          {isTermoIntimacao && (deadlineDate || document.deadline_date) && (
             <div className="doc-section border border-yellow-400 bg-yellow-50 p-4 mb-6">
               <h3 className="font-bold text-sm">PRAZO PARA ADEQUAÇÃO</h3>
               <p className="text-sm mt-1">
@@ -1020,78 +1020,80 @@ export function DocumentViewer({
               )}
             </div>
 
-            {/* Deadline Section - Editable */}
-            <div className="p-4 bg-warning/10 rounded-lg print:bg-yellow-50 print:border print:border-yellow-200">
-              <p className="font-semibold text-sm flex items-center gap-2 mb-3">
-                <Calendar className="h-4 w-4 text-warning print:text-yellow-600" />
-                Prazo para adequação
-              </p>
-              
-              {canEdit ? (
-                <div className="space-y-3 print:hidden">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="deadlineDays" className="text-xs">Prazo (dias)</Label>
-                      <Input
-                        id="deadlineDays"
-                        type="number"
-                        min="1"
-                        max="365"
-                        value={deadlineDays || ''}
-                        onChange={(e) => {
-                          const days = parseInt(e.target.value) || undefined;
-                          setDeadlineDays(days);
-                          if (days) {
-                            const date = new Date();
-                            date.setDate(date.getDate() + days);
-                            setDeadlineDate(date.toISOString().split('T')[0]);
-                          } else {
-                            setDeadlineDate(undefined);
-                          }
-                        }}
-                        placeholder="Ex: 15"
-                        className="text-sm"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="deadlineDate" className="text-xs">Data limite</Label>
-                      <Input
-                        id="deadlineDate"
-                        type="date"
-                        value={deadlineDate || ''}
-                        onChange={(e) => {
-                          const dateStr = e.target.value;
-                          setDeadlineDate(dateStr);
-                          if (dateStr) {
-                            const today = new Date();
-                            const target = new Date(dateStr);
-                            const diffTime = target.getTime() - today.getTime();
-                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                            setDeadlineDays(diffDays > 0 ? diffDays : undefined);
-                          } else {
-                            setDeadlineDays(undefined);
-                          }
-                        }}
-                        className="text-sm"
-                      />
+            {/* Deadline Section - Apenas para Termo de Intimação */}
+            {isTermoIntimacao && (
+              <div className="p-4 bg-warning/10 rounded-lg print:bg-yellow-50 print:border print:border-yellow-200">
+                <p className="font-semibold text-sm flex items-center gap-2 mb-3">
+                  <Calendar className="h-4 w-4 text-warning print:text-yellow-600" />
+                  Prazo para adequação
+                </p>
+                
+                {canEdit ? (
+                  <div className="space-y-3 print:hidden">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="deadlineDays" className="text-xs">Prazo (dias)</Label>
+                        <Input
+                          id="deadlineDays"
+                          type="number"
+                          min="1"
+                          max="365"
+                          value={deadlineDays || ''}
+                          onChange={(e) => {
+                            const days = parseInt(e.target.value) || undefined;
+                            setDeadlineDays(days);
+                            if (days) {
+                              const date = new Date();
+                              date.setDate(date.getDate() + days);
+                              setDeadlineDate(date.toISOString().split('T')[0]);
+                            } else {
+                              setDeadlineDate(undefined);
+                            }
+                          }}
+                          placeholder="Ex: 15"
+                          className="text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="deadlineDate" className="text-xs">Data limite</Label>
+                        <Input
+                          id="deadlineDate"
+                          type="date"
+                          value={deadlineDate || ''}
+                          onChange={(e) => {
+                            const dateStr = e.target.value;
+                            setDeadlineDate(dateStr);
+                            if (dateStr) {
+                              const today = new Date();
+                              const target = new Date(dateStr);
+                              const diffTime = target.getTime() - today.getTime();
+                              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                              setDeadlineDays(diffDays > 0 ? diffDays : undefined);
+                            } else {
+                              setDeadlineDays(undefined);
+                            }
+                          }}
+                          className="text-sm"
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              ) : null}
+                ) : null}
 
-              {/* Display deadline (visible in print and when locked) */}
-              {(deadlineDate || document.deadline_date) && (
-                <div className={cn("text-sm", canEdit && "mt-3 pt-3 border-t border-warning/20")}>
-                  <p>
-                    <strong>{deadlineDays || document.deadline_days} dias</strong> - até {formatDate(deadlineDate || document.deadline_date!)}
-                  </p>
-                </div>
-              )}
-              
-              {!deadlineDate && !document.deadline_date && !canEdit && (
-                <p className="text-sm text-muted-foreground">Sem prazo definido</p>
-              )}
-            </div>
+                {/* Display deadline (visible in print and when locked) */}
+                {(deadlineDate || document.deadline_date) && (
+                  <div className={cn("text-sm", canEdit && "mt-3 pt-3 border-t border-warning/20")}>
+                    <p>
+                      <strong>{deadlineDays || document.deadline_days} dias</strong> - até {formatDate(deadlineDate || document.deadline_date!)}
+                    </p>
+                  </div>
+                )}
+                
+                {!deadlineDate && !document.deadline_date && !canEdit && (
+                  <p className="text-sm text-muted-foreground">Sem prazo definido</p>
+                )}
+              </div>
+            )}
 
             {/* Contributor Photo Section */}
             <div className="p-4 bg-muted/20 rounded-lg print:bg-transparent">
