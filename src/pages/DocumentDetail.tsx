@@ -67,7 +67,7 @@ export default function DocumentDetail() {
     // Then get the profile separately
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
-      .select('full_name, registration_number, division')
+      .select('full_name, registration_number, division, signature_url')
       .eq('id', docData.user_id)
       .maybeSingle();
 
@@ -79,7 +79,7 @@ export default function DocumentDetail() {
     const isCurrentUser = user?.id === docData.user_id;
     const userMeta = user?.user_metadata as any;
 
-    let finalProfile: { full_name: string; registration_number?: string; division?: string } | null;
+    let finalProfile: { full_name: string; registration_number?: string; division?: string; signature_url?: string } | null;
 
     if (isCurrentUser && userMeta?.full_name) {
       // Prioridade 1: Metadata do usuário logado (mais atual)
@@ -87,6 +87,7 @@ export default function DocumentDetail() {
         full_name: userMeta.full_name,
         registration_number: userMeta.registration_number || profileData?.registration_number,
         division: userMeta.division || profileData?.division,
+        signature_url: profileData?.signature_url,
       };
     } else if (profileData?.full_name) {
       // Prioridade 2: Dados da tabela profiles
@@ -94,6 +95,7 @@ export default function DocumentDetail() {
         full_name: profileData.full_name,
         registration_number: profileData.registration_number,
         division: profileData.division,
+        signature_url: profileData.signature_url,
       };
     } else if (isCurrentUser) {
       // Fallback: email do usuário
@@ -101,6 +103,7 @@ export default function DocumentDetail() {
         full_name: user?.email?.split('@')[0] || 'Autoridade Fiscal',
         registration_number: undefined,
         division: undefined,
+        signature_url: undefined,
       };
     } else {
       finalProfile = null;
