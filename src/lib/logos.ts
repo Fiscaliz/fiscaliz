@@ -4,17 +4,14 @@
 // Importação do logo Fiscaliz
 import fiscalizLogo from '@/assets/logo-fiscaliz.png';
 
+// Importação do Brasão oficial da Prefeitura de Goiânia
+import brasaoGoiania from '@/assets/brasao-goiania.jpeg';
+
 // Export do logo Fiscaliz
 export const FISCALIZ_LOGO = fiscalizLogo;
 
-// Brasão de Goiânia (SVG simplificado em cores oficiais)
-export const BRASAO_GOIANIA_SVG = `data:image/svg+xml;base64,${btoa(
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 140">
-    <path d="M60 8 L110 30 V78 C110 104 88 125 60 134 C32 125 10 104 10 78 V30 Z" fill="#003366" stroke="#FFD700" stroke-width="4"/>
-    <circle cx="60" cy="62" r="22" fill="none" stroke="#FFD700" stroke-width="5"/>
-    <circle cx="60" cy="62" r="13" fill="#FFD700"/>
-  </svg>`
-)}`;
+// Brasão de Goiânia (imagem oficial importada)
+export const BRASAO_GOIANIA_SVG = brasaoGoiania;
 
 // Logo do SUS (SVG em cores oficiais - verde)
 export const SUS_LOGO_SVG = `data:image/svg+xml;base64,${btoa(
