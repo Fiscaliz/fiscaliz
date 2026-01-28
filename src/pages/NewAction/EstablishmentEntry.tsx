@@ -20,7 +20,8 @@ import {
   CheckCircle2,
   Upload,
   FileText,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,6 +39,7 @@ export default function EstablishmentEntry() {
   const [cnpj, setCnpj] = useState('');
   const [loading, setLoading] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
+  const [ocrLoading, setOcrLoading] = useState(false);
   const [establishment, setEstablishment] = useState<any>(null);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
   const [alvaraImage, setAlvaraImage] = useState<string | null>(null);
@@ -50,19 +52,95 @@ export default function EstablishmentEntry() {
 
   const handleFileSelect = (
     event: React.ChangeEvent<HTMLInputElement>, 
-    setImage: (url: string | null) => void
+    setImage: (url: string | null) => void,
+    autoExtract: boolean = false
   ) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImage(reader.result as string);
+        const base64 = reader.result as string;
+        setImage(base64);
         toast({
           title: 'Imagem carregada',
-          description: 'Arquivo selecionado com sucesso',
+          description: autoExtract ? 'Processando com IA...' : 'Arquivo selecionado com sucesso',
         });
+        
+        // Auto-extract data if it's an alvará image
+        if (autoExtract) {
+          extractAlvaraData(base64);
+        }
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const extractAlvaraData = async (imageBase64: string) => {
+    setOcrLoading(true);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-alvara-data`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ imageBase64 }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao processar imagem');
+      }
+
+      const result = await response.json();
+      
+      if (result.data) {
+        const extractedData = result.data;
+        
+        // Populate establishment data with extracted values
+        setEstablishment({
+          cnpj: extractedData.cnpj?.replace(/\D/g, '') || '',
+          razao_social: extractedData.razaoSocial || '',
+          nome_fantasia: extractedData.nomeFantasia || '',
+          endereco: extractedData.endereco || '',
+          bairro: extractedData.bairro || '',
+          cep: extractedData.cep?.replace(/\D/g, '') || '',
+          alvara_numero: extractedData.alvaraNumero || '',
+          alvara_validade: extractedData.alvaraValidade || '',
+          cnae_principal: extractedData.cnaePrincipal || '',
+          responsavel_nome: extractedData.responsavelNome || '',
+        });
+
+        toast({
+          title: 'Dados extraídos com sucesso!',
+          description: 'Verifique e complete as informações se necessário.',
+        });
+      }
+    } catch (error) {
+      console.error('OCR Error:', error);
+      toast({
+        title: 'Erro na extração automática',
+        description: error instanceof Error ? error.message : 'Tente novamente ou preencha manualmente',
+        variant: 'destructive',
+      });
+      
+      // Still allow manual entry
+      setEstablishment({
+        razao_social: '',
+        nome_fantasia: '',
+        cnpj: '',
+        endereco: '',
+        bairro: '',
+        cep: '',
+      });
+    } finally {
+      setOcrLoading(false);
     }
   };
 
@@ -419,7 +497,7 @@ export default function EstablishmentEntry() {
                 ref={alvaraInputRef}
                 accept="image/*"
                 className="hidden"
-                onChange={(e) => handleFileSelect(e, setAlvaraImage)}
+                onChange={(e) => handleFileSelect(e, setAlvaraImage, true)}
               />
               <input
                 type="file"
@@ -427,15 +505,36 @@ export default function EstablishmentEntry() {
                 accept="image/*"
                 capture="environment"
                 className="hidden"
-                onChange={(e) => handleFileSelect(e, setAlvaraImage)}
+                onChange={(e) => handleFileSelect(e, setAlvaraImage, true)}
               />
               
-              {!alvaraImage ? (
+              {ocrLoading ? (
+                <div className="border-2 border-dashed border-primary/50 rounded-xl p-8 text-center bg-primary/5">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="relative">
+                      <Loader2 className="h-12 w-12 text-primary animate-spin" />
+                      <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-primary animate-pulse" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-primary">Extraindo dados com IA...</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Analisando CNPJ, Razão Social, endereço e mais
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : !alvaraImage ? (
                 <div className="border-2 border-dashed border-muted rounded-xl p-6 text-center">
-                  <Camera className="mx-auto h-10 w-10 text-primary mb-3" />
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <Camera className="h-10 w-10 text-primary" />
+                    <Sparkles className="h-5 w-5 text-primary" />
+                  </div>
                   <p className="font-medium">Foto do Alvará Sanitário</p>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <p className="text-sm text-muted-foreground mb-1">
                     Tire uma foto ou faça upload do alvará
+                  </p>
+                  <p className="text-xs text-primary font-medium mb-4">
+                    ✨ Extração automática com IA
                   </p>
                   <div className="flex flex-col sm:flex-row gap-2 justify-center">
                     <Button onClick={() => alvaraCameraRef.current?.click()}>
@@ -465,15 +564,26 @@ export default function EstablishmentEntry() {
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="text-sm text-muted-foreground text-center">
-                    Imagem carregada. Preencha os dados manualmente abaixo.
-                  </p>
-                  <Button 
-                    className="w-full" 
-                    onClick={() => setEstablishment({ razao_social: '', nome_fantasia: '', cnpj: '', endereco: '', bairro: '', cep: '' })}
-                  >
-                    Continuar para preenchimento
-                  </Button>
+                  <div className="flex items-center gap-2 justify-center text-primary">
+                    <Sparkles className="h-4 w-4" />
+                    <span className="text-sm font-medium">Clique em "Extrair com IA" para preencher os dados</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline"
+                      className="flex-1" 
+                      onClick={() => setEstablishment({ razao_social: '', nome_fantasia: '', cnpj: '', endereco: '', bairro: '', cep: '' })}
+                    >
+                      Preencher Manual
+                    </Button>
+                    <Button 
+                      className="flex-1" 
+                      onClick={() => extractAlvaraData(alvaraImage)}
+                    >
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Extrair com IA
+                    </Button>
+                  </div>
                 </div>
               )}
               
