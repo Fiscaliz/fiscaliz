@@ -150,9 +150,9 @@ export default function Home() {
       {/* Header with brand gradient */}
       <div className="fiscaliz-gradient px-4 pb-8 pt-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-full bg-primary-foreground/10 p-2 backdrop-blur-sm">
-              <img src={fiscalizLogo} alt="Fiscaliz" className="h-full w-full object-contain" />
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-16 rounded-2xl bg-primary-foreground/15 p-2 backdrop-blur-sm shadow-lg">
+              <img src={fiscalizLogo} alt="Fiscaliz" className="h-full w-full object-contain drop-shadow-md" />
             </div>
             <div>
               <p className="text-sm text-primary-foreground/80">Olá,</p>

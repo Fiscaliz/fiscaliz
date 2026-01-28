@@ -406,14 +406,16 @@ export function DocumentViewer({
           {/* CABEÇALHO OFICIAL - Layout conforme modelo de Certidão */}
           <div className="mb-6 border-b-2 border-gray-800 pb-4">
             <div className="flex items-center justify-between">
-              {/* Brasão esquerda */}
-              <img src={BRASAO_GOIANIA_SVG} alt="Brasão de Goiânia" className="h-20 w-auto" />
+              {/* Logo Prefeitura/Brasão esquerda */}
+              <img src={BRASAO_GOIANIA_SVG} alt="Prefeitura de Goiânia" className="h-20 w-auto" />
               
               {/* Textos centrais */}
               <div className="text-center flex-1 px-4">
                 <h1 className="text-lg font-bold text-gray-900">PREFEITURA DE GOIÂNIA</h1>
                 <h1 className="text-base font-bold text-gray-900">SECRETARIA MUNICIPAL DE SAÚDE</h1>
                 <h2 className="text-sm text-gray-700">DIRETORIA DE VIGILÂNCIA SANITÁRIA E AMBIENTAL</h2>
+                <p className="text-xs text-gray-600 mt-1">Av. Universitária esq. c/ 1ª Avenida, s/nº - Setor Universitário - CEP: 74605-010</p>
+                <p className="text-xs text-gray-600">Email: visagoianiaalimentos@gmail.com</p>
               </div>
               
               {/* Logo SUS direita */}
