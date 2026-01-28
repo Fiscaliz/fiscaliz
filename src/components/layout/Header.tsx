@@ -3,6 +3,7 @@ import { ArrowLeft, WifiOff, Wifi } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import fiscalizLogo from '@/assets/logo-fiscaliz.png';
 
 interface HeaderProps {
   title: string;
@@ -10,9 +11,10 @@ interface HeaderProps {
   showBack?: boolean;
   rightAction?: ReactNode;
   className?: string;
+  showLogo?: boolean;
 }
 
-export function Header({ title, subtitle, showBack, rightAction, className }: HeaderProps) {
+export function Header({ title, subtitle, showBack, rightAction, className, showLogo = false }: HeaderProps) {
   const navigate = useNavigate();
   const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
@@ -32,6 +34,13 @@ export function Header({ title, subtitle, showBack, rightAction, className }: He
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
+          )}
+          {showLogo && (
+            <img 
+              src={fiscalizLogo} 
+              alt="Fiscaliz" 
+              className="h-10 w-auto"
+            />
           )}
           <div>
             <h1 className="text-lg font-semibold text-foreground">{title}</h1>

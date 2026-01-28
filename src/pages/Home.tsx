@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import fiscalizLogo from '@/assets/fiscaliz-logo.png';
+import fiscalizLogo from '@/assets/logo-fiscaliz.png';
 
 const documentTypeLabels: Record<string, string> = {
   termo_intimacao: 'Termo de Intimação',

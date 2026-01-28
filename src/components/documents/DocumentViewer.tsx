@@ -31,7 +31,7 @@ import marcaDaguaFiscaliz from '@/assets/marca-dagua-fiscaliz.png';
 import fiscalizLogo from '@/assets/fiscaliz-logo.png';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { BRASAO_GOIANIA_SVG, SUS_LOGO_SVG } from '@/lib/logos';
+import { BRASAO_GOIANIA_SVG, SUS_LOGO_SVG, FISCALIZ_LOGO } from '@/lib/logos';
 
 interface AttachmentPhoto {
   id?: string;
@@ -386,7 +386,7 @@ export function DocumentViewer({
     return format(new Date(dateStr), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
   };
 
-  // PDF Preview - Layout oficial igual ao MonthlyReport
+  // PDF Preview - Layout oficial igual ao modelo de Certidão
   if (showPDFPreview) {
     return (
       <div className="min-h-screen bg-white text-black print:text-black" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11pt' }}>
@@ -403,21 +403,30 @@ export function DocumentViewer({
         `}</style>
 
         <div className="p-8 max-w-4xl mx-auto">
-          {/* CABEÇALHO OFICIAL */}
-          <div className="text-center mb-6 border-b-2 border-blue-900 pb-4">
-            <div className="flex justify-center items-center gap-4 mb-3">
-              <img src={BRASAO_GOIANIA_SVG} alt="Brasão de Goiânia" className="h-16 w-auto" />
-              <img src={SUS_LOGO_SVG} alt="SUS" className="h-10 w-auto" />
+          {/* CABEÇALHO OFICIAL - Layout conforme modelo de Certidão */}
+          <div className="mb-6 border-b-2 border-gray-800 pb-4">
+            <div className="flex items-center justify-between">
+              {/* Brasão esquerda */}
+              <img src={BRASAO_GOIANIA_SVG} alt="Brasão de Goiânia" className="h-20 w-auto" />
+              
+              {/* Textos centrais */}
+              <div className="text-center flex-1 px-4">
+                <h1 className="text-lg font-bold text-gray-900">PREFEITURA DE GOIÂNIA</h1>
+                <h1 className="text-base font-bold text-gray-900">SECRETARIA MUNICIPAL DE SAÚDE</h1>
+                <h2 className="text-sm text-gray-700">DIRETORIA DE VIGILÂNCIA SANITÁRIA E AMBIENTAL</h2>
+              </div>
+              
+              {/* Logo SUS direita */}
+              <img src={SUS_LOGO_SVG} alt="SUS" className="h-14 w-auto" />
             </div>
-            <h1 className="text-sm font-bold text-blue-900">PREFEITURA MUNICIPAL DE GOIÂNIA</h1>
-            <h1 className="text-sm font-bold text-blue-900">SECRETARIA MUNICIPAL DE SAÚDE</h1>
-            <h2 className="text-xs text-gray-600">DIRETORIA DE VIGILÂNCIA SANITÁRIA E AMBIENTAL</h2>
-            <div className="mt-4 py-2 bg-blue-900 text-white">
-              <h2 className="text-base font-bold">
-                {documentTypeLabels[document.document_type] || document.document_type}
+            
+            {/* Título do documento */}
+            <div className="mt-4 py-2 bg-gray-800 text-white text-center">
+              <h2 className="text-base font-bold tracking-wide">
+                {documentTypeLabels[document.document_type]?.toUpperCase() || document.document_type}
               </h2>
               {document.document_number && (
-                <p className="text-sm font-semibold">Nº {document.document_number}</p>
+                <p className="text-sm">Nº {document.document_number}</p>
               )}
             </div>
           </div>
@@ -563,11 +572,14 @@ export function DocumentViewer({
             </div>
           </div>
 
-          {/* RODAPÉ */}
+          {/* RODAPÉ OFICIAL */}
           <div className="mt-10 pt-4 border-t text-xs text-center text-gray-600">
             <p>Goiânia, {formatDateFull(document.created_at)}</p>
             <p className="mt-2">Este documento foi gerado eletronicamente e possui validade legal conforme legislação vigente.</p>
             <p className="mt-1 text-[10px]">1ª Via: Estabelecimento | 2ª Via: Fiscalização</p>
+            <p className="mt-3 text-[9px] font-semibold text-gray-500">
+              Criado por FISCALIZ<sup>®</sup>
+            </p>
           </div>
         </div>
 
