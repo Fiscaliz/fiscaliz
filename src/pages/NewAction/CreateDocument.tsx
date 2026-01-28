@@ -105,6 +105,7 @@ export default function CreateDocument() {
     intimacaoResolucao: '',
     documentoEntregue: '',
     orientacoes: '',
+    semIrregularidadesTexto: 'No momento da ação fiscal não foram encontradas irregularidades.',
     dengueInspection: false,
     documentDate: new Date().toISOString().split('T')[0],
     documentTime: new Date().toTimeString().slice(0, 5),
