@@ -3,29 +3,23 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { BrandHeader } from '@/components/layout/BrandHeader';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { 
   Search, 
   MapPin, 
-  FileText, 
   AlertTriangle,
   Beaker,
   Handshake,
-  Flag,
-  MoreHorizontal,
-  ChevronRight
+  Flag
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const actionReasons = [
-  { id: 'investigativa', icon: Search, label: 'Inspeção Investigativa', color: 'text-warning', priority: 'high' },
   { id: 'rotina', icon: MapPin, label: 'Rotina', color: 'text-primary', priority: 'low' },
-  { id: 'relatorio_tecnico', icon: FileText, label: 'Relatório Técnico', color: 'text-primary', priority: 'medium' },
-  { id: 'demanda_chefia', icon: Flag, label: 'Demanda Chefia', color: 'text-warning', priority: 'medium' },
-  { id: 'surto', icon: AlertTriangle, label: 'Surto', color: 'text-destructive', priority: 'high' },
+  { id: 'investigativa', icon: Search, label: 'Inspeção Investigativa', color: 'text-warning', priority: 'high' },
+  { id: 'demanda_interna', icon: Flag, label: 'Demanda Interna', sublabel: 'Plantão Fiscal ou Plantão Fiscal Especial', color: 'text-warning', priority: 'medium' },
   { id: 'operacao_conjunta', icon: Handshake, label: 'Operação Conjunta', color: 'text-info', priority: 'medium' },
   { id: 'coleta', icon: Beaker, label: 'Coleta de Amostra', color: 'text-secondary', priority: 'medium' },
-  { id: 'outros', icon: MoreHorizontal, label: 'Outros', color: 'text-muted-foreground', priority: 'low' },
+  { id: 'surto', icon: AlertTriangle, label: 'Surto', color: 'text-destructive', priority: 'high' },
 ];
 
 export default function NewAction() {
@@ -79,6 +73,11 @@ export default function NewAction() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm leading-tight">{reason.label}</p>
+                    {reason.sublabel && (
+                      <span className="text-[10px] text-muted-foreground block">
+                        {reason.sublabel}
+                      </span>
+                    )}
                     {reason.priority === 'high' && (
                       <span className="text-[10px] text-destructive font-medium uppercase">
                         Alta prioridade
