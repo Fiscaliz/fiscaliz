@@ -1157,7 +1157,26 @@ export function DocumentViewer({
                             variant="destructive"
                             size="icon"
                             className="absolute -top-2 -right-2 h-5 w-5"
-                            onClick={() => setContributorSignatureUrl(null)}
+                            onClick={() => {
+                              setContributorSignatureUrl(null);
+                              // Auto-save quando remover assinatura
+                              if (onSave) {
+                                onSave({ 
+                                  content: { 
+                                    ...document.content, 
+                                    text: content, 
+                                    contributor_photo: contributorPhoto, 
+                                    contributor_signature: null,
+                                    preposto_photo: prepostoPhoto, 
+                                    preposto_name: prepostoName, 
+                                    preposto_cpf: prepostoCpf,
+                                    document_date: documentDate,
+                                    document_time: documentTime,
+                                    observations: observations,
+                                  } 
+                                });
+                              }
+                            }}
                           >
                             <X className="h-3 w-3" />
                           </Button>
@@ -1165,7 +1184,30 @@ export function DocumentViewer({
                       ) : (
                         <SignatureCanvas
                           documentId={document.id}
-                          onSave={(url) => setContributorSignatureUrl(url)}
+                          onSave={(url) => {
+                            setContributorSignatureUrl(url);
+                            // Auto-save imediato quando assinatura é capturada
+                            if (onSave) {
+                              onSave({ 
+                                content: { 
+                                  ...document.content, 
+                                  text: content, 
+                                  contributor_photo: contributorPhoto, 
+                                  contributor_signature: url,
+                                  preposto_photo: prepostoPhoto, 
+                                  preposto_name: prepostoName, 
+                                  preposto_cpf: prepostoCpf,
+                                  document_date: documentDate,
+                                  document_time: documentTime,
+                                  observations: observations,
+                                } 
+                              });
+                            }
+                            toast({
+                              title: "Assinatura salva",
+                              description: "Rubrica do contribuinte capturada e salva automaticamente"
+                            });
+                          }}
                         />
                       )}
                     </div>
