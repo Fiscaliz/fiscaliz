@@ -26,8 +26,8 @@ export interface VisitaFiscalData {
   areasVistoriadas: string[];
   orientacoesImediatas: string;
   documentoPosterior: boolean;
-  intimacaoAnteriorId: string;
-  intimacaoAnteriorNumero: string;
+  reinspeçaoTipo: 'ti' | 'processo' | 'denuncia' | '';
+  reinspeçaoNumero: string;
   intimacaoResolucao: 'adequado' | 'parcial' | 'nao_adequado' | '';
   documentoEntregue: string;
   orientacoes: string;
@@ -36,6 +36,12 @@ export interface VisitaFiscalData {
   documentDate: string;
   documentTime: string;
 }
+
+const reinspeçaoTipoOptions = [
+  { id: 'ti', label: 'Termo de Intimação', placeholder: 'Ex: TI-2024/001234' },
+  { id: 'processo', label: 'Número do Processo', placeholder: 'Ex: 2024.0001.001234' },
+  { id: 'denuncia', label: 'Denúncia', placeholder: 'Ex: DEN-2024/001234' },
+];
 
 const areasInspecao = [
   { id: 'area_producao', label: 'Área de produção/manipulação' },
@@ -69,8 +75,8 @@ const purposeOptions = [
   { 
     id: 'baixa_intimacao', 
     icon: FileCheck, 
-    label: 'Baixa de Intimação Anterior', 
-    description: 'Verificar adequação de prazo anterior',
+    label: 'Reinspeção', 
+    description: 'Verificar adequação de documento/prazo anterior',
     color: 'text-success',
     bgColor: 'bg-success/10'
   },
@@ -240,27 +246,57 @@ export function VisitaFiscalForm({ value, onChange }: VisitaFiscalFormProps) {
         </Card>
       )}
 
-      {/* Baixa de Intimação Anterior */}
+      {/* Reinspeção */}
       {value.purpose.includes('baixa_intimacao') && (
         <Card className="border-0 shadow-sm border-l-4 border-l-success">
           <CardContent className="p-4 space-y-4">
             <div className="flex items-center gap-2">
               <FileCheck className="h-4 w-4 text-success" />
-              <Label className="text-sm font-medium">Baixa de Intimação Anterior</Label>
+              <Label className="text-sm font-medium">Reinspeção</Label>
             </div>
             
             <div className="space-y-3">
+              {/* Tipo de Documento */}
               <div>
-                <Label htmlFor="intimacaoNumero" className="text-xs">Número do Termo de Intimação</Label>
-                <Input
-                  id="intimacaoNumero"
-                  placeholder="Ex: TI-2024/001234"
-                  value={value.intimacaoAnteriorNumero}
-                  onChange={(e) => updateField('intimacaoAnteriorNumero', e.target.value)}
-                  className="mt-1"
-                />
+                <Label className="text-xs">Tipo de Documento/Referência</Label>
+                <div className="grid gap-2 mt-2">
+                  {reinspeçaoTipoOptions.map((option) => (
+                    <label
+                      key={option.id}
+                      className={cn(
+                        'flex items-center gap-3 p-2 rounded-lg border cursor-pointer transition-all',
+                        value.reinspeçaoTipo === option.id
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/50'
+                      )}
+                    >
+                      <Checkbox
+                        checked={value.reinspeçaoTipo === option.id}
+                        onCheckedChange={() => updateField('reinspeçaoTipo', option.id as any)}
+                      />
+                      <span className="text-sm">{option.label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
 
+              {/* Número do Documento */}
+              {value.reinspeçaoTipo && (
+                <div>
+                  <Label htmlFor="reinspeçaoNumero" className="text-xs">
+                    Número do {reinspeçaoTipoOptions.find(o => o.id === value.reinspeçaoTipo)?.label}
+                  </Label>
+                  <Input
+                    id="reinspeçaoNumero"
+                    placeholder={reinspeçaoTipoOptions.find(o => o.id === value.reinspeçaoTipo)?.placeholder}
+                    value={value.reinspeçaoNumero}
+                    onChange={(e) => updateField('reinspeçaoNumero', e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              )}
+
+              {/* Situação da Adequação */}
               <div>
                 <Label className="text-xs">Situação da Adequação</Label>
                 <div className="grid gap-2 mt-2">
@@ -447,9 +483,15 @@ export function formatVisitaFiscalContent(data: VisitaFiscalData): string {
       parcial: 'PARCIALMENTE ADEQUADO - Algumas irregularidades foram sanadas',
       nao_adequado: 'NÃO ADEQUADO - As irregularidades persistem',
     };
+    const tipoLabels: Record<string, string> = {
+      ti: 'Termo de Intimação',
+      processo: 'Processo',
+      denuncia: 'Denúncia',
+    };
+    const tipoLabel = tipoLabels[data.reinspeçaoTipo] || 'Documento';
     parts.push(
-      `BAIXA DE INTIMAÇÃO ANTERIOR:\n` +
-      `Termo de Intimação nº: ${data.intimacaoAnteriorNumero || 'Não informado'}\n` +
+      `REINSPEÇÃO:\n` +
+      `${tipoLabel} nº: ${data.reinspeçaoNumero || 'Não informado'}\n` +
       `Situação: ${resolucaoLabels[data.intimacaoResolucao] || 'Não informada'}`
     );
   }
