@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.extract-alvara-data]
 verify_jwt = false
+
+[functions.extract-fiscal-document-data]
+verify_jwt = false

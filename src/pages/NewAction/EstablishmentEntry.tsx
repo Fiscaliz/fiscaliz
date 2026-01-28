@@ -40,6 +40,7 @@ export default function EstablishmentEntry() {
   const [loading, setLoading] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [docAnteriorLoading, setDocAnteriorLoading] = useState(false);
   const [establishment, setEstablishment] = useState<any>(null);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
   const [alvaraImage, setAlvaraImage] = useState<string | null>(null);
@@ -62,7 +63,7 @@ export default function EstablishmentEntry() {
   const handleFileSelect = (
     event: React.ChangeEvent<HTMLInputElement>, 
     setImage: (url: string | null) => void,
-    autoExtract: boolean = false
+    extractType: 'none' | 'alvara' | 'documento_anterior' = 'none'
   ) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -72,15 +73,85 @@ export default function EstablishmentEntry() {
         setImage(base64);
         toast({
           title: 'Imagem carregada',
-          description: autoExtract ? 'Processando com IA...' : 'Arquivo selecionado com sucesso',
+          description: extractType !== 'none' ? 'Processando com IA...' : 'Arquivo selecionado com sucesso',
         });
         
-        // Auto-extract data if it's an alvará image
-        if (autoExtract) {
+        // Auto-extract data based on type
+        if (extractType === 'alvara') {
           extractAlvaraData(base64);
+        } else if (extractType === 'documento_anterior') {
+          extractFiscalDocumentData(base64);
         }
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const extractFiscalDocumentData = async (imageBase64: string) => {
+    setDocAnteriorLoading(true);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-fiscal-document-data`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ imageBase64 }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao processar imagem');
+      }
+
+      const result = await response.json();
+      
+      if (result.data) {
+        const extractedData = result.data;
+        
+        // Populate establishment data with extracted values
+        setEstablishment({
+          cnpj: extractedData.cnpj || '',
+          razao_social: extractedData.razaoSocial || '',
+          nome_fantasia: extractedData.nomeFantasia || '',
+          endereco: extractedData.endereco || '',
+          bairro: extractedData.bairro || '',
+          cep: extractedData.cep || '',
+          alvara_numero: extractedData.alvaraNumero || '',
+          cnae_principal: extractedData.cnaePrincipal || '',
+          responsavel_nome: extractedData.responsavelNome || '',
+        });
+
+        toast({
+          title: 'Dados extraídos com sucesso!',
+          description: 'Verifique e complete as informações se necessário.',
+        });
+      }
+    } catch (error) {
+      console.error('Fiscal Document OCR Error:', error);
+      toast({
+        title: 'Erro na extração automática',
+        description: error instanceof Error ? error.message : 'Tente novamente ou preencha manualmente',
+        variant: 'destructive',
+      });
+      
+      // Still allow manual entry
+      setEstablishment({
+        razao_social: '',
+        nome_fantasia: '',
+        cnpj: '',
+        endereco: '',
+        bairro: '',
+        cep: '',
+      });
+    } finally {
+      setDocAnteriorLoading(false);
     }
   };
 
@@ -587,7 +658,7 @@ export default function EstablishmentEntry() {
                 ref={alvaraInputRef}
                 accept="image/*"
                 className="hidden"
-                onChange={(e) => handleFileSelect(e, setAlvaraImage, true)}
+                onChange={(e) => handleFileSelect(e, setAlvaraImage, 'alvara')}
               />
               <input
                 type="file"
@@ -595,7 +666,7 @@ export default function EstablishmentEntry() {
                 accept="image/*"
                 capture="environment"
                 className="hidden"
-                onChange={(e) => handleFileSelect(e, setAlvaraImage, true)}
+                onChange={(e) => handleFileSelect(e, setAlvaraImage, 'alvara')}
               />
               
               {ocrLoading ? (
@@ -694,7 +765,7 @@ export default function EstablishmentEntry() {
                 ref={docAnteriorInputRef}
                 accept="image/*"
                 className="hidden"
-                onChange={(e) => handleFileSelect(e, setDocumentoAnteriorImage, false)}
+                onChange={(e) => handleFileSelect(e, setDocumentoAnteriorImage, 'documento_anterior')}
               />
               <input
                 type="file"
@@ -702,7 +773,7 @@ export default function EstablishmentEntry() {
                 accept="image/*"
                 capture="environment"
                 className="hidden"
-                onChange={(e) => handleFileSelect(e, setDocumentoAnteriorImage, false)}
+                onChange={(e) => handleFileSelect(e, setDocumentoAnteriorImage, 'documento_anterior')}
               />
 
               <div className="flex items-center gap-2 mb-2">
@@ -710,15 +781,35 @@ export default function EstablishmentEntry() {
                 <h3 className="font-semibold">Peça Fiscal Anterior</h3>
               </div>
               
-              {/* Photo/Upload Section */}
-              {!documentoAnteriorImage && (
+              {/* Loading State */}
+              {docAnteriorLoading ? (
+                <div className="border-2 border-dashed border-primary/50 rounded-xl p-8 text-center bg-primary/5">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="relative">
+                      <Loader2 className="h-12 w-12 text-primary animate-spin" />
+                      <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-primary animate-pulse" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-primary">Extraindo dados com IA...</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Analisando CNPJ, Razão Social, endereço e mais
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : !documentoAnteriorImage ? (
+                /* Photo/Upload Section */
                 <div className="border-2 border-dashed border-muted rounded-xl p-6 text-center">
                   <div className="flex items-center justify-center gap-2 mb-3">
                     <Camera className="h-10 w-10 text-primary" />
+                    <Sparkles className="h-5 w-5 text-primary" />
                   </div>
                   <p className="font-medium">Foto de Peça Fiscal Anterior</p>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <p className="text-sm text-muted-foreground mb-1">
                     Tire uma foto ou faça upload de um documento fiscal anterior
+                  </p>
+                  <p className="text-xs text-primary font-medium mb-4">
+                    ✨ Extração automática com IA
                   </p>
                   <div className="flex flex-col sm:flex-row gap-2 justify-center">
                     <Button onClick={() => docAnteriorCameraRef.current?.click()}>
@@ -731,10 +822,8 @@ export default function EstablishmentEntry() {
                     </Button>
                   </div>
                 </div>
-              )}
-
-              {/* Image Preview */}
-              {documentoAnteriorImage && (
+              ) : (
+                /* Image Preview with Extract Button */
                 <div className="space-y-3">
                   <div className="relative">
                     <img 
@@ -751,21 +840,31 @@ export default function EstablishmentEntry() {
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="text-sm text-muted-foreground text-center">
-                    Imagem capturada. Preencha os dados manualmente ou selecione de documentos anteriores.
-                  </p>
-                  <Button 
-                    className="w-full" 
-                    onClick={() => setEstablishment({ razao_social: '', nome_fantasia: '', cnpj: '', endereco: '', bairro: '', cep: '' })}
-                  >
-                    <Edit3 className="mr-2 h-4 w-4" />
-                    Preencher Dados Manualmente
-                  </Button>
+                  <div className="flex items-center gap-2 justify-center text-primary">
+                    <Sparkles className="h-4 w-4" />
+                    <span className="text-sm font-medium">Clique em "Extrair com IA" para preencher os dados</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline"
+                      className="flex-1" 
+                      onClick={() => setEstablishment({ razao_social: '', nome_fantasia: '', cnpj: '', endereco: '', bairro: '', cep: '' })}
+                    >
+                      Preencher Manual
+                    </Button>
+                    <Button 
+                      className="flex-1" 
+                      onClick={() => extractFiscalDocumentData(documentoAnteriorImage)}
+                    >
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Extrair com IA
+                    </Button>
+                  </div>
                 </div>
               )}
 
               {/* Divider */}
-              {!documentoAnteriorImage && (
+              {!documentoAnteriorImage && !docAnteriorLoading && (
                 <div className="flex items-center gap-3">
                   <div className="flex-1 border-t border-muted" />
                   <span className="text-xs text-muted-foreground">ou selecione do histórico</span>
@@ -774,7 +873,7 @@ export default function EstablishmentEntry() {
               )}
 
               {/* Previous Documents List */}
-              {!documentoAnteriorImage && (
+              {!documentoAnteriorImage && !docAnteriorLoading && (
                 <>
                   <p className="text-sm text-muted-foreground">
                     Selecione um estabelecimento de documentos já criados:
