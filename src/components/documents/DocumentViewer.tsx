@@ -99,6 +99,8 @@ export function DocumentViewer({
   const [prepostoPhoto, setPrepostoPhoto] = useState<string | null>(document.content?.preposto_photo || null);
   const [prepostoName, setPrepostoName] = useState(document.content?.preposto_name || '');
   const [prepostoCpf, setPrepostoCpf] = useState(document.content?.preposto_cpf || '');
+  const [deadlineDays, setDeadlineDays] = useState<number | undefined>(document.deadline_days);
+  const [deadlineDate, setDeadlineDate] = useState<string | undefined>(document.deadline_date);
   const [isUploading, setIsUploading] = useState(false);
   const documentRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -420,14 +422,14 @@ export function DocumentViewer({
           </div>
 
           {/* PRAZO PARA ADEQUAÇÃO */}
-          {document.deadline_date && (
+          {(deadlineDate || document.deadline_date) && (
             <div className="doc-section border border-yellow-400 bg-yellow-50 p-4 mb-6">
               <h3 className="font-bold text-sm">PRAZO PARA ADEQUAÇÃO</h3>
               <p className="text-sm mt-1">
-                Fica o responsável legal pelo estabelecimento intimado a sanar as irregularidades acima descritas no prazo de <strong>{document.deadline_days} ({document.deadline_days === 1 ? 'um' : document.deadline_days}) dias</strong>, contados a partir do recebimento deste documento.
+                Fica o responsável legal pelo estabelecimento intimado a sanar as irregularidades acima descritas no prazo de <strong>{deadlineDays || document.deadline_days} ({(deadlineDays || document.deadline_days) === 1 ? 'um' : (deadlineDays || document.deadline_days)}) dias</strong>, contados a partir do recebimento deste documento.
               </p>
               <p className="text-sm mt-1">
-                <strong>Data limite:</strong> {formatDateFull(document.deadline_date)}
+                <strong>Data limite:</strong> {formatDateFull(deadlineDate || document.deadline_date!)}
               </p>
             </div>
           )}
@@ -661,18 +663,98 @@ export function DocumentViewer({
               )}
             </div>
 
-            {/* Deadline */}
-            {document.deadline_date && (
-              <div className="flex items-center gap-3 p-4 bg-warning/10 rounded-lg print:bg-yellow-50 print:border print:border-yellow-200">
-                <Calendar className="h-5 w-5 text-warning print:text-yellow-600" />
-                <div>
-                  <p className="font-semibold text-sm">Prazo para adequação</p>
-                  <p className="text-sm">
-                    {document.deadline_days} dias - até {formatDate(document.deadline_date)}
+            {/* Deadline Section - Editable */}
+            <div className="p-4 bg-warning/10 rounded-lg print:bg-yellow-50 print:border print:border-yellow-200">
+              <p className="font-semibold text-sm flex items-center gap-2 mb-3">
+                <Calendar className="h-4 w-4 text-warning print:text-yellow-600" />
+                Prazo para adequação
+              </p>
+              
+              {canEdit ? (
+                <div className="space-y-3 print:hidden">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="deadlineDays" className="text-xs">Prazo (dias)</Label>
+                      <Input
+                        id="deadlineDays"
+                        type="number"
+                        min="1"
+                        max="365"
+                        value={deadlineDays || ''}
+                        onChange={(e) => {
+                          const days = parseInt(e.target.value) || undefined;
+                          setDeadlineDays(days);
+                          if (days) {
+                            const date = new Date();
+                            date.setDate(date.getDate() + days);
+                            setDeadlineDate(date.toISOString().split('T')[0]);
+                          } else {
+                            setDeadlineDate(undefined);
+                          }
+                        }}
+                        placeholder="Ex: 15"
+                        className="text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="deadlineDate" className="text-xs">Data limite</Label>
+                      <Input
+                        id="deadlineDate"
+                        type="date"
+                        value={deadlineDate || ''}
+                        onChange={(e) => {
+                          const dateStr = e.target.value;
+                          setDeadlineDate(dateStr);
+                          if (dateStr) {
+                            const today = new Date();
+                            const target = new Date(dateStr);
+                            const diffTime = target.getTime() - today.getTime();
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            setDeadlineDays(diffDays > 0 ? diffDays : undefined);
+                          } else {
+                            setDeadlineDays(undefined);
+                          }
+                        }}
+                        className="text-sm"
+                      />
+                    </div>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => {
+                      if (onSave) {
+                        onSave({ 
+                          deadline_days: deadlineDays,
+                          deadline_date: deadlineDate,
+                        });
+                        toast({
+                          title: "Prazo salvo",
+                          description: deadlineDays ? `Prazo de ${deadlineDays} dias definido` : "Prazo removido"
+                        });
+                      }
+                    }}
+                    className="w-full"
+                  >
+                    <Save className="h-4 w-4 mr-1" />
+                    Salvar prazo
+                  </Button>
+                </div>
+              ) : null}
+
+              {/* Display deadline (visible in print and when locked) */}
+              {(deadlineDate || document.deadline_date) && (
+                <div className={cn("text-sm", canEdit && "mt-3 pt-3 border-t border-warning/20")}>
+                  <p>
+                    <strong>{deadlineDays || document.deadline_days} dias</strong> - até {formatDate(deadlineDate || document.deadline_date!)}
                   </p>
                 </div>
-              </div>
-            )}
+              )}
+              
+              {!deadlineDate && !document.deadline_date && !canEdit && (
+                <p className="text-sm text-muted-foreground">Sem prazo definido</p>
+              )}
+            </div>
 
             {/* Contributor Photo Section */}
             <div className="p-4 bg-muted/20 rounded-lg print:bg-transparent">
