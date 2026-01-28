@@ -19,6 +19,7 @@ import DocumentTypeSelection from "./pages/NewAction/DocumentTypeSelection";
 import CreateDocument from "./pages/NewAction/CreateDocument";
 import MonthlyReport from "./pages/MonthlyReport";
 import DocumentDetail from "./pages/DocumentDetail";
+import Documents from "./pages/Documents";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -88,6 +89,11 @@ const App = () => (
             <Route path="/documento/:id" element={
               <ProtectedRoute>
                 <DocumentDetail />
+              </ProtectedRoute>
+            } />
+            <Route path="/documentos" element={
+              <ProtectedRoute>
+                <Documents />
               </ProtectedRoute>
             } />
             
