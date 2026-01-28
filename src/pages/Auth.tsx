@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Shield, Loader2, Eye, EyeOff } from 'lucide-react';
-import fiscalizLogo from '@/assets/fiscaliz-logo.png';
+import fiscalizLogo from '@/assets/logo-fiscaliz-oficial.png';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
