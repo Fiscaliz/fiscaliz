@@ -20,10 +20,9 @@ import {
 import { cn } from '@/lib/utils';
 
 const actionReasons = [
-  { id: 'denuncia', icon: AlertTriangle, label: 'Denúncia', color: 'text-destructive', priority: 'high' },
+  { id: 'investigativa', icon: Search, label: 'Inspeção Investigativa', color: 'text-warning', priority: 'high' },
   { id: 'rotina', icon: MapPin, label: 'Rotina', color: 'text-primary', priority: 'low' },
   { id: 'relatorio_tecnico', icon: FileText, label: 'Relatório Técnico', color: 'text-primary', priority: 'medium' },
-  { id: 'investigativa', icon: Search, label: 'Investigativa', color: 'text-warning', priority: 'high' },
   { id: 'demanda_chefia', icon: Flag, label: 'Demanda Chefia', color: 'text-warning', priority: 'medium' },
   { id: 'surto', icon: AlertTriangle, label: 'Surto', color: 'text-destructive', priority: 'high' },
   { id: 'operacao_conjunta', icon: Handshake, label: 'Operação Conjunta', color: 'text-info', priority: 'medium' },

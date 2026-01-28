@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,10 +8,14 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { Pen, Upload, X } from 'lucide-react';
 
 export default function EditProfile() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [showSignaturePad, setShowSignaturePad] = useState(false);
 
   const defaultFullName = useMemo(
     () => (user?.user_metadata as any)?.full_name || user?.email?.split('@')[0] || '',
@@ -24,6 +28,8 @@ export default function EditProfile() {
   const [registrationNumber, setRegistrationNumber] = useState('');
   const [division, setDivision] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -32,7 +38,7 @@ export default function EditProfile() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, registration_number, division, phone')
+        .select('full_name, registration_number, division, phone, email, signature_url')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -45,6 +51,10 @@ export default function EditProfile() {
         setRegistrationNumber(data.registration_number || '');
         setDivision(data.division || '');
         setPhone(data.phone || '');
+        setEmail(data.email || user.email || '');
+        setSignatureUrl(data.signature_url || null);
+      } else {
+        setEmail(user.email || '');
       }
 
       setLoading(false);
@@ -52,6 +62,75 @@ export default function EditProfile() {
 
     load();
   }, [user, defaultFullName]);
+
+  // Signature pad functions
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    setIsDrawing(true);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const x = 'touches' in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
+    const y = 'touches' in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+    
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = 'touches' in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
+    const y = 'touches' in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#000';
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const stopDrawing = () => {
+    setIsDrawing(false);
+  };
+
+  const clearSignature = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  };
+
+  const saveSignature = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !user) return;
+
+    const dataUrl = canvas.toDataURL('image/png');
+    const blob = await (await fetch(dataUrl)).blob();
+    const fileName = `signatures/${user.id}-${Date.now()}.png`;
+
+    const { data, error } = await supabase.storage
+      .from('fiscal-photos')
+      .upload(fileName, blob, { upsert: true });
+
+    if (error) {
+      toast({ title: 'Erro ao salvar rubrica', variant: 'destructive' });
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from('fiscal-photos').getPublicUrl(fileName);
+    setSignatureUrl(urlData.publicUrl);
+    setShowSignaturePad(false);
+    toast({ title: 'Rubrica salva!' });
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -67,7 +146,6 @@ export default function EditProfile() {
 
     setSaving(true);
     try {
-      // 1) Atualiza perfil (usado para assinatura nos PDFs)
       const { error: upsertError } = await supabase
         .from('profiles')
         .upsert({
@@ -76,11 +154,12 @@ export default function EditProfile() {
           registration_number: registrationNumber.trim() || null,
           division: division.trim() || null,
           phone: phone.trim() || null,
+          email: email.trim() || null,
+          signature_url: signatureUrl,
         });
 
       if (upsertError) throw upsertError;
 
-      // 2) Atualiza metadata do usuário (usado como fallback rápido no app)
       const { error: authError } = await supabase.auth.updateUser({
         data: {
           full_name: fullName.trim(),
@@ -90,7 +169,6 @@ export default function EditProfile() {
       });
 
       if (authError) {
-        // Não bloqueia se o metadata falhar; o PDF já usa profiles.
         console.warn('Could not update user metadata:', authError);
       }
 
@@ -129,6 +207,19 @@ export default function EditProfile() {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="email">E-mail</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu@email.com"
+                disabled={loading}
+              />
+              <p className="text-xs text-muted-foreground">Incluído automaticamente no envio de documentos</p>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="registration">Matrícula</Label>
@@ -162,6 +253,73 @@ export default function EditProfile() {
                 disabled={loading}
               />
             </div>
+
+            {/* Signature Section */}
+            <div className="space-y-2">
+              <Label>Rubrica / Assinatura Digital</Label>
+              {signatureUrl ? (
+                <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30">
+                  <img src={signatureUrl} alt="Rubrica" className="h-16 w-auto border rounded" />
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground">Rubrica cadastrada</p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => setShowSignaturePad(true)}>
+                    <Pen className="h-4 w-4 mr-1" />
+                    Alterar
+                  </Button>
+                </div>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  className="w-full h-20 border-dashed"
+                  onClick={() => setShowSignaturePad(true)}
+                  disabled={loading}
+                >
+                  <Pen className="h-5 w-5 mr-2" />
+                  Adicionar Rubrica
+                </Button>
+              )}
+              <p className="text-xs text-muted-foreground">Esta rubrica será usada em todos os documentos fiscais</p>
+            </div>
+
+            {/* Signature Pad Modal */}
+            {showSignaturePad && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <Card className="w-full max-w-md">
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="text-base">Desenhe sua rubrica</CardTitle>
+                    <Button variant="ghost" size="icon" onClick={() => setShowSignaturePad(false)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="border rounded-lg bg-white">
+                      <canvas
+                        ref={canvasRef}
+                        width={350}
+                        height={150}
+                        className="w-full touch-none cursor-crosshair"
+                        onMouseDown={startDrawing}
+                        onMouseMove={draw}
+                        onMouseUp={stopDrawing}
+                        onMouseLeave={stopDrawing}
+                        onTouchStart={startDrawing}
+                        onTouchMove={draw}
+                        onTouchEnd={stopDrawing}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="flex-1" onClick={clearSignature}>
+                        Limpar
+                      </Button>
+                      <Button className="flex-1" onClick={saveSignature}>
+                        Salvar Rubrica
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             <Button className="w-full" onClick={handleSave} disabled={loading || saving}>
               {saving ? 'Salvando...' : 'Salvar'}

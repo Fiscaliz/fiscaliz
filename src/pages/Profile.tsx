@@ -39,15 +39,15 @@ export default function Profile() {
         <Card className="mb-6 border-0 shadow-sm overflow-hidden">
           <div className="fiscaliz-gradient px-4 py-6">
             <div className="flex items-center gap-4">
-              <div className="h-16 w-16 rounded-full bg-primary-foreground/10 p-2 backdrop-blur-sm flex items-center justify-center">
-                <img src={fiscalizLogo} alt="Fiscaliz" className="h-12 w-12 object-contain" />
+              <div className="h-20 w-20 rounded-xl bg-primary-foreground/10 p-1 backdrop-blur-sm flex items-center justify-center">
+                <img src={fiscalizLogo} alt="Fiscaliz" className="h-full w-full object-contain" />
               </div>
               <div className="text-primary-foreground">
                 <h2 className="text-lg font-bold">{fullName}</h2>
                 <p className="text-sm text-primary-foreground/80">{user?.email}</p>
                 <div className="mt-1 flex items-center gap-1 text-xs text-primary-foreground/70">
                   <Shield className="h-3 w-3" />
-                  <span>Fiscal Sanitário</span>
+                  <span>Auditor Fiscal de Saúde Pública</span>
                 </div>
               </div>
             </div>
