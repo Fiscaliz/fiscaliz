@@ -96,9 +96,13 @@ export function DocumentViewer({
   const [showSendModal, setShowSendModal] = useState(false);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
   const [contributorPhoto, setContributorPhoto] = useState<string | null>(document.content?.contributor_photo || null);
+  const [prepostoPhoto, setPrepostoPhoto] = useState<string | null>(document.content?.preposto_photo || null);
+  const [prepostoName, setPrepostoName] = useState(document.content?.preposto_name || '');
+  const [prepostoCpf, setPrepostoCpf] = useState(document.content?.preposto_cpf || '');
   const [isUploading, setIsUploading] = useState(false);
   const documentRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const prepostoFileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const isLocked = document.is_locked || document.status === 'sent';
@@ -106,7 +110,16 @@ export function DocumentViewer({
 
   const handleSave = () => {
     if (onSave) {
-      onSave({ content: { ...document.content, text: content, contributor_photo: contributorPhoto } });
+      onSave({ 
+        content: { 
+          ...document.content, 
+          text: content, 
+          contributor_photo: contributorPhoto,
+          preposto_photo: prepostoPhoto,
+          preposto_name: prepostoName,
+          preposto_cpf: prepostoCpf,
+        } 
+      });
     }
     setIsEditing(false);
   };
@@ -152,7 +165,7 @@ export function DocumentViewer({
       
       // Auto-save when photo is uploaded
       if (onSave) {
-        onSave({ content: { ...document.content, text: content, contributor_photo: urlData.publicUrl } });
+        onSave({ content: { ...document.content, text: content, contributor_photo: urlData.publicUrl, preposto_photo: prepostoPhoto, preposto_name: prepostoName, preposto_cpf: prepostoCpf } });
       }
 
       toast({
@@ -202,8 +215,104 @@ export function DocumentViewer({
   const removePhoto = () => {
     setContributorPhoto(null);
     if (onSave) {
-      onSave({ content: { ...document.content, text: content, contributor_photo: null } });
+      onSave({ content: { ...document.content, text: content, contributor_photo: null, preposto_photo: prepostoPhoto, preposto_name: prepostoName, preposto_cpf: prepostoCpf } });
     }
+  };
+
+  const handlePrepostoPhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Erro",
+          description: "Usuário não autenticado",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${document.id}_preposto_${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('fiscal-photos')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('fiscal-photos')
+        .getPublicUrl(fileName);
+
+      setPrepostoPhoto(urlData.publicUrl);
+      
+      if (onSave) {
+        onSave({ content: { ...document.content, text: content, contributor_photo: contributorPhoto, preposto_photo: urlData.publicUrl, preposto_name: prepostoName, preposto_cpf: prepostoCpf } });
+      }
+
+      toast({
+        title: "Foto enviada",
+        description: "Foto do preposto adicionada com sucesso"
+      });
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Erro no upload",
+        description: error.message || "Não foi possível enviar a foto",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleCapturePrepostoPhoto = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      
+      const video = window.document.createElement('video');
+      video.srcObject = stream;
+      await video.play();
+      
+      const canvas = window.document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d')?.drawImage(video, 0, 0);
+      
+      stream.getTracks().forEach(track => track.stop());
+      
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          const file = new File([blob], `preposto_${Date.now()}.jpg`, { type: 'image/jpeg' });
+          const event = { target: { files: [file] } } as any;
+          await handlePrepostoPhotoUpload(event);
+        }
+      }, 'image/jpeg', 0.8);
+    } catch (error) {
+      prepostoFileInputRef.current?.click();
+    }
+  };
+
+  const removePrepostoPhoto = () => {
+    setPrepostoPhoto(null);
+    if (onSave) {
+      onSave({ content: { ...document.content, text: content, contributor_photo: contributorPhoto, preposto_photo: null, preposto_name: prepostoName, preposto_cpf: prepostoCpf } });
+    }
+  };
+
+  const savePrepostoData = () => {
+    if (onSave) {
+      onSave({ content: { ...document.content, text: content, contributor_photo: contributorPhoto, preposto_photo: prepostoPhoto, preposto_name: prepostoName, preposto_cpf: prepostoCpf } });
+    }
+    toast({
+      title: "Dados salvos",
+      description: "Dados do preposto salvos com sucesso"
+    });
   };
 
   const formatDate = (dateStr: string) => {
@@ -347,10 +456,27 @@ export function DocumentViewer({
                 <p className="text-xs text-gray-600">{document.profile?.division || 'Auditor Fiscal de Vigilância Sanitária'}</p>
               </div>
               <div className="text-center">
-                <div className="signature-line mb-2 mt-12" />
+                {prepostoPhoto ? (
+                  <img 
+                    src={prepostoPhoto} 
+                    alt="Preposto" 
+                    className="w-16 h-16 object-cover rounded-full border mx-auto mb-2"
+                  />
+                ) : (
+                  <div className="signature-line mb-2 mt-12" />
+                )}
                 <p className="font-bold text-sm">Ciência do Responsável</p>
-                <p className="text-xs">Nome: _______________________</p>
-                <p className="text-xs">CPF: ________________________</p>
+                {prepostoName ? (
+                  <>
+                    <p className="text-xs">Nome: {prepostoName}</p>
+                    <p className="text-xs">CPF: {prepostoCpf || '________________________'}</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs">Nome: _______________________</p>
+                    <p className="text-xs">CPF: ________________________</p>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -560,6 +686,94 @@ export function DocumentViewer({
               </div>
             )}
 
+            {/* Preposto/Responsável Section - Editable */}
+            {canEdit && (
+              <div className="p-4 bg-muted/30 rounded-lg space-y-4 print:hidden">
+                <p className="text-sm font-semibold flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Dados do Preposto / Responsável
+                </p>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="prepostoName" className="text-xs">Nome</Label>
+                    <Input
+                      id="prepostoName"
+                      value={prepostoName}
+                      onChange={(e) => setPrepostoName(e.target.value)}
+                      placeholder="Nome do preposto"
+                      className="text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="prepostoCpf" className="text-xs">CPF</Label>
+                    <Input
+                      id="prepostoCpf"
+                      value={prepostoCpf}
+                      onChange={(e) => setPrepostoCpf(e.target.value)}
+                      placeholder="000.000.000-00"
+                      className="text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Preposto Photo */}
+                <div className="space-y-2">
+                  <Label className="text-xs">Foto do Preposto</Label>
+                  {prepostoPhoto ? (
+                    <div className="relative inline-block">
+                      <img 
+                        src={prepostoPhoto} 
+                        alt="Preposto" 
+                        className="w-24 h-24 object-cover rounded-lg border"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-6 w-6"
+                        onClick={removePrepostoPhoto}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCapturePrepostoPhoto}
+                        disabled={isUploading}
+                      >
+                        <Camera className="h-4 w-4 mr-1" />
+                        Tirar foto
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => prepostoFileInputRef.current?.click()}
+                        disabled={isUploading}
+                      >
+                        <Upload className="h-4 w-4 mr-1" />
+                        Upload
+                      </Button>
+                      <input
+                        ref={prepostoFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handlePrepostoPhotoUpload}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <Button size="sm" onClick={savePrepostoData} className="w-full">
+                  <Save className="h-4 w-4 mr-1" />
+                  Salvar dados do preposto
+                </Button>
+              </div>
+            )}
+
             {/* Signatures Area */}
             <div className="grid grid-cols-2 gap-8 pt-8 border-t print:pt-6">
               <div className="text-center space-y-2">
@@ -578,9 +792,24 @@ export function DocumentViewer({
                 )}
               </div>
               <div className="text-center space-y-2">
-                <div className="h-16 border-b border-dashed border-muted-foreground print:border-gray-400" />
+                {prepostoPhoto ? (
+                  <img 
+                    src={prepostoPhoto} 
+                    alt="Preposto" 
+                    className="w-16 h-16 object-cover rounded-full border mx-auto"
+                  />
+                ) : (
+                  <div className="h-16 border-b border-dashed border-muted-foreground print:border-gray-400" />
+                )}
                 <p className="text-sm font-semibold">Ciência do Responsável</p>
-                <p className="text-xs text-muted-foreground print:text-gray-600">Assinatura / Data</p>
+                {prepostoName ? (
+                  <div className="text-xs text-muted-foreground print:text-gray-600">
+                    <p>{prepostoName}</p>
+                    {prepostoCpf && <p>CPF: {prepostoCpf}</p>}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground print:text-gray-600">Assinatura / Data</p>
+                )}
               </div>
             </div>
 
