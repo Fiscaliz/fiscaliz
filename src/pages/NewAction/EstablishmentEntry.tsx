@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
+import { FiscalizWatermark } from '@/components/layout/FiscalizWatermark';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -278,6 +279,7 @@ export default function EstablishmentEntry() {
 
   return (
     <AppLayout>
+      <FiscalizWatermark />
       <Header 
         title="Estabelecimento" 
         subtitle="Identificar o estabelecimento"
