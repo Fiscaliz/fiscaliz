@@ -32,6 +32,7 @@ import { useToast } from '@/hooks/use-toast';
 import { CertidaoForm, formatCertidaoContent } from '@/components/documents/CertidaoForm';
 import { DocumentCommonFields } from '@/components/documents/DocumentCommonFields';
 import { VisitaFiscalForm, formatVisitaFiscalContent, type VisitaFiscalData } from '@/components/documents/VisitaFiscalForm';
+import { AutoInfracaoForm, formatAutoInfracaoContent, type AutoInfracaoData } from '@/components/documents/AutoInfracaoForm';
 
 type UploadedImage = {
   id: string;
@@ -113,13 +114,22 @@ export default function CreateDocument() {
     documentDate: new Date().toISOString().split('T')[0],
     documentTime: new Date().toTimeString().slice(0, 5),
   });
+  const [autoInfracaoData, setAutoInfracaoData] = useState<AutoInfracaoData>({
+    infracoes: [],
+    valorMulta: '',
+    prazoDefesa: 15,
+    documentDate: new Date().toISOString().split('T')[0],
+    documentTime: new Date().toTimeString().slice(0, 5),
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const aiFileInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
+  const autoInfracaoFileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-select certidao method for certidao type
   const isCertidao = tipo === 'certidao';
   const isVisitaFiscal = tipo === 'visita_fiscal';
+  const isAutoInfracao = tipo === 'auto_infracao';
   const availableMethods = isCertidao ? certidaoMethods : creationMethods;
   const currentChecklist = useMemo(() => {
     return checklistTemplates.find(c => c.id === selectedChecklist);
@@ -193,6 +203,9 @@ export default function CreateDocument() {
     }
     if (isVisitaFiscal) {
       return formatVisitaFiscalContent(visitaFiscalData);
+    }
+    if (isAutoInfracao) {
+      return formatAutoInfracaoContent(autoInfracaoData);
     }
     if (method === 'checklist' && currentChecklist) {
       const selectedItemsData = currentChecklist.items.filter(item => selectedItems.includes(item.id));
@@ -310,23 +323,45 @@ export default function CreateDocument() {
         : null;
 
       // Prepare content object based on document type
-      const contentObj = isVisitaFiscal
-        ? {
-            text: content,
-            method: 'visita_fiscal',
-            visita_fiscal_data: visitaFiscalData,
-            dengue_inspection: visitaFiscalData.dengueInspection,
-            document_date: visitaFiscalData.documentDate,
-            document_time: visitaFiscalData.documentTime,
-          }
-        : {
-            text: content,
-            method,
-            observations: observations.trim() || null,
-            dengue_inspection: dengueInspection,
-            document_date: documentDate,
-            document_time: documentTime,
-          };
+      let contentObj;
+      if (isVisitaFiscal) {
+        contentObj = {
+          text: content,
+          method: 'visita_fiscal',
+          visita_fiscal_data: visitaFiscalData,
+          dengue_inspection: visitaFiscalData.dengueInspection,
+          document_date: visitaFiscalData.documentDate,
+          document_time: visitaFiscalData.documentTime,
+        };
+      } else if (isAutoInfracao) {
+        contentObj = {
+          text: content,
+          method: 'auto_infracao',
+          auto_infracao_data: autoInfracaoData,
+          document_date: autoInfracaoData.documentDate,
+          document_time: autoInfracaoData.documentTime,
+          prazo_defesa: autoInfracaoData.prazoDefesa,
+        };
+      } else {
+        contentObj = {
+          text: content,
+          method,
+          observations: observations.trim() || null,
+          dengue_inspection: dengueInspection,
+          document_date: documentDate,
+          document_time: documentTime,
+        };
+      }
+
+      // Para auto de infração, as irregularidades vêm do formulário específico
+      const finalIrregularities = isAutoInfracao 
+        ? autoInfracaoData.infracoes.map(inf => ({
+            id: inf.id,
+            text: inf.descricao,
+            category: 'Infração',
+            legislation: inf.dispositivo,
+          }))
+        : irregularities;
 
       const insertData: any = {
         id: plannedDocId,
@@ -335,11 +370,11 @@ export default function CreateDocument() {
         fiscal_action_id: action.id,
         document_type: tipo,
         content: contentObj,
-        irregularities,
+        irregularities: finalIrregularities,
         attachments,
         deadline_days: tipo === 'termo_intimacao' ? parseInt(deadlineDays) : null,
         deadline_date: tipo === 'termo_intimacao' ? deadlineDate.toISOString().split('T')[0] : null,
-        priority: motivo === 'denuncia' || motivo === 'surto' ? 'high' : 'medium',
+        priority: motivo === 'denuncia' || motivo === 'surto' || isAutoInfracao ? 'high' : 'medium',
       };
 
       const { data: newDoc, error: docError } = await supabase
@@ -579,8 +614,56 @@ export default function CreateDocument() {
           </>
         )}
 
-        {/* Method Selection - for non-certidao and non-visita_fiscal types */}
-        {!method && !isCertidao && !isVisitaFiscal && (
+        {/* Auto de Infração - Formulário específico */}
+        {isAutoInfracao && (
+          <>
+            <Card className="border-0 shadow-sm bg-destructive/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-destructive" />
+                  <div>
+                    <p className="font-medium">{establishment?.nome_fantasia || establishment?.razao_social}</p>
+                    <p className="text-sm text-muted-foreground">{establishment?.endereco}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <input
+              ref={autoInfracaoFileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              capture="environment"
+              className="hidden"
+              onChange={(e) => handleImageUpload(e, false)}
+            />
+
+            <AutoInfracaoForm
+              value={autoInfracaoData}
+              onChange={setAutoInfracaoData}
+              photos={uploadedImages.map(img => ({ id: img.id, previewUrl: img.previewUrl }))}
+              onAddPhoto={() => autoInfracaoFileInputRef.current?.click()}
+              onRemovePhoto={removeImage}
+              photosRequired={true}
+            />
+
+            <Button 
+              className="w-full" 
+              onClick={handleSave}
+              disabled={
+                autoInfracaoData.infracoes.length === 0 || 
+                uploadedImages.length === 0 || 
+                saving
+              }
+            >
+              {saving ? 'Salvando...' : 'Salvar Auto de Infração'}
+            </Button>
+          </>
+        )}
+
+        {/* Method Selection - for non-certidao, non-visita_fiscal and non-auto_infracao types */}
+        {!method && !isCertidao && !isVisitaFiscal && !isAutoInfracao && (
           <>
             <Card className="border-0 shadow-sm bg-primary/5">
               <CardContent className="p-4">
