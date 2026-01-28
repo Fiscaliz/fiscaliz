@@ -16,13 +16,15 @@ import {
   Navigation,
   Locate,
   AlertTriangle,
-  CheckCircle2
+  CheckCircle2,
+  Upload,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-type EntryMethod = 'cnpj' | 'ocr' | 'manual' | 'geo';
+type EntryMethod = 'cnpj' | 'ocr' | 'manual' | 'geo' | 'documento_anterior';
 
 export default function EstablishmentEntry() {
   const [searchParams] = useSearchParams();
@@ -269,7 +271,8 @@ export default function EstablishmentEntry() {
   const entryMethods = [
     { id: 'cnpj' as EntryMethod, icon: Search, label: 'Buscar por CNPJ', description: 'Consulta automática' },
     { id: 'geo' as EntryMethod, icon: Navigation, label: 'Georreferenciamento', description: 'Usar GPS do dispositivo' },
-    { id: 'ocr' as EntryMethod, icon: Camera, label: 'Foto do Alvará', description: 'OCR automático' },
+    { id: 'ocr' as EntryMethod, icon: Camera, label: 'Foto do Alvará', description: 'Foto ou upload do alvará' },
+    { id: 'documento_anterior' as EntryMethod, icon: FileText, label: 'Documento Anterior', description: 'Foto ou upload de documento' },
     { id: 'manual' as EntryMethod, icon: Edit3, label: 'Manual', description: 'Preencher dados' },
   ];
 
@@ -378,20 +381,55 @@ export default function EstablishmentEntry() {
           </Card>
         )}
 
-        {/* OCR Upload */}
+        {/* OCR Upload - Alvará */}
         {method === 'ocr' && !establishment && (
           <Card className="border-0 shadow-sm">
             <CardContent className="p-4 space-y-4">
-              <div className="border-2 border-dashed border-muted rounded-xl p-8 text-center">
-                <Camera className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <p className="font-medium">Tire uma foto do Alvará Sanitário</p>
+              <div className="border-2 border-dashed border-muted rounded-xl p-6 text-center">
+                <Camera className="mx-auto h-10 w-10 text-primary mb-3" />
+                <p className="font-medium">Foto do Alvará Sanitário</p>
                 <p className="text-sm text-muted-foreground mb-4">
-                  O sistema extrairá os dados automaticamente
+                  Tire uma foto ou faça upload do alvará
                 </p>
-                <Button>
-                  <Camera className="mr-2 h-4 w-4" />
-                  Abrir Câmera
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                  <Button>
+                    <Camera className="mr-2 h-4 w-4" />
+                    Tirar Foto
+                  </Button>
+                  <Button variant="outline">
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload
+                  </Button>
+                </div>
+              </div>
+              
+              <Button variant="outline" className="w-full" onClick={() => setMethod(null)}>
+                Voltar
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Documento Anterior */}
+        {method === 'documento_anterior' && !establishment && (
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4 space-y-4">
+              <div className="border-2 border-dashed border-muted rounded-xl p-6 text-center">
+                <FileText className="mx-auto h-10 w-10 text-primary mb-3" />
+                <p className="font-medium">Documento Fiscal Anterior</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Tire uma foto ou faça upload de um documento fiscal anterior
+                </p>
+                <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                  <Button>
+                    <Camera className="mr-2 h-4 w-4" />
+                    Tirar Foto
+                  </Button>
+                  <Button variant="outline">
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload
+                  </Button>
+                </div>
               </div>
               
               <Button variant="outline" className="w-full" onClick={() => setMethod(null)}>
