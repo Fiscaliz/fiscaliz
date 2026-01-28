@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Header } from '@/components/layout/Header';
+import { BrandHeader } from '@/components/layout/BrandHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -228,7 +228,7 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
-      <Header title="Dashboard" subtitle="Métricas e estatísticas" />
+      <BrandHeader />
       
       <div className="p-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
