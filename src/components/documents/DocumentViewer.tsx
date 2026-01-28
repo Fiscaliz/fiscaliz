@@ -445,43 +445,90 @@ export function DocumentViewer({
             </div>
           </div>
 
-          {/* DADOS DO ESTABELECIMENTO */}
+          {/* DADOS DO ESTABELECIMENTO - somente campos com valor */}
           {document.establishment && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">IDENTIFICAÇÃO DO ESTABELECIMENTO</h3>
               <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                {/* Razão Social - sempre aparece */}
                 <div className="doc-field col-span-2">
                   <span className="doc-label">Razão Social:</span>
                   <span className="doc-value">{document.establishment.razao_social}</span>
                 </div>
+                
+                {/* Nome Fantasia - só se preenchido */}
                 {document.establishment.nome_fantasia && (
                   <div className="doc-field col-span-2">
                     <span className="doc-label">Nome Fantasia:</span>
                     <span className="doc-value">{document.establishment.nome_fantasia}</span>
                   </div>
                 )}
+                
+                {/* Inscrição Municipal - só se preenchido */}
+                {(document.establishment as any).inscricao_municipal && (
+                  <div className="doc-field">
+                    <span className="doc-label">Inscrição Municipal:</span>
+                    <span className="doc-value">{(document.establishment as any).inscricao_municipal}</span>
+                  </div>
+                )}
+                
+                {/* CNPJ - sempre aparece */}
                 <div className="doc-field">
                   <span className="doc-label">CNPJ:</span>
                   <span className="doc-value">{document.establishment.cnpj}</span>
                 </div>
+                
+                {/* Telefone - só se preenchido */}
+                {document.establishment.responsavel_telefone && (
+                  <div className="doc-field">
+                    <span className="doc-label">Telefone:</span>
+                    <span className="doc-value">{document.establishment.responsavel_telefone}</span>
+                  </div>
+                )}
+                
+                {/* Email - só se preenchido */}
+                {(document.establishment as any).email && (
+                  <div className="doc-field">
+                    <span className="doc-label">Email:</span>
+                    <span className="doc-value">{(document.establishment as any).email}</span>
+                  </div>
+                )}
+                
+                {/* Atividade/CNAE - só se preenchido */}
+                {(document.establishment as any).cnae_principal && (
+                  <div className="doc-field col-span-2">
+                    <span className="doc-label">Atividade:</span>
+                    <span className="doc-value">{(document.establishment as any).cnae_principal}</span>
+                  </div>
+                )}
+                
+                {/* Responsável Técnico - só se preenchido */}
+                {(document.establishment as any).responsavel_tecnico && (
+                  <div className="doc-field col-span-2">
+                    <span className="doc-label">Responsável Técnico:</span>
+                    <span className="doc-value">
+                      {(document.establishment as any).responsavel_tecnico}
+                      {(document.establishment as any).inscricao_conselho && ` (${(document.establishment as any).inscricao_conselho})`}
+                    </span>
+                  </div>
+                )}
+                
+                {/* Responsável - só se preenchido */}
+                {document.establishment.responsavel_nome && (
+                  <div className="doc-field col-span-2">
+                    <span className="doc-label">Responsável:</span>
+                    <span className="doc-value">
+                      {document.establishment.responsavel_nome}
+                      {document.establishment.responsavel_cpf && ` - CPF: ${document.establishment.responsavel_cpf}`}
+                    </span>
+                  </div>
+                )}
+                
+                {/* Endereço - sempre aparece, na coluna da direita */}
                 <div className="doc-field col-span-2">
                   <span className="doc-label">Endereço:</span>
                   <span className="doc-value">{document.establishment.endereco}{document.establishment.bairro ? ` - ${document.establishment.bairro}` : ''}</span>
                 </div>
-                {document.establishment.responsavel_nome && (
-                  <>
-                    <div className="doc-field">
-                      <span className="doc-label">Responsável:</span>
-                      <span className="doc-value">{document.establishment.responsavel_nome}</span>
-                    </div>
-                    {document.establishment.responsavel_cpf && (
-                      <div className="doc-field">
-                        <span className="doc-label">CPF:</span>
-                        <span className="doc-value">{document.establishment.responsavel_cpf}</span>
-                      </div>
-                    )}
-                  </>
-                )}
               </div>
             </div>
           )}
@@ -658,7 +705,7 @@ export function DocumentViewer({
                   alt="SUS" 
                   className="hidden print:block h-8 w-auto object-contain"
                 />
-                {/* Fiscaliz logo - only visible in app */}
+                {/* Fiscaliz logo - only visible in app - TAMANHO PADRÃO h-12 */}
                 <img 
                   src={fiscalizLogo} 
                   alt="Fiscaliz" 
@@ -688,26 +735,93 @@ export function DocumentViewer({
           </CardHeader>
           
           <CardContent className="p-6 space-y-6 print:p-4">
-            {/* Establishment Info - Complete data */}
+            {/* Establishment Info - Reorganized: Razão Social, Nome Fantasia, Inscrição Municipal, CNPJ, Telefone, Email, Atividade, Resp Técnico, Responsável. Endereço à direita */}
             {document.establishment && (
               <div className="p-4 bg-muted/30 rounded-lg text-sm print:bg-gray-50 print:border print:border-gray-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Coluna esquerda - dados do estabelecimento */}
                   <div className="space-y-2">
+                    {/* Razão Social */}
                     <div className="flex items-start gap-2">
-                      <Building className="h-4 w-4 mt-0.5 text-muted-foreground print:text-gray-600" />
+                      <Building className="h-4 w-4 mt-0.5 text-muted-foreground print:text-gray-600 flex-shrink-0" />
                       <div>
-                        <p className="text-xs text-muted-foreground print:text-gray-500">Estabelecimento</p>
-                        <p className="font-semibold">{document.establishment.nome_fantasia || document.establishment.razao_social}</p>
-                        <p className="text-xs text-muted-foreground">{document.establishment.razao_social}</p>
+                        <p className="text-xs text-muted-foreground print:text-gray-500">Razão Social</p>
+                        <p className="font-semibold">{document.establishment.razao_social}</p>
                       </div>
                     </div>
+                    
+                    {/* Nome Fantasia */}
+                    {document.establishment.nome_fantasia && (
+                      <div className="pl-6">
+                        <p className="text-xs text-muted-foreground print:text-gray-500">Nome Fantasia</p>
+                        <p className="text-sm font-medium">{document.establishment.nome_fantasia}</p>
+                      </div>
+                    )}
+                    
+                    {/* Inscrição Municipal - placeholder */}
+                    {(document.establishment as any).inscricao_municipal && (
+                      <div className="pl-6">
+                        <p className="text-xs"><span className="font-medium">Inscrição Municipal:</span> {(document.establishment as any).inscricao_municipal}</p>
+                      </div>
+                    )}
+                    
+                    {/* CNPJ */}
                     <div className="pl-6">
                       <p className="text-xs"><span className="font-medium">CNPJ:</span> {document.establishment.cnpj}</p>
                     </div>
+                    
+                    {/* Telefone */}
+                    {document.establishment.responsavel_telefone && (
+                      <div className="pl-6">
+                        <p className="text-xs"><span className="font-medium">Telefone:</span> {document.establishment.responsavel_telefone}</p>
+                      </div>
+                    )}
+                    
+                    {/* Email - placeholder */}
+                    {(document.establishment as any).email && (
+                      <div className="pl-6">
+                        <p className="text-xs"><span className="font-medium">Email:</span> {(document.establishment as any).email}</p>
+                      </div>
+                    )}
+                    
+                    {/* Atividade/CNAE */}
+                    {(document.establishment as any).cnae_principal && (
+                      <div className="pl-6">
+                        <p className="text-xs"><span className="font-medium">Atividade:</span> {(document.establishment as any).cnae_principal}</p>
+                      </div>
+                    )}
+                    
+                    {/* Responsável Técnico - placeholder */}
+                    {(document.establishment as any).responsavel_tecnico && (
+                      <div className="pl-6">
+                        <p className="text-xs">
+                          <span className="font-medium">Responsável Técnico:</span> {(document.establishment as any).responsavel_tecnico}
+                          {(document.establishment as any).inscricao_conselho && (
+                            <span className="ml-1">({(document.establishment as any).inscricao_conselho})</span>
+                          )}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Responsável */}
+                    {document.establishment.responsavel_nome && (
+                      <div className="flex items-start gap-2 pt-2 border-t border-muted/50">
+                        <User className="h-4 w-4 mt-0.5 text-muted-foreground print:text-gray-600 flex-shrink-0" />
+                        <div>
+                          <p className="text-xs text-muted-foreground print:text-gray-500">Responsável</p>
+                          <p className="text-sm font-medium">{document.establishment.responsavel_nome}</p>
+                          {document.establishment.responsavel_cpf && (
+                            <p className="text-xs text-muted-foreground">CPF: {document.establishment.responsavel_cpf}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
+                  
+                  {/* Coluna direita - endereço */}
                   <div className="space-y-2">
                     <div className="flex items-start gap-2">
-                      <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground print:text-gray-600" />
+                      <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground print:text-gray-600 flex-shrink-0" />
                       <div>
                         <p className="text-xs text-muted-foreground print:text-gray-500">Endereço</p>
                         <p className="text-sm">{document.establishment.endereco}</p>
@@ -717,25 +831,6 @@ export function DocumentViewer({
                       </div>
                     </div>
                   </div>
-                  {document.establishment.responsavel_nome && (
-                    <div className="col-span-full">
-                      <div className="flex items-start gap-2">
-                        <User className="h-4 w-4 mt-0.5 text-muted-foreground print:text-gray-600" />
-                        <div>
-                          <p className="text-xs text-muted-foreground print:text-gray-500">Responsável</p>
-                          <p className="text-sm font-medium">{document.establishment.responsavel_nome}</p>
-                          <div className="flex gap-4 text-xs text-muted-foreground">
-                            {document.establishment.responsavel_cpf && (
-                              <span>CPF: {document.establishment.responsavel_cpf}</span>
-                            )}
-                            {document.establishment.responsavel_telefone && (
-                              <span>Tel: {document.establishment.responsavel_telefone}</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
@@ -788,31 +883,6 @@ export function DocumentViewer({
                   </p>
                 </div>
 
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => {
-                    if (onSave) {
-                      onSave({ 
-                        content: { 
-                          ...document.content, 
-                          text: content,
-                          document_date: documentDate,
-                          document_time: documentTime,
-                          observations: observations,
-                        } 
-                      });
-                      toast({
-                        title: "Dados salvos",
-                        description: "Data, horário e observações atualizados"
-                      });
-                    }
-                  }}
-                  className="w-full"
-                >
-                  <Save className="h-4 w-4 mr-1" />
-                  Salvar Alterações
-                </Button>
               </div>
             )}
 
