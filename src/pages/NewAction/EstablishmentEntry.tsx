@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
@@ -19,7 +19,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   Upload,
-  FileText
+  FileText,
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,6 +40,31 @@ export default function EstablishmentEntry() {
   const [geoLoading, setGeoLoading] = useState(false);
   const [establishment, setEstablishment] = useState<any>(null);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [alvaraImage, setAlvaraImage] = useState<string | null>(null);
+  const [documentoAnteriorImage, setDocumentoAnteriorImage] = useState<string | null>(null);
+  
+  const alvaraInputRef = useRef<HTMLInputElement>(null);
+  const alvaraCameraRef = useRef<HTMLInputElement>(null);
+  const docAnteriorInputRef = useRef<HTMLInputElement>(null);
+  const docAnteriorCameraRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (
+    event: React.ChangeEvent<HTMLInputElement>, 
+    setImage: (url: string | null) => void
+  ) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImage(reader.result as string);
+        toast({
+          title: 'Imagem carregada',
+          description: 'Arquivo selecionado com sucesso',
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const formatCNPJ = (value: string) => {
     const numbers = value.replace(/\D/g, '');
@@ -387,25 +413,71 @@ export default function EstablishmentEntry() {
         {method === 'ocr' && !establishment && (
           <Card className="border-0 shadow-sm">
             <CardContent className="p-4 space-y-4">
-              <div className="border-2 border-dashed border-muted rounded-xl p-6 text-center">
-                <Camera className="mx-auto h-10 w-10 text-primary mb-3" />
-                <p className="font-medium">Foto do Alvará Sanitário</p>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Tire uma foto ou faça upload do alvará
-                </p>
-                <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                  <Button>
-                    <Camera className="mr-2 h-4 w-4" />
-                    Tirar Foto
-                  </Button>
-                  <Button variant="outline">
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload
+              {/* Hidden file inputs */}
+              <input
+                type="file"
+                ref={alvaraInputRef}
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleFileSelect(e, setAlvaraImage)}
+              />
+              <input
+                type="file"
+                ref={alvaraCameraRef}
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => handleFileSelect(e, setAlvaraImage)}
+              />
+              
+              {!alvaraImage ? (
+                <div className="border-2 border-dashed border-muted rounded-xl p-6 text-center">
+                  <Camera className="mx-auto h-10 w-10 text-primary mb-3" />
+                  <p className="font-medium">Foto do Alvará Sanitário</p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Tire uma foto ou faça upload do alvará
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                    <Button onClick={() => alvaraCameraRef.current?.click()}>
+                      <Camera className="mr-2 h-4 w-4" />
+                      Tirar Foto
+                    </Button>
+                    <Button variant="outline" onClick={() => alvaraInputRef.current?.click()}>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="relative">
+                    <img 
+                      src={alvaraImage} 
+                      alt="Alvará" 
+                      className="w-full rounded-lg border"
+                    />
+                    <Button 
+                      variant="destructive" 
+                      size="icon"
+                      className="absolute top-2 right-2"
+                      onClick={() => setAlvaraImage(null)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground text-center">
+                    Imagem carregada. Preencha os dados manualmente abaixo.
+                  </p>
+                  <Button 
+                    className="w-full" 
+                    onClick={() => setEstablishment({ razao_social: '', nome_fantasia: '', cnpj: '', endereco: '', bairro: '', cep: '' })}
+                  >
+                    Continuar para preenchimento
                   </Button>
                 </div>
-              </div>
+              )}
               
-              <Button variant="outline" className="w-full" onClick={() => setMethod(null)}>
+              <Button variant="outline" className="w-full" onClick={() => { setMethod(null); setAlvaraImage(null); }}>
                 Voltar
               </Button>
             </CardContent>
@@ -416,25 +488,71 @@ export default function EstablishmentEntry() {
         {method === 'documento_anterior' && !establishment && (
           <Card className="border-0 shadow-sm">
             <CardContent className="p-4 space-y-4">
-              <div className="border-2 border-dashed border-muted rounded-xl p-6 text-center">
-                <FileText className="mx-auto h-10 w-10 text-primary mb-3" />
-                <p className="font-medium">Documento Fiscal Anterior</p>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Tire uma foto ou faça upload de um documento fiscal anterior
-                </p>
-                <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                  <Button>
-                    <Camera className="mr-2 h-4 w-4" />
-                    Tirar Foto
-                  </Button>
-                  <Button variant="outline">
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload
+              {/* Hidden file inputs */}
+              <input
+                type="file"
+                ref={docAnteriorInputRef}
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleFileSelect(e, setDocumentoAnteriorImage)}
+              />
+              <input
+                type="file"
+                ref={docAnteriorCameraRef}
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => handleFileSelect(e, setDocumentoAnteriorImage)}
+              />
+              
+              {!documentoAnteriorImage ? (
+                <div className="border-2 border-dashed border-muted rounded-xl p-6 text-center">
+                  <FileText className="mx-auto h-10 w-10 text-primary mb-3" />
+                  <p className="font-medium">Documento Fiscal Anterior</p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Tire uma foto ou faça upload de um documento fiscal anterior
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                    <Button onClick={() => docAnteriorCameraRef.current?.click()}>
+                      <Camera className="mr-2 h-4 w-4" />
+                      Tirar Foto
+                    </Button>
+                    <Button variant="outline" onClick={() => docAnteriorInputRef.current?.click()}>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="relative">
+                    <img 
+                      src={documentoAnteriorImage} 
+                      alt="Documento Anterior" 
+                      className="w-full rounded-lg border"
+                    />
+                    <Button 
+                      variant="destructive" 
+                      size="icon"
+                      className="absolute top-2 right-2"
+                      onClick={() => setDocumentoAnteriorImage(null)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground text-center">
+                    Imagem carregada. Preencha os dados manualmente abaixo.
+                  </p>
+                  <Button 
+                    className="w-full" 
+                    onClick={() => setEstablishment({ razao_social: '', nome_fantasia: '', cnpj: '', endereco: '', bairro: '', cep: '' })}
+                  >
+                    Continuar para preenchimento
                   </Button>
                 </div>
-              </div>
+              )}
               
-              <Button variant="outline" className="w-full" onClick={() => setMethod(null)}>
+              <Button variant="outline" className="w-full" onClick={() => { setMethod(null); setDocumentoAnteriorImage(null); }}>
                 Voltar
               </Button>
             </CardContent>
