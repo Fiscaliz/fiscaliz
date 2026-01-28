@@ -23,6 +23,9 @@ import { cn } from '@/lib/utils';
 export interface VisitaFiscalData {
   purpose: string[];
   anotacoes: string;
+  areasVistoriadas: string[];
+  orientacoesImediatas: string;
+  documentoPosterior: boolean;
   intimacaoAnteriorId: string;
   intimacaoAnteriorNumero: string;
   intimacaoResolucao: 'adequado' | 'parcial' | 'nao_adequado' | '';
@@ -33,6 +36,21 @@ export interface VisitaFiscalData {
   documentDate: string;
   documentTime: string;
 }
+
+const areasInspecao = [
+  { id: 'area_producao', label: 'Área de produção/manipulação' },
+  { id: 'area_armazenamento', label: 'Área de armazenamento' },
+  { id: 'area_atendimento', label: 'Área de atendimento ao público' },
+  { id: 'instalacoes_sanitarias', label: 'Instalações sanitárias' },
+  { id: 'vestiarios', label: 'Vestiários' },
+  { id: 'equipamentos', label: 'Equipamentos e utensílios' },
+  { id: 'documentacao', label: 'Documentação sanitária' },
+  { id: 'manipuladores', label: 'Higiene dos manipuladores' },
+  { id: 'controle_pragas', label: 'Controle de pragas' },
+  { id: 'agua_potavel', label: 'Água potável e reservatórios' },
+  { id: 'residuos', label: 'Gestão de resíduos' },
+  { id: 'materia_prima', label: 'Matérias-primas e insumos' },
+];
 
 interface VisitaFiscalFormProps {
   value: VisitaFiscalData;
@@ -142,17 +160,82 @@ export function VisitaFiscalForm({ value, onChange }: VisitaFiscalFormProps) {
       {/* Anotações - sempre visível se selecionado */}
       {value.purpose.includes('anotacoes') && (
         <Card className="border-0 shadow-sm border-l-4 border-l-primary">
-          <CardContent className="p-4 space-y-3">
+          <CardContent className="p-4 space-y-4">
             <div className="flex items-center gap-2">
               <ClipboardList className="h-4 w-4 text-primary" />
               <Label className="text-sm font-medium">Anotações da Visita</Label>
             </div>
-            <Textarea
-              placeholder="Descreva observações gerais, condições encontradas, pessoas contactadas..."
-              value={value.anotacoes}
-              onChange={(e) => updateField('anotacoes', e.target.value)}
-              className="min-h-[120px]"
-            />
+
+            {/* Áreas Vistoriadas */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Áreas vistoriadas durante a ação fiscal:</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {areasInspecao.map((area) => (
+                  <label
+                    key={area.id}
+                    className={cn(
+                      'flex items-center gap-2 p-2 rounded-md border cursor-pointer text-xs transition-all',
+                      value.areasVistoriadas.includes(area.id)
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/50'
+                    )}
+                  >
+                    <Checkbox
+                      checked={value.areasVistoriadas.includes(area.id)}
+                      onCheckedChange={(checked) => {
+                        const newAreas = checked
+                          ? [...value.areasVistoriadas, area.id]
+                          : value.areasVistoriadas.filter(a => a !== area.id);
+                        updateField('areasVistoriadas', newAreas);
+                      }}
+                    />
+                    <span>{area.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Orientações Imediatas */}
+            <div className="space-y-2">
+              <Label htmlFor="orientacoesImediatas" className="text-xs text-muted-foreground">
+                Correções imediatas orientadas ao contribuinte:
+              </Label>
+              <Textarea
+                id="orientacoesImediatas"
+                placeholder="Descreva as correções imediatas solicitadas ao contribuinte durante a visita..."
+                value={value.orientacoesImediatas}
+                onChange={(e) => updateField('orientacoesImediatas', e.target.value)}
+                className="min-h-[80px]"
+              />
+            </div>
+
+            {/* Documento Posterior */}
+            <label className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 cursor-pointer">
+              <Checkbox
+                checked={value.documentoPosterior}
+                onCheckedChange={(checked) => updateField('documentoPosterior', checked as boolean)}
+              />
+              <div>
+                <p className="text-sm font-medium">Documento será lavrado em momento posterior</p>
+                <p className="text-xs text-muted-foreground">
+                  Marque se um Termo de Intimação ou outro documento será emitido após análise
+                </p>
+              </div>
+            </label>
+
+            {/* Anotações Livres */}
+            <div className="space-y-2">
+              <Label htmlFor="anotacoesLivres" className="text-xs text-muted-foreground">
+                Observações adicionais:
+              </Label>
+              <Textarea
+                id="anotacoesLivres"
+                placeholder="Outras observações gerais da visita, pessoas contactadas, condições encontradas..."
+                value={value.anotacoes}
+                onChange={(e) => updateField('anotacoes', e.target.value)}
+                className="min-h-[80px]"
+              />
+            </div>
           </CardContent>
         </Card>
       )}
@@ -332,8 +415,30 @@ export function VisitaFiscalForm({ value, onChange }: VisitaFiscalFormProps) {
 export function formatVisitaFiscalContent(data: VisitaFiscalData): string {
   const parts: string[] = [];
 
-  if (data.purpose.includes('anotacoes') && data.anotacoes.trim()) {
-    parts.push(`ANOTAÇÕES DA VISITA:\n${data.anotacoes}`);
+  if (data.purpose.includes('anotacoes')) {
+    const areasLabels = areasInspecao
+      .filter(a => data.areasVistoriadas.includes(a.id))
+      .map(a => a.label);
+    
+    let anotacoesText = 'ANOTAÇÕES DA VISITA:';
+    
+    if (areasLabels.length > 0) {
+      anotacoesText += `\n\nNo momento da ação fiscal foram vistoriados: ${areasLabels.join(', ')}.`;
+    }
+    
+    if (data.orientacoesImediatas?.trim()) {
+      anotacoesText += `\n\nO contribuinte foi orientado a realizar as seguintes correções imediatas: ${data.orientacoesImediatas.trim()}.`;
+    }
+    
+    if (data.documentoPosterior) {
+      anotacoesText += '\n\nDocumento fiscal será lavrado em momento posterior após análise detalhada.';
+    }
+    
+    if (data.anotacoes?.trim()) {
+      anotacoesText += `\n\nObservações adicionais: ${data.anotacoes.trim()}`;
+    }
+    
+    parts.push(anotacoesText);
   }
 
   if (data.purpose.includes('baixa_intimacao')) {
