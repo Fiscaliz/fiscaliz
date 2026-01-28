@@ -167,7 +167,62 @@ export function DocumentViewer({
     setShowSendModal(true);
   };
 
-  const handleSend = () => {
+  const handleSendViaWhatsApp = () => {
+    if (!whatsapp) return;
+    
+    // Limpar número de telefone
+    const cleanPhone = whatsapp.replace(/\D/g, '');
+    const phoneWithCountry = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+    
+    // Montar mensagem
+    const docType = documentTypeLabels[document.document_type] || document.document_type;
+    const establishment = document.establishment?.nome_fantasia || document.establishment?.razao_social || 'Estabelecimento';
+    const message = `📋 *${docType}*\n\n🏢 *Estabelecimento:* ${establishment}\n📅 *Data:* ${formatDate(documentDate)}\n\n⚠️ Este é um documento oficial da Vigilância Sanitária de Goiânia.\n\nPor favor, verifique o documento anexo e tome as providências necessárias dentro do prazo estabelecido.`;
+    
+    // Abrir WhatsApp
+    const whatsappUrl = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    
+    toast({
+      title: "WhatsApp aberto",
+      description: "Complete o envio no WhatsApp e depois confirme aqui."
+    });
+  };
+
+  const handleSendViaEmail = async () => {
+    if (!email) return;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('send-fiscal-document', {
+        body: {
+          email,
+          documentId: document.id,
+          documentType: documentTypeLabels[document.document_type] || document.document_type,
+          establishmentName: document.establishment?.nome_fantasia || document.establishment?.razao_social || 'Estabelecimento',
+          fiscalName: document.profile?.full_name || 'Auditor Fiscal',
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Email enviado!",
+        description: `Documento enviado para ${email}`
+      });
+      
+      return true;
+    } catch (error: any) {
+      console.error('Email send error:', error);
+      toast({
+        title: "Erro ao enviar email",
+        description: error.message || "Verifique se o serviço de email está configurado",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
+  const handleSend = async () => {
     if (isTermoIntimacao && !hasDeadline) {
       toast({
         title: "Prazo obrigatório",
@@ -176,6 +231,18 @@ export function DocumentViewer({
       });
       return;
     }
+    
+    // Enviar via WhatsApp se preenchido
+    if (whatsapp) {
+      handleSendViaWhatsApp();
+    }
+    
+    // Enviar via Email se preenchido
+    if (email) {
+      await handleSendViaEmail();
+    }
+    
+    // Atualizar status do documento
     if (onSend) {
       onSend({ email, whatsapp });
     }
