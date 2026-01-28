@@ -13,6 +13,7 @@ import Tasks from "./pages/Tasks";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import EditProfile from "./pages/EditProfile";
+import Settings from "./pages/Settings";
 import NewAction from "./pages/NewAction";
 import EstablishmentEntry from "./pages/NewAction/EstablishmentEntry";
 import DocumentTypeSelection from "./pages/NewAction/DocumentTypeSelection";
@@ -59,6 +60,11 @@ const App = () => (
             <Route path="/perfil/editar" element={
               <ProtectedRoute>
                 <EditProfile />
+              </ProtectedRoute>
+            } />
+            <Route path="/configuracoes" element={
+              <ProtectedRoute>
+                <Settings />
               </ProtectedRoute>
             } />
             <Route path="/nova-acao" element={
