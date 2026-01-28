@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
@@ -44,11 +44,20 @@ export default function EstablishmentEntry() {
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
   const [alvaraImage, setAlvaraImage] = useState<string | null>(null);
   const [documentoAnteriorImage, setDocumentoAnteriorImage] = useState<string | null>(null);
+  const [previousDocuments, setPreviousDocuments] = useState<any[]>([]);
+  const [loadingDocuments, setLoadingDocuments] = useState(false);
   
   const alvaraInputRef = useRef<HTMLInputElement>(null);
   const alvaraCameraRef = useRef<HTMLInputElement>(null);
   const docAnteriorInputRef = useRef<HTMLInputElement>(null);
   const docAnteriorCameraRef = useRef<HTMLInputElement>(null);
+
+  // Load previous documents when selecting that method
+  useEffect(() => {
+    if (method === 'documento_anterior' && previousDocuments.length === 0) {
+      loadPreviousDocuments();
+    }
+  }, [method]);
 
   const handleFileSelect = (
     event: React.ChangeEvent<HTMLInputElement>, 
@@ -366,6 +375,87 @@ export default function EstablishmentEntry() {
     );
   };
 
+  // Load previous documents when selecting "documento_anterior" method
+  const loadPreviousDocuments = async () => {
+    setLoadingDocuments(true);
+    try {
+      const { data, error } = await supabase
+        .from('fiscal_documents')
+        .select(`
+          id,
+          document_type,
+          created_at,
+          establishment:establishments(
+            id,
+            razao_social,
+            nome_fantasia,
+            cnpj,
+            endereco,
+            bairro,
+            cep,
+            responsavel_nome,
+            responsavel_telefone,
+            cnae_principal,
+            alvara_numero,
+            latitude,
+            longitude
+          )
+        `)
+        .not('establishment_id', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      // Filter to unique establishments
+      const uniqueEstablishments = new Map();
+      data?.forEach((doc: any) => {
+        const est = Array.isArray(doc.establishment) ? doc.establishment[0] : doc.establishment;
+        if (est && !uniqueEstablishments.has(est.id)) {
+          uniqueEstablishments.set(est.id, {
+            ...doc,
+            establishment: est,
+          });
+        }
+      });
+
+      setPreviousDocuments(Array.from(uniqueEstablishments.values()));
+    } catch (error) {
+      console.error('Error loading previous documents:', error);
+      toast({
+        title: 'Erro ao carregar documentos',
+        description: 'Não foi possível carregar documentos anteriores',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingDocuments(false);
+    }
+  };
+
+  const handleSelectPreviousDocument = (doc: any) => {
+    const est = doc.establishment;
+    setEstablishment({
+      id: est.id,
+      cnpj: est.cnpj,
+      razao_social: est.razao_social,
+      nome_fantasia: est.nome_fantasia,
+      endereco: est.endereco,
+      bairro: est.bairro,
+      cep: est.cep,
+      responsavel_nome: est.responsavel_nome,
+      responsavel_telefone: est.responsavel_telefone,
+      cnae_principal: est.cnae_principal,
+      alvara_numero: est.alvara_numero,
+      latitude: est.latitude,
+      longitude: est.longitude,
+    });
+    
+    toast({
+      title: 'Estabelecimento selecionado',
+      description: `${est.nome_fantasia || est.razao_social}`,
+    });
+  };
+
   const handleProceed = () => {
     if (establishment) {
       // Navigate to document type selection
@@ -377,7 +467,7 @@ export default function EstablishmentEntry() {
     { id: 'cnpj' as EntryMethod, icon: Search, label: 'Buscar por CNPJ', description: 'Consulta automática' },
     { id: 'geo' as EntryMethod, icon: Navigation, label: 'Georreferenciamento', description: 'Usar GPS do dispositivo' },
     { id: 'ocr' as EntryMethod, icon: Camera, label: 'Foto do Alvará', description: 'Foto ou upload do alvará' },
-    { id: 'documento_anterior' as EntryMethod, icon: FileText, label: 'Documento Anterior', description: 'Foto ou upload de documento' },
+    { id: 'documento_anterior' as EntryMethod, icon: FileText, label: 'Peça Fiscal Anterior', description: 'Selecionar de documentos anteriores' },
     { id: 'manual' as EntryMethod, icon: Edit3, label: 'Manual', description: 'Preencher dados' },
   ];
 
@@ -594,75 +684,96 @@ export default function EstablishmentEntry() {
           </Card>
         )}
 
-        {/* Documento Anterior */}
+        {/* Documento Anterior - Lista de documentos do banco */}
         {method === 'documento_anterior' && !establishment && (
           <Card className="border-0 shadow-sm">
             <CardContent className="p-4 space-y-4">
-              {/* Hidden file inputs */}
-              <input
-                type="file"
-                ref={docAnteriorInputRef}
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => handleFileSelect(e, setDocumentoAnteriorImage)}
-              />
-              <input
-                type="file"
-                ref={docAnteriorCameraRef}
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={(e) => handleFileSelect(e, setDocumentoAnteriorImage)}
-              />
+              <div className="flex items-center gap-2 mb-2">
+                <FileText className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold">Peças Fiscais Anteriores</h3>
+              </div>
               
-              {!documentoAnteriorImage ? (
+              <p className="text-sm text-muted-foreground">
+                Selecione um estabelecimento de documentos já criados:
+              </p>
+
+              {loadingDocuments ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : previousDocuments.length === 0 ? (
                 <div className="border-2 border-dashed border-muted rounded-xl p-6 text-center">
-                  <FileText className="mx-auto h-10 w-10 text-primary mb-3" />
-                  <p className="font-medium">Documento Fiscal Anterior</p>
+                  <FileText className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
+                  <p className="font-medium text-muted-foreground">Nenhum documento encontrado</p>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Tire uma foto ou faça upload de um documento fiscal anterior
+                    Você ainda não criou documentos fiscais com estabelecimentos
                   </p>
-                  <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                    <Button onClick={() => docAnteriorCameraRef.current?.click()}>
-                      <Camera className="mr-2 h-4 w-4" />
-                      Tirar Foto
-                    </Button>
-                    <Button variant="outline" onClick={() => docAnteriorInputRef.current?.click()}>
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload
-                    </Button>
-                  </div>
+                  <Button variant="outline" onClick={() => setMethod('manual')}>
+                    <Edit3 className="mr-2 h-4 w-4" />
+                    Preencher manualmente
+                  </Button>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <div className="relative">
-                    <img 
-                      src={documentoAnteriorImage} 
-                      alt="Documento Anterior" 
-                      className="w-full rounded-lg border"
-                    />
-                    <Button 
-                      variant="destructive" 
-                      size="icon"
-                      className="absolute top-2 right-2"
-                      onClick={() => setDocumentoAnteriorImage(null)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <p className="text-sm text-muted-foreground text-center">
-                    Imagem carregada. Preencha os dados manualmente abaixo.
-                  </p>
-                  <Button 
-                    className="w-full" 
-                    onClick={() => setEstablishment({ razao_social: '', nome_fantasia: '', cnpj: '', endereco: '', bairro: '', cep: '' })}
-                  >
-                    Continuar para preenchimento
-                  </Button>
+                <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                  {previousDocuments.map((doc) => {
+                    const est = doc.establishment;
+                    const docTypeLabels: Record<string, string> = {
+                      termo_intimacao: 'T.I.',
+                      visita_fiscal: 'V.F.',
+                      auto_infracao: 'A.I.',
+                      certidao: 'Cert.',
+                      interdicao: 'Int.',
+                      apreensao: 'Apr.',
+                      inutilizacao: 'Inut.',
+                      advertencia: 'Adv.',
+                      notificacao: 'Not.',
+                      relatorio_tecnico: 'R.T.',
+                    };
+                    
+                    return (
+                      <Card 
+                        key={doc.id}
+                        className="border cursor-pointer transition-all hover:shadow-md hover:border-primary/50 active:scale-[0.98]"
+                        onClick={() => handleSelectPreviousDocument(doc)}
+                      >
+                        <CardContent className="p-3">
+                          <div className="flex items-start gap-3">
+                            <div className="rounded-lg p-2 bg-primary/10 flex-shrink-0">
+                              <Building2 className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">
+                                {est.nome_fantasia || est.razao_social}
+                              </p>
+                              {est.nome_fantasia && est.razao_social !== est.nome_fantasia && (
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {est.razao_social}
+                                </p>
+                              )}
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs text-muted-foreground">
+                                  CNPJ: {est.cnpj?.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') || 'N/A'}
+                                </span>
+                                <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                  {docTypeLabels[doc.document_type] || doc.document_type}
+                                </span>
+                              </div>
+                              {est.endereco && (
+                                <p className="text-xs text-muted-foreground mt-1 truncate flex items-center gap-1">
+                                  <MapPin className="h-3 w-3 flex-shrink-0" />
+                                  {est.endereco}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
               
-              <Button variant="outline" className="w-full" onClick={() => { setMethod(null); setDocumentoAnteriorImage(null); }}>
+              <Button variant="outline" className="w-full" onClick={() => { setMethod(null); setPreviousDocuments([]); }}>
                 Voltar
               </Button>
             </CardContent>
