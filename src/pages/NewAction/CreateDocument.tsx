@@ -100,6 +100,9 @@ export default function CreateDocument() {
   const [visitaFiscalData, setVisitaFiscalData] = useState<VisitaFiscalData>({
     purpose: [],
     anotacoes: '',
+    areasVistoriadas: [],
+    orientacoesImediatas: '',
+    documentoPosterior: false,
     intimacaoAnteriorId: '',
     intimacaoAnteriorNumero: '',
     intimacaoResolucao: '',
