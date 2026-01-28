@@ -22,7 +22,8 @@ import {
   Upload,
   X,
   ArrowLeft,
-  Printer
+  Printer,
+  Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -110,6 +111,9 @@ export function DocumentViewer({
   const [deadlineDate, setDeadlineDate] = useState<string | undefined>(document.deadline_date);
   const [isUploading, setIsUploading] = useState(false);
   const [contributorSignatureUrl, setContributorSignatureUrl] = useState<string | null>(document.content?.contributor_signature || null);
+  const [documentDate, setDocumentDate] = useState(document.content?.document_date || new Date(document.created_at).toISOString().split('T')[0]);
+  const [documentTime, setDocumentTime] = useState(document.content?.document_time || new Date(document.created_at).toTimeString().slice(0, 5));
+  const [observations, setObservations] = useState(document.content?.observations || '');
   const documentRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const prepostoFileInputRef = useRef<HTMLInputElement>(null);
@@ -137,6 +141,9 @@ export function DocumentViewer({
           preposto_photo: prepostoPhoto,
           preposto_name: prepostoName,
           preposto_cpf: prepostoCpf,
+          document_date: documentDate,
+          document_time: documentTime,
+          observations: observations,
         } 
       });
     }
@@ -357,7 +364,10 @@ export function DocumentViewer({
           contributor_signature: contributorSignatureUrl,
           preposto_photo: prepostoPhoto, 
           preposto_name: prepostoName, 
-          preposto_cpf: prepostoCpf 
+          preposto_cpf: prepostoCpf,
+          document_date: documentDate,
+          document_time: documentTime,
+          observations: observations,
         } 
       });
     }
@@ -481,6 +491,16 @@ export function DocumentViewer({
               {content || 'Sem irregularidades especificadas.'}
             </div>
           </div>
+
+          {/* OBSERVAÇÕES ADICIONAIS */}
+          {observations && (
+            <div className="doc-section border border-gray-300 p-4 mb-6">
+              <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">OBSERVAÇÕES ADICIONAIS</h3>
+              <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                {observations}
+              </div>
+            </div>
+          )}
 
           {/* PRAZO PARA ADEQUAÇÃO */}
           {(deadlineDate || document.deadline_date) && (
@@ -718,6 +738,82 @@ export function DocumentViewer({
               </div>
             )}
 
+            {/* Data/Hora e Observações - Editável no rascunho */}
+            {canEdit && (
+              <div className="p-4 bg-muted/30 rounded-lg space-y-4 print:hidden">
+                <p className="text-sm font-semibold flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Data e Horário do Documento
+                </p>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="docDate" className="text-xs">Data</Label>
+                    <Input
+                      id="docDate"
+                      type="date"
+                      value={documentDate}
+                      onChange={(e) => setDocumentDate(e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="docTime" className="text-xs">Horário</Label>
+                    <Input
+                      id="docTime"
+                      type="time"
+                      value={documentTime}
+                      onChange={(e) => setDocumentTime(e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t">
+                  <Label htmlFor="observations" className="text-xs flex items-center gap-1">
+                    <FileText className="h-3 w-3" />
+                    Observações Adicionais
+                  </Label>
+                  <Textarea
+                    id="observations"
+                    placeholder="Irregularidades ou observações não contempladas no checklist ou análise por IA..."
+                    value={observations}
+                    onChange={(e) => setObservations(e.target.value)}
+                    className="min-h-[80px] text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Campo para registrar informações adicionais não cobertas pelos métodos automáticos
+                  </p>
+                </div>
+
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => {
+                    if (onSave) {
+                      onSave({ 
+                        content: { 
+                          ...document.content, 
+                          text: content,
+                          document_date: documentDate,
+                          document_time: documentTime,
+                          observations: observations,
+                        } 
+                      });
+                      toast({
+                        title: "Dados salvos",
+                        description: "Data, horário e observações atualizados"
+                      });
+                    }
+                  }}
+                  className="w-full"
+                >
+                  <Save className="h-4 w-4 mr-1" />
+                  Salvar Alterações
+                </Button>
+              </div>
+            )}
+
             {/* Document Content */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -907,8 +1003,8 @@ export function DocumentViewer({
               )}
             </div>
 
-            {/* Preposto/Responsável Section - Editable */}
-            {canEdit && (
+            {/* Preposto/Responsável Section - Editable (apenas para documentos que não sejam certidão) */}
+            {canEdit && document.document_type !== 'certidao' && (
               <div className="p-4 bg-muted/30 rounded-lg space-y-4 print:hidden">
                 <p className="text-sm font-semibold flex items-center gap-2">
                   <User className="h-4 w-4" />
@@ -1028,6 +1124,65 @@ export function DocumentViewer({
                   <Save className="h-4 w-4 mr-1" />
                   Salvar dados do contribuinte
                 </Button>
+              </div>
+            )}
+
+            {/* Seção simplificada para Certidão - apenas foto comprobatória */}
+            {canEdit && document.document_type === 'certidao' && (
+              <div className="p-4 bg-muted/30 rounded-lg space-y-4 print:hidden">
+                <p className="text-sm font-semibold flex items-center gap-2">
+                  <Camera className="h-4 w-4" />
+                  Foto Comprobatória (opcional)
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Anexe uma foto para comprovar a ação realizada
+                </p>
+                
+                {contributorPhoto ? (
+                  <div className="relative inline-block">
+                    <img 
+                      src={contributorPhoto} 
+                      alt="Foto comprobatória" 
+                      className="w-32 h-32 object-cover rounded-lg border"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2 h-6 w-6"
+                      onClick={removePhoto}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCapturePhoto}
+                      disabled={isUploading}
+                    >
+                      <Camera className="h-4 w-4 mr-1" />
+                      Capturar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                    >
+                      <Upload className="h-4 w-4 mr-1" />
+                      Galeria
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handlePhotoUpload}
+                    />
+                  </div>
+                )}
               </div>
             )}
 
