@@ -20,7 +20,8 @@ import {
   Calendar,
   Camera,
   X,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { checklistTemplates, getAllCategories, type ChecklistItem } from '@/data/checklists';
@@ -28,6 +29,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { CertidaoForm, formatCertidaoContent } from '@/components/documents/CertidaoForm';
+import { DocumentCommonFields } from '@/components/documents/DocumentCommonFields';
 
 type UploadedImage = {
   id: string;
@@ -84,6 +86,10 @@ export default function CreateDocument() {
   const [saving, setSaving] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [otrosContent, setOtrosContent] = useState('');
+  const [observations, setObservations] = useState('');
+  const [dengueInspection, setDengueInspection] = useState(false);
+  const [documentDate, setDocumentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [documentTime, setDocumentTime] = useState(new Date().toTimeString().slice(0, 5));
   const [certidaoData, setCertidaoData] = useState({
     selectedOptions: [] as string[],
     observations: {} as Record<string, string>,
@@ -289,7 +295,14 @@ export default function CreateDocument() {
           establishment_id: establishmentId,
           fiscal_action_id: action.id,
           document_type: tipo as any,
-          content: { text: content, method },
+          content: { 
+            text: content, 
+            method,
+            observations: observations.trim() || null,
+            dengue_inspection: dengueInspection,
+            document_date: documentDate,
+            document_time: documentTime,
+          },
           irregularities,
           attachments,
           deadline_days: tipo === 'termo_intimacao' ? parseInt(deadlineDays) : null,
@@ -399,6 +412,40 @@ export default function CreateDocument() {
                     </Button>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Data e Hora para Certidão */}
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="certidaoDate" className="text-xs flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      Data
+                    </Label>
+                    <Input
+                      id="certidaoDate"
+                      type="date"
+                      value={documentDate}
+                      onChange={(e) => setDocumentDate(e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="certidaoTime" className="text-xs flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Horário
+                    </Label>
+                    <Input
+                      id="certidaoTime"
+                      type="time"
+                      value={documentTime}
+                      onChange={(e) => setDocumentTime(e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -549,31 +596,20 @@ export default function CreateDocument() {
               </CardContent>
             </Card>
 
-            {/* Deadline for Termo de Intimação */}
-            {tipo === 'termo_intimacao' && (
-              <Card className="border-0 shadow-sm">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <Calendar className="h-5 w-5 text-primary" />
-                    <div className="flex-1">
-                      <Label htmlFor="prazo">Prazo para adequação</Label>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Input
-                          id="prazo"
-                          type="number"
-                          min="1"
-                          max="90"
-                          value={deadlineDays}
-                          onChange={(e) => setDeadlineDays(e.target.value)}
-                          className="w-20"
-                        />
-                        <span className="text-sm text-muted-foreground">dias</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <DocumentCommonFields
+              documentType={tipo}
+              documentDate={documentDate}
+              documentTime={documentTime}
+              observations={observations}
+              dengueInspection={dengueInspection}
+              onDateChange={setDocumentDate}
+              onTimeChange={setDocumentTime}
+              onObservationsChange={setObservations}
+              onDengueChange={setDengueInspection}
+              showDeadline={tipo === 'termo_intimacao'}
+              deadlineDays={deadlineDays}
+              onDeadlineChange={setDeadlineDays}
+            />
 
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1" onClick={() => setSelectedChecklist(null)}>
@@ -582,7 +618,7 @@ export default function CreateDocument() {
               <Button 
                 className="flex-1" 
                 onClick={handleSave}
-                disabled={selectedItems.length === 0 || saving}
+                disabled={selectedItems.length === 0 || saving || ((tipo === 'termo_intimacao' || tipo === 'visita_fiscal') && !dengueInspection)}
               >
                 {saving ? 'Salvando...' : 'Salvar Documento'}
               </Button>
@@ -605,29 +641,23 @@ export default function CreateDocument() {
                     className="min-h-[200px] mt-2"
                   />
                 </div>
-
-                {tipo === 'termo_intimacao' && (
-                  <div className="flex items-center gap-3">
-                    <Calendar className="h-5 w-5 text-primary" />
-                    <div>
-                      <Label htmlFor="prazoManual">Prazo</Label>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Input
-                          id="prazoManual"
-                          type="number"
-                          min="1"
-                          max="90"
-                          value={deadlineDays}
-                          onChange={(e) => setDeadlineDays(e.target.value)}
-                          className="w-20"
-                        />
-                        <span className="text-sm text-muted-foreground">dias</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
+
+            <DocumentCommonFields
+              documentType={tipo}
+              documentDate={documentDate}
+              documentTime={documentTime}
+              observations={observations}
+              dengueInspection={dengueInspection}
+              onDateChange={setDocumentDate}
+              onTimeChange={setDocumentTime}
+              onObservationsChange={setObservations}
+              onDengueChange={setDengueInspection}
+              showDeadline={tipo === 'termo_intimacao'}
+              deadlineDays={deadlineDays}
+              onDeadlineChange={setDeadlineDays}
+            />
 
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1" onClick={() => setMethod(null)}>
@@ -636,7 +666,7 @@ export default function CreateDocument() {
               <Button 
                 className="flex-1" 
                 onClick={handleSave}
-                disabled={!manualContent.trim() || saving}
+                disabled={!manualContent.trim() || saving || ((tipo === 'termo_intimacao' || tipo === 'visita_fiscal') && !dengueInspection)}
               >
                 {saving ? 'Salvando...' : 'Salvar Documento'}
               </Button>
@@ -697,28 +727,23 @@ export default function CreateDocument() {
                   {uploadedImages.length}/50 fotos
                 </p>
 
-                {tipo === 'termo_intimacao' && (
-                  <div className="flex items-center gap-3 pt-2 border-t">
-                    <Calendar className="h-5 w-5 text-primary" />
-                    <div>
-                      <Label htmlFor="prazoAI">Prazo</Label>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Input
-                          id="prazoAI"
-                          type="number"
-                          min="1"
-                          max="90"
-                          value={deadlineDays}
-                          onChange={(e) => setDeadlineDays(e.target.value)}
-                          className="w-20"
-                        />
-                        <span className="text-sm text-muted-foreground">dias</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
+
+            <DocumentCommonFields
+              documentType={tipo}
+              documentDate={documentDate}
+              documentTime={documentTime}
+              observations={observations}
+              dengueInspection={dengueInspection}
+              onDateChange={setDocumentDate}
+              onTimeChange={setDocumentTime}
+              onObservationsChange={setObservations}
+              onDengueChange={setDengueInspection}
+              showDeadline={tipo === 'termo_intimacao'}
+              deadlineDays={deadlineDays}
+              onDeadlineChange={setDeadlineDays}
+            />
 
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1" onClick={() => { setMethod(null); setUploadedImages([]); }}>
@@ -727,7 +752,7 @@ export default function CreateDocument() {
               <Button 
                 className="flex-1" 
                 onClick={handleSave}
-                disabled={uploadedImages.length === 0 || saving}
+                disabled={uploadedImages.length === 0 || saving || ((tipo === 'termo_intimacao' || tipo === 'visita_fiscal') && !dengueInspection)}
               >
                 {saving ? 'Salvando...' : 'Analisar com IA'}
               </Button>
