@@ -420,24 +420,32 @@ export function DocumentViewer({
         `}</style>
 
         <div className="p-8 max-w-4xl mx-auto bg-white">
-          {/* CABEÇALHO OFICIAL - Layout conforme modelo de Certidão */}
+          {/* CABEÇALHO OFICIAL - 3 colunas: Brasão | Textos | SUS */}
           <div className="mb-6 border-b-2 border-gray-800 pb-4">
-            <div className="flex items-center justify-between">
-              {/* Logo Prefeitura/Brasão esquerda */}
-              <img src={BRASAO_GOIANIA_SVG} alt="Prefeitura de Goiânia" className="h-24 w-auto object-contain" />
-              
-              {/* Textos centrais */}
-              <div className="text-center flex-1 px-4">
-                <h1 className="text-lg font-bold text-gray-900">PREFEITURA DE GOIÂNIA</h1>
-                <h1 className="text-base font-bold text-gray-900">SECRETARIA MUNICIPAL DE SAÚDE</h1>
-                <h2 className="text-sm text-gray-700">DIRETORIA DE VIGILÂNCIA SANITÁRIA E AMBIENTAL</h2>
-                <p className="text-xs text-gray-600 mt-1">Av. Universitária esq. c/ 1ª Avenida, s/nº - Setor Universitário - CEP: 74605-010</p>
-                <p className="text-xs text-gray-600">Email: visagoianiaalimentos@gmail.com</p>
-              </div>
-              
-              {/* Logo SUS direita */}
-              <img src={SUS_LOGO_SVG} alt="SUS" className="h-14 w-auto" />
-            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <tbody>
+                <tr>
+                  {/* Brasão à esquerda - largura fixa */}
+                  <td style={{ width: '90px', verticalAlign: 'middle', textAlign: 'left' }}>
+                    <img src={BRASAO_GOIANIA_SVG} alt="Prefeitura de Goiânia" style={{ height: '80px', width: 'auto' }} />
+                  </td>
+                  
+                  {/* Textos centralizados */}
+                  <td style={{ verticalAlign: 'middle', textAlign: 'center', padding: '0 16px' }}>
+                    <div style={{ fontSize: '14pt', fontWeight: 'bold', color: '#111' }}>PREFEITURA DE GOIÂNIA</div>
+                    <div style={{ fontSize: '12pt', fontWeight: 'bold', color: '#111' }}>SECRETARIA MUNICIPAL DE SAÚDE</div>
+                    <div style={{ fontSize: '10pt', color: '#333' }}>DIRETORIA DE VIGILÂNCIA SANITÁRIA E AMBIENTAL</div>
+                    <div style={{ fontSize: '8pt', color: '#555', marginTop: '4px' }}>Av. Universitária esq. c/ 1ª Avenida, s/nº - Setor Universitário - CEP: 74605-010</div>
+                    <div style={{ fontSize: '8pt', color: '#555' }}>Email: visagoianiaalimentos@gmail.com</div>
+                  </td>
+                  
+                  {/* Logo SUS à direita - largura fixa */}
+                  <td style={{ width: '70px', verticalAlign: 'middle', textAlign: 'right' }}>
+                    <img src={SUS_LOGO_SVG} alt="SUS" style={{ height: '50px', width: 'auto' }} />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
             
             {/* Título do documento */}
             <div className="mt-4 py-2 bg-gray-800 text-white text-center">

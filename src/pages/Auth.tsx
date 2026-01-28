@@ -104,16 +104,16 @@ export default function Auth() {
     <div className="flex min-h-screen flex-col bg-background safe-area-inset">
       {/* Header with gradient */}
       <div className="fiscaliz-gradient px-6 pb-12 pt-16 text-center">
-        <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary-foreground/10 backdrop-blur-sm">
+        <div className="mx-auto mb-6 flex h-36 w-36 items-center justify-center rounded-2xl bg-primary-foreground/10 backdrop-blur-sm p-3">
           <img 
             src={fiscalizLogo} 
             alt="Fiscaliz" 
-            className="h-14 w-14 object-contain"
+            className="h-full w-full object-contain drop-shadow-lg"
           />
         </div>
-        <h1 className="text-2xl font-bold text-primary-foreground">Fiscaliz</h1>
-        <p className="mt-1 text-sm text-primary-foreground/80">
-          Vigilância Sanitária de Goiânia
+        <h1 className="text-3xl font-bold text-primary-foreground tracking-tight">FISCALIZ</h1>
+        <p className="mt-2 text-sm font-medium text-primary-foreground/90 tracking-wide">
+          PLATAFORMA INTELIGENTE DE FISCALIZAÇÃO
         </p>
       </div>
 
