@@ -33,6 +33,7 @@ import { CertidaoForm, formatCertidaoContent } from '@/components/documents/Cert
 import { DocumentCommonFields } from '@/components/documents/DocumentCommonFields';
 import { VisitaFiscalForm, formatVisitaFiscalContent, type VisitaFiscalData } from '@/components/documents/VisitaFiscalForm';
 import { AutoInfracaoForm, formatAutoInfracaoContent, type AutoInfracaoData } from '@/components/documents/AutoInfracaoForm';
+import { RelatorioTecnicoForm, formatRelatorioTecnicoContent, type RelatorioTecnicoData } from '@/components/documents/RelatorioTecnicoForm';
 
 type UploadedImage = {
   id: string;
@@ -121,15 +122,33 @@ export default function CreateDocument() {
     documentDate: new Date().toISOString().split('T')[0],
     documentTime: new Date().toTimeString().slice(0, 5),
   });
+  const [relatorioTecnicoData, setRelatorioTecnicoData] = useState<RelatorioTecnicoData>({
+    method: null,
+    equipe: [{ nome: '', cargo: 'Auditor(a) Fiscal de Saúde Pública', matricula: '' }],
+    objetivos: [],
+    outroObjetivo: '',
+    baseLegal: ['Lei Federal 6437/77', 'RDC 216/04 ANVISA'],
+    outraBaseLegal: '',
+    descricao: '',
+    medidasLegais: '',
+    conclusao: '',
+    documentDate: new Date().toISOString().split('T')[0],
+    documentTime: new Date().toTimeString().slice(0, 5),
+    irregularidades: [],
+    aiAnalysisResult: '',
+    isAnalyzing: false,
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const aiFileInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const autoInfracaoFileInputRef = useRef<HTMLInputElement>(null);
+  const relatorioTecnicoFileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-select certidao method for certidao type
   const isCertidao = tipo === 'certidao';
   const isVisitaFiscal = tipo === 'visita_fiscal';
   const isAutoInfracao = tipo === 'auto_infracao';
+  const isRelatorioTecnico = tipo === 'relatorio_tecnico';
   const availableMethods = isCertidao ? certidaoMethods : creationMethods;
   const currentChecklist = useMemo(() => {
     return checklistTemplates.find(c => c.id === selectedChecklist);
@@ -206,6 +225,9 @@ export default function CreateDocument() {
     }
     if (isAutoInfracao) {
       return formatAutoInfracaoContent(autoInfracaoData);
+    }
+    if (isRelatorioTecnico) {
+      return formatRelatorioTecnicoContent(relatorioTecnicoData);
     }
     if (method === 'checklist' && currentChecklist) {
       const selectedItemsData = currentChecklist.items.filter(item => selectedItems.includes(item.id));
@@ -342,6 +364,15 @@ export default function CreateDocument() {
           document_time: autoInfracaoData.documentTime,
           prazo_defesa: autoInfracaoData.prazoDefesa,
         };
+      } else if (isRelatorioTecnico) {
+        contentObj = {
+          text: content,
+          method: relatorioTecnicoData.method || 'manual',
+          relatorio_tecnico_data: relatorioTecnicoData,
+          document_date: relatorioTecnicoData.documentDate,
+          document_time: relatorioTecnicoData.documentTime,
+          equipe: relatorioTecnicoData.equipe,
+        };
       } else {
         contentObj = {
           text: content,
@@ -354,14 +385,22 @@ export default function CreateDocument() {
       }
 
       // Para auto de infração, as irregularidades vêm do formulário específico
-      const finalIrregularities = isAutoInfracao 
-        ? autoInfracaoData.infracoes.map(inf => ({
-            id: inf.id,
-            text: inf.descricao,
-            category: 'Infração',
-            legislation: inf.dispositivo,
-          }))
-        : irregularities;
+      let finalIrregularities = irregularities;
+      if (isAutoInfracao) {
+        finalIrregularities = autoInfracaoData.infracoes.map(inf => ({
+          id: inf.id,
+          text: inf.descricao,
+          category: 'Infração',
+          legislation: inf.dispositivo,
+        }));
+      } else if (isRelatorioTecnico) {
+        finalIrregularities = relatorioTecnicoData.irregularidades.map(irr => ({
+          id: irr.id,
+          text: irr.descricao,
+          category: 'Irregularidade',
+          legislation: irr.dispositivo,
+        }));
+      }
 
       const insertData: any = {
         id: plannedDocId,
@@ -662,8 +701,104 @@ export default function CreateDocument() {
           </>
         )}
 
-        {/* Method Selection - for non-certidao, non-visita_fiscal and non-auto_infracao types */}
-        {!method && !isCertidao && !isVisitaFiscal && !isAutoInfracao && (
+        {/* Relatório Técnico Form - with method selection built-in */}
+        {isRelatorioTecnico && (
+          <>
+            <Card className="border-0 shadow-sm bg-primary/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="font-medium">{establishment?.nome_fantasia || establishment?.razao_social}</p>
+                    <p className="text-sm text-muted-foreground">{establishment?.endereco}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <input
+              ref={relatorioTecnicoFileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              capture="environment"
+              className="hidden"
+              onChange={(e) => handleImageUpload(e, true)}
+            />
+
+            <RelatorioTecnicoForm
+              value={relatorioTecnicoData}
+              onChange={setRelatorioTecnicoData}
+              photos={uploadedImages.map(img => ({ id: img.id, file: img.file, previewUrl: img.previewUrl }))}
+              onAddPhoto={() => relatorioTecnicoFileInputRef.current?.click()}
+              onRemovePhoto={removeImage}
+              establishmentType={establishment?.cnae_principal}
+            />
+
+            {/* Photo Attachment Section (for both methods) */}
+            {relatorioTecnicoData.method !== null && relatorioTecnicoData.method !== 'ai' && (
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">Anexar Fotos (opcional)</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{uploadedImages.length}/10</span>
+                  </div>
+                  
+                  {uploadedImages.length > 0 && (
+                    <div className="grid grid-cols-4 gap-2">
+                      {uploadedImages.map((img, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-lg overflow-hidden">
+                          <img src={img.previewUrl} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                          <button
+                            onClick={() => removeImage(idx)}
+                            className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {uploadedImages.length < 10 && (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => relatorioTecnicoFileInputRef.current?.click()}
+                        className="flex-1"
+                      >
+                        <Camera className="h-4 w-4 mr-1" />
+                        Adicionar Fotos
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {relatorioTecnicoData.method !== null && (
+              <Button 
+                className="w-full" 
+                onClick={handleSave}
+                disabled={
+                  !relatorioTecnicoData.descricao.trim() && 
+                  relatorioTecnicoData.irregularidades.length === 0 || 
+                  saving ||
+                  relatorioTecnicoData.isAnalyzing
+                }
+              >
+                {saving ? 'Salvando...' : 'Salvar Relatório Técnico'}
+              </Button>
+            )}
+          </>
+        )}
+
+        {/* Method Selection - for non-certidao, non-visita_fiscal, non-auto_infracao and non-relatorio_tecnico types */}
+        {!method && !isCertidao && !isVisitaFiscal && !isAutoInfracao && !isRelatorioTecnico && (
           <>
             <Card className="border-0 shadow-sm bg-primary/5">
               <CardContent className="p-4">
