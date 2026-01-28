@@ -1,6 +1,7 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
+import { FiscalizWatermark } from '@/components/layout/FiscalizWatermark';
 import { Card, CardContent } from '@/components/ui/card';
 import { 
   FileText, 
@@ -135,6 +136,7 @@ export default function DocumentTypeSelection() {
 
   return (
     <AppLayout>
+      <FiscalizWatermark />
       <Header 
         title="Tipo de Documento" 
         subtitle="Selecione o tipo de documento"

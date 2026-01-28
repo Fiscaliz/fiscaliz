@@ -2,6 +2,7 @@ import { useState, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
+import { FiscalizWatermark } from '@/components/layout/FiscalizWatermark';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -335,6 +336,7 @@ export default function CreateDocument() {
 
   return (
     <AppLayout>
+      <FiscalizWatermark />
       <Header 
         title={documentTypeLabels[tipo] || 'Novo Documento'} 
         subtitle={establishment?.nome_fantasia || establishment?.razao_social || 'Criar documento'}
