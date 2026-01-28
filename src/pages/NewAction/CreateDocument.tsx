@@ -31,6 +31,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { CertidaoForm, formatCertidaoContent } from '@/components/documents/CertidaoForm';
 import { DocumentCommonFields } from '@/components/documents/DocumentCommonFields';
+import { VisitaFiscalForm, formatVisitaFiscalContent, type VisitaFiscalData } from '@/components/documents/VisitaFiscalForm';
 
 type UploadedImage = {
   id: string;
@@ -96,12 +97,25 @@ export default function CreateDocument() {
     observations: {} as Record<string, string>,
     otherText: '',
   });
+  const [visitaFiscalData, setVisitaFiscalData] = useState<VisitaFiscalData>({
+    purpose: [],
+    anotacoes: '',
+    intimacaoAnteriorId: '',
+    intimacaoAnteriorNumero: '',
+    intimacaoResolucao: '',
+    documentoEntregue: '',
+    orientacoes: '',
+    dengueInspection: false,
+    documentDate: new Date().toISOString().split('T')[0],
+    documentTime: new Date().toTimeString().slice(0, 5),
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const aiFileInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-select certidao method for certidao type
   const isCertidao = tipo === 'certidao';
+  const isVisitaFiscal = tipo === 'visita_fiscal';
   const availableMethods = isCertidao ? certidaoMethods : creationMethods;
   const currentChecklist = useMemo(() => {
     return checklistTemplates.find(c => c.id === selectedChecklist);
@@ -172,6 +186,9 @@ export default function CreateDocument() {
   const generateDocumentContent = () => {
     if (method === 'certidao' || (isCertidao && method === null)) {
       return formatCertidaoContent(certidaoData);
+    }
+    if (isVisitaFiscal) {
+      return formatVisitaFiscalContent(visitaFiscalData);
     }
     if (method === 'checklist' && currentChecklist) {
       const selectedItemsData = currentChecklist.items.filter(item => selectedItems.includes(item.id));
@@ -288,28 +305,42 @@ export default function CreateDocument() {
           }))
         : null;
 
-      const { data: newDoc, error: docError } = await supabase
-        .from('fiscal_documents')
-        .insert({
-          id: plannedDocId,
-          user_id: user.id,
-          establishment_id: establishmentId,
-          fiscal_action_id: action.id,
-          document_type: tipo as any,
-          content: { 
-            text: content, 
+      // Prepare content object based on document type
+      const contentObj = isVisitaFiscal
+        ? {
+            text: content,
+            method: 'visita_fiscal',
+            visita_fiscal_data: visitaFiscalData,
+            dengue_inspection: visitaFiscalData.dengueInspection,
+            document_date: visitaFiscalData.documentDate,
+            document_time: visitaFiscalData.documentTime,
+          }
+        : {
+            text: content,
             method,
             observations: observations.trim() || null,
             dengue_inspection: dengueInspection,
             document_date: documentDate,
             document_time: documentTime,
-          },
-          irregularities,
-          attachments,
-          deadline_days: tipo === 'termo_intimacao' ? parseInt(deadlineDays) : null,
-          deadline_date: tipo === 'termo_intimacao' ? deadlineDate.toISOString().split('T')[0] : null,
-          priority: motivo === 'denuncia' || motivo === 'surto' ? 'high' : 'medium',
-        })
+          };
+
+      const insertData: any = {
+        id: plannedDocId,
+        user_id: user.id,
+        establishment_id: establishmentId,
+        fiscal_action_id: action.id,
+        document_type: tipo,
+        content: contentObj,
+        irregularities,
+        attachments,
+        deadline_days: tipo === 'termo_intimacao' ? parseInt(deadlineDays) : null,
+        deadline_date: tipo === 'termo_intimacao' ? deadlineDate.toISOString().split('T')[0] : null,
+        priority: motivo === 'denuncia' || motivo === 'surto' ? 'high' : 'medium',
+      };
+
+      const { data: newDoc, error: docError } = await supabase
+        .from('fiscal_documents')
+        .insert(insertData)
         .select()
         .single();
 
@@ -461,8 +492,91 @@ export default function CreateDocument() {
           </>
         )}
 
-        {/* Method Selection - for non-certidao types */}
-        {!method && !isCertidao && (
+        {/* Visita Fiscal Form - auto-shown for visita_fiscal type */}
+        {isVisitaFiscal && (
+          <>
+            <Card className="border-0 shadow-sm bg-primary/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="font-medium">{establishment?.nome_fantasia || establishment?.razao_social}</p>
+                    <p className="text-sm text-muted-foreground">{establishment?.endereco}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <VisitaFiscalForm
+              value={visitaFiscalData}
+              onChange={setVisitaFiscalData}
+            />
+
+            {/* Photo Attachment Section */}
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">Anexar Fotos (opcional)</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{uploadedImages.length}/10</span>
+                </div>
+                
+                <input
+                  ref={attachmentInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => handleImageUpload(e, false)}
+                />
+
+                {uploadedImages.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {uploadedImages.map((img, idx) => (
+                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden">
+                        <img src={img.previewUrl} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => removeImage(idx)}
+                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {uploadedImages.length < 10 && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => attachmentInputRef.current?.click()}
+                      className="flex-1"
+                    >
+                      <Camera className="h-4 w-4 mr-1" />
+                      Adicionar Fotos
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Button 
+              className="w-full" 
+              onClick={handleSave}
+              disabled={visitaFiscalData.purpose.length === 0 || !visitaFiscalData.dengueInspection || saving}
+            >
+              {saving ? 'Salvando...' : 'Salvar Visita Fiscal'}
+            </Button>
+          </>
+        )}
+
+        {/* Method Selection - for non-certidao and non-visita_fiscal types */}
+        {!method && !isCertidao && !isVisitaFiscal && (
           <>
             <Card className="border-0 shadow-sm bg-primary/5">
               <CardContent className="p-4">
@@ -620,7 +734,7 @@ export default function CreateDocument() {
               <Button 
                 className="flex-1" 
                 onClick={handleSave}
-                disabled={selectedItems.length === 0 || saving || ((tipo === 'termo_intimacao' || tipo === 'visita_fiscal') && !dengueInspection)}
+                disabled={selectedItems.length === 0 || saving || (tipo === 'termo_intimacao' && !dengueInspection)}
               >
                 {saving ? 'Salvando...' : 'Salvar Documento'}
               </Button>
@@ -668,7 +782,7 @@ export default function CreateDocument() {
               <Button 
                 className="flex-1" 
                 onClick={handleSave}
-                disabled={!manualContent.trim() || saving || ((tipo === 'termo_intimacao' || tipo === 'visita_fiscal') && !dengueInspection)}
+                disabled={!manualContent.trim() || saving || (tipo === 'termo_intimacao' && !dengueInspection)}
               >
                 {saving ? 'Salvando...' : 'Salvar Documento'}
               </Button>
@@ -754,7 +868,7 @@ export default function CreateDocument() {
               <Button 
                 className="flex-1" 
                 onClick={handleSave}
-                disabled={uploadedImages.length === 0 || saving || ((tipo === 'termo_intimacao' || tipo === 'visita_fiscal') && !dengueInspection)}
+                disabled={uploadedImages.length === 0 || saving || (tipo === 'termo_intimacao' && !dengueInspection)}
               >
                 {saving ? 'Salvando...' : 'Analisar com IA'}
               </Button>
