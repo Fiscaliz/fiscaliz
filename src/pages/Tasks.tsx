@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Header } from '@/components/layout/Header';
+import { BrandHeader } from '@/components/layout/BrandHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -254,10 +254,7 @@ export default function Tasks() {
 
   return (
     <AppLayout>
-      <Header 
-        title="Pasta de Tarefas" 
-        subtitle={`${pendingTasks.length} pendentes · ${urgentTasks.length} urgentes`} 
-      />
+      <BrandHeader />
       
       <div className="p-4">
         <Tabs defaultValue="pending" className="w-full">

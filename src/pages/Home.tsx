@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { BrandHeader } from '@/components/layout/BrandHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +9,6 @@ import {
   FileText, 
   ClipboardList, 
   BarChart3, 
-  Bell,
   Plus,
   Calendar,
   ChevronRight,
@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import fiscalizLogo from '@/assets/logo-fiscaliz.png';
 
 const documentTypeLabels: Record<string, string> = {
   termo_intimacao: 'Termo de Intimação',
@@ -59,11 +58,6 @@ export default function Home() {
   const [recentDocs, setRecentDocs] = useState<RecentDocument[]>([]);
   const [pendingTasks, setPendingTasks] = useState<PendingTask[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Get first name from email or full_name
-  const firstName = user?.user_metadata?.full_name?.split(' ')[0] 
-    || user?.email?.split('@')[0] 
-    || 'Fiscal';
 
   useEffect(() => {
     if (user) {
@@ -147,27 +141,8 @@ export default function Home() {
 
   return (
     <AppLayout>
-      {/* Header with brand gradient */}
-      <div className="fiscaliz-gradient px-4 pb-8 pt-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="h-16 w-16 rounded-2xl bg-primary-foreground/15 p-2 backdrop-blur-sm shadow-lg">
-              <img src={fiscalizLogo} alt="Fiscaliz" className="h-full w-full object-contain drop-shadow-md" />
-            </div>
-            <div>
-              <p className="text-sm text-primary-foreground/80">Olá,</p>
-              <h1 className="text-xl font-bold text-primary-foreground">{firstName}</h1>
-            </div>
-          </div>
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="text-primary-foreground hover:bg-primary-foreground/10"
-          >
-            <Bell className="h-5 w-5" />
-          </Button>
-        </div>
-      </div>
+      {/* Brand Header */}
+      <BrandHeader />
 
       {/* Main Content */}
       <div className="-mt-4 rounded-t-3xl bg-background px-4 pt-6">

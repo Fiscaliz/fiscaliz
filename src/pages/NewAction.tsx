@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Header } from '@/components/layout/Header';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { BrandHeader } from '@/components/layout/BrandHeader';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
   Search, 
@@ -44,11 +44,7 @@ export default function NewAction() {
 
   return (
     <AppLayout>
-      <Header 
-        title="Nova Ação Fiscal" 
-        subtitle="Selecione o motivo da fiscalização"
-        showBack 
-      />
+      <BrandHeader />
       
       <div className="p-4">
         <Card className="mb-4 border-0 shadow-sm bg-primary/5">
