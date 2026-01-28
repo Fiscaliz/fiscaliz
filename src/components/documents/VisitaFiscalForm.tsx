@@ -28,6 +28,7 @@ export interface VisitaFiscalData {
   intimacaoResolucao: 'adequado' | 'parcial' | 'nao_adequado' | '';
   documentoEntregue: string;
   orientacoes: string;
+  semIrregularidadesTexto: string;
   dengueInspection: boolean;
   documentDate: string;
   documentTime: string;
@@ -210,16 +211,22 @@ export function VisitaFiscalForm({ value, onChange }: VisitaFiscalFormProps) {
       {/* Sem Não Conformidades */}
       {value.purpose.includes('sem_irregularidades') && (
         <Card className="border-0 shadow-sm border-l-4 border-l-success">
-          <CardContent className="p-4">
+          <CardContent className="p-4 space-y-3">
             <div className="flex items-center gap-3 text-success">
               <CheckCircle className="h-5 w-5" />
               <div>
-                <p className="font-medium text-sm">Estabelecimento em Conformidade</p>
+                <p className="font-medium text-sm">Ausência de Não Conformidades</p>
                 <p className="text-xs text-muted-foreground">
-                  Nenhuma irregularidade sanitária identificada durante a inspeção
+                  Edite o texto abaixo conforme necessário
                 </p>
               </div>
             </div>
+            <Textarea
+              placeholder="Descreva a situação de conformidade..."
+              value={value.semIrregularidadesTexto}
+              onChange={(e) => updateField('semIrregularidadesTexto', e.target.value)}
+              className="min-h-[80px]"
+            />
           </CardContent>
         </Card>
       )}
@@ -343,7 +350,8 @@ export function formatVisitaFiscalContent(data: VisitaFiscalData): string {
   }
 
   if (data.purpose.includes('sem_irregularidades')) {
-    parts.push('SITUAÇÃO DO ESTABELECIMENTO:\nNenhuma irregularidade sanitária identificada durante a inspeção. Estabelecimento em conformidade com a legislação vigente.');
+    const texto = data.semIrregularidadesTexto?.trim() || 'No momento da ação fiscal não foram encontradas irregularidades.';
+    parts.push(`AUSÊNCIA DE NÃO CONFORMIDADES:\n${texto}`);
   }
 
   if (data.purpose.includes('entrega_documento') && data.documentoEntregue.trim()) {
