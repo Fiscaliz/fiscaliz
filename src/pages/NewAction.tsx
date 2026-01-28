@@ -44,6 +44,10 @@ export default function NewAction() {
       <BrandHeader />
       
       <div className="p-4">
+        <h1 className="text-xl font-bold text-center mb-4 text-primary">
+          MOTIVO DA AÇÃO FISCAL
+        </h1>
+        
         <Card className="mb-4 border-0 shadow-sm bg-primary/5">
           <CardContent className="p-4">
             <p className="text-sm text-muted-foreground">
