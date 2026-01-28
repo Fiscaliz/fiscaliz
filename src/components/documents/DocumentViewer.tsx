@@ -67,6 +67,7 @@ interface DocumentViewerProps {
       full_name: string;
       registration_number?: string;
       division?: string;
+      signature_url?: string;
     };
     created_at: string;
   };
@@ -555,7 +556,15 @@ export function DocumentViewer({
           <div className="doc-section mt-12">
             <div className="grid grid-cols-2 gap-8">
               <div className="text-center">
-                <div className="signature-line mb-2 mt-8" />
+                {document.profile?.signature_url ? (
+                  <img 
+                    src={document.profile.signature_url} 
+                    alt="Rubrica do Auditor" 
+                    className="h-14 mx-auto mb-2"
+                  />
+                ) : (
+                  <div className="signature-line mb-2 mt-8" />
+                )}
                 <p className="font-bold text-sm">{document.profile?.full_name || 'Auditor Fiscal'}</p>
                 {document.profile?.registration_number && (
                   <p className="text-xs">Matrícula: {document.profile.registration_number}</p>
@@ -578,14 +587,9 @@ export function DocumentViewer({
                 ) : (
                   <div className="signature-line mb-2 mt-8" />
                 )}
-                <p className="font-bold text-sm">Ciência do Responsável</p>
-                {prepostoName ? (
-                  <p className="text-xs">Nome: {prepostoName}</p>
-                ) : (
-                  <>
-                    <p className="text-xs">Nome: _______________________</p>
-                    <p className="text-xs text-gray-500 italic mt-1">(Assinatura opcional)</p>
-                  </>
+                <p className="font-bold text-sm">Ciência do Contribuinte ou Preposto</p>
+                {prepostoName && (
+                  <p className="text-xs">{prepostoName}</p>
                 )}
               </div>
             </div>
@@ -907,26 +911,6 @@ export function DocumentViewer({
                       />
                     </div>
                   </div>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => {
-                      if (onSave) {
-                        onSave({ 
-                          deadline_days: deadlineDays,
-                          deadline_date: deadlineDate,
-                        });
-                        toast({
-                          title: "Prazo salvo",
-                          description: deadlineDays ? `Prazo de ${deadlineDays} dias definido` : "Prazo removido"
-                        });
-                      }
-                    }}
-                    className="w-full"
-                  >
-                    <Save className="h-4 w-4 mr-1" />
-                    Salvar prazo
-                  </Button>
                 </div>
               ) : null}
 
@@ -1006,19 +990,10 @@ export function DocumentViewer({
               <div className="p-4 bg-muted/30 rounded-lg space-y-4 print:hidden">
                 <p className="text-sm font-semibold flex items-center gap-2">
                   <User className="h-4 w-4" />
-                  Ciência do Responsável (opcional)
+                  Ciência do Contribuinte ou Preposto
                 </p>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="prepostoName" className="text-xs">Nome do Responsável</Label>
-                  <Input
-                    id="prepostoName"
-                    value={prepostoName}
-                    onChange={(e) => setPrepostoName(e.target.value)}
-                    placeholder="Nome completo do responsável"
-                    className="text-sm"
-                  />
-                </div>
+                {/* Opção de Foto OU Rubrica */}
 
                 {/* Opção de Foto OU Rubrica */}
                 <div className="space-y-3">
@@ -1176,7 +1151,15 @@ export function DocumentViewer({
             {/* Signatures Area */}
             <div className="grid grid-cols-2 gap-8 pt-8 border-t print:pt-6">
               <div className="text-center space-y-2">
-                <div className="h-16 border-b border-dashed border-muted-foreground print:border-gray-400" />
+                {document.profile?.signature_url ? (
+                  <img 
+                    src={document.profile.signature_url} 
+                    alt="Rubrica do Auditor" 
+                    className="h-14 mx-auto"
+                  />
+                ) : (
+                  <div className="h-16 border-b border-dashed border-muted-foreground print:border-gray-400" />
+                )}
                 <p className="text-sm font-semibold">Auditor Fiscal de Saúde Pública</p>
                 {document.profile && (
                   <div className="text-xs text-muted-foreground print:text-gray-600">
@@ -1203,11 +1186,9 @@ export function DocumentViewer({
                 ) : (
                   <div className="h-16 border-b border-dashed border-muted-foreground print:border-gray-400" />
                 )}
-                <p className="text-sm font-semibold">Ciência do Responsável</p>
-                {prepostoName ? (
+                <p className="text-sm font-semibold">Ciência do Contribuinte ou Preposto</p>
+                {prepostoName && (
                   <p className="text-xs text-muted-foreground print:text-gray-600">{prepostoName}</p>
-                ) : (
-                  <p className="text-xs text-muted-foreground print:text-gray-600">Assinatura / Data</p>
                 )}
               </div>
             </div>
