@@ -39,7 +39,7 @@ export function Header({ title, subtitle, showBack, rightAction, className, show
             <img 
               src={fiscalizLogo} 
               alt="Fiscaliz" 
-              className="h-10 w-auto"
+              className="h-12 w-auto drop-shadow-sm"
             />
           )}
           <div>
