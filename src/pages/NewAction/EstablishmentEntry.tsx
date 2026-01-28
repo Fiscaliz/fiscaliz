@@ -98,6 +98,7 @@ export default function EstablishmentEntry() {
           bairro: data.bairro || '',
           cep: data.cep?.replace(/\D/g, '') || '',
           cnae_principal: data.cnae_fiscal?.toString() || '',
+          cnae_descricao: data.cnae_fiscal_descricao || '',
           responsavel_nome: data.qsa?.[0]?.nome_socio || '',
         });
         
@@ -469,6 +470,25 @@ export default function EstablishmentEntry() {
                       placeholder="00000-000"
                       value={establishment?.cep || ''}
                       onChange={(e) => setEstablishment({...establishment, cep: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <Label htmlFor="cnae">CNAE - Atividade Econômica</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input
+                      id="cnae"
+                      placeholder="0000-0/00"
+                      value={establishment?.cnae_principal || ''}
+                      onChange={(e) => setEstablishment({...establishment, cnae_principal: e.target.value})}
+                      className="w-32"
+                    />
+                    <Input
+                      placeholder="Descrição da atividade"
+                      value={establishment?.cnae_descricao || ''}
+                      onChange={(e) => setEstablishment({...establishment, cnae_descricao: e.target.value})}
+                      className="flex-1"
                     />
                   </div>
                 </div>
