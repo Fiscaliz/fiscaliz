@@ -9,11 +9,9 @@ import {
   MapPin, 
   FileText, 
   AlertTriangle,
-  Users,
   Beaker,
   Handshake,
   Flag,
-  ClipboardList,
   MoreHorizontal,
   ChevronRight
 } from 'lucide-react';
@@ -27,7 +25,6 @@ const actionReasons = [
   { id: 'surto', icon: AlertTriangle, label: 'Surto', color: 'text-destructive', priority: 'high' },
   { id: 'operacao_conjunta', icon: Handshake, label: 'Operação Conjunta', color: 'text-info', priority: 'medium' },
   { id: 'coleta', icon: Beaker, label: 'Coleta de Amostra', color: 'text-secondary', priority: 'medium' },
-  { id: 'demanda_especifica', icon: ClipboardList, label: 'Demanda Específica', color: 'text-primary', priority: 'medium' },
   { id: 'outros', icon: MoreHorizontal, label: 'Outros', color: 'text-muted-foreground', priority: 'low' },
 ];
 
