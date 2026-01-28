@@ -401,26 +401,30 @@ export function DocumentViewer({
   // PDF Preview - Layout oficial igual ao modelo de Certidão
   if (showPDFPreview) {
     return (
-      <div className="min-h-screen bg-white text-black print:text-black" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11pt' }}>
+      <div className="min-h-screen bg-white text-black print:text-black pdf-preview-container" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11pt' }}>
         <style>{`
           @media print {
             body { margin: 0; padding: 0; }
-            .no-print, nav, .bottom-nav, [class*="bottom-"], footer:not(.doc-footer) { display: none !important; }
+            .no-print, nav, .bottom-nav, [class*="bottom-"], [class*="BottomNav"], footer:not(.doc-footer), header:not(.doc-header) { display: none !important; visibility: hidden !important; opacity: 0 !important; height: 0 !important; overflow: hidden !important; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .pdf-preview-container * { display: revert; visibility: visible !important; opacity: 1 !important; }
+          }
+          @media screen {
+            .pdf-preview-container { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; overflow: auto; }
           }
           .doc-section { margin: 15px 0; }
-          .doc-field { display: flex; margin: 5px 0; }
-          .doc-label { font-weight: bold; width: 35%; font-size: 10pt; }
-          .doc-value { width: 65%; font-size: 10pt; }
-          .signature-line { border-top: 1px solid #333; width: 250px; margin: 0 auto; }
+          .doc-field { margin: 4px 0; text-align: left; }
+          .doc-label { font-weight: bold; font-size: 10pt; display: inline; }
+          .doc-value { font-size: 10pt; display: inline; }
+          .signature-line { border-top: 1px solid #333; width: 220px; margin: 0 auto; }
         `}</style>
 
-        <div className="p-8 max-w-4xl mx-auto">
+        <div className="p-8 max-w-4xl mx-auto bg-white">
           {/* CABEÇALHO OFICIAL - Layout conforme modelo de Certidão */}
           <div className="mb-6 border-b-2 border-gray-800 pb-4">
             <div className="flex items-center justify-between">
               {/* Logo Prefeitura/Brasão esquerda */}
-              <img src={BRASAO_GOIANIA_SVG} alt="Prefeitura de Goiânia" className="h-20 w-auto" />
+              <img src={BRASAO_GOIANIA_SVG} alt="Prefeitura de Goiânia" className="h-24 w-auto object-contain" />
               
               {/* Textos centrais */}
               <div className="text-center flex-1 px-4">
@@ -446,21 +450,21 @@ export function DocumentViewer({
             </div>
           </div>
 
-          {/* DADOS DO ESTABELECIMENTO - somente campos com valor */}
+          {/* DADOS DO ESTABELECIMENTO - somente campos com valor, layout simétrico alinhado à esquerda */}
           {document.establishment && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">IDENTIFICAÇÃO DO ESTABELECIMENTO</h3>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+              <div className="space-y-1 text-left">
                 {/* Razão Social - sempre aparece */}
-                <div className="doc-field col-span-2">
-                  <span className="doc-label">Razão Social:</span>
+                <div className="doc-field">
+                  <span className="doc-label">Razão Social: </span>
                   <span className="doc-value">{document.establishment.razao_social}</span>
                 </div>
                 
                 {/* Nome Fantasia - só se preenchido */}
                 {document.establishment.nome_fantasia && (
-                  <div className="doc-field col-span-2">
-                    <span className="doc-label">Nome Fantasia:</span>
+                  <div className="doc-field">
+                    <span className="doc-label">Nome Fantasia: </span>
                     <span className="doc-value">{document.establishment.nome_fantasia}</span>
                   </div>
                 )}
@@ -468,21 +472,21 @@ export function DocumentViewer({
                 {/* Inscrição Municipal - só se preenchido */}
                 {(document.establishment as any).inscricao_municipal && (
                   <div className="doc-field">
-                    <span className="doc-label">Inscrição Municipal:</span>
+                    <span className="doc-label">Inscrição Municipal: </span>
                     <span className="doc-value">{(document.establishment as any).inscricao_municipal}</span>
                   </div>
                 )}
                 
                 {/* CNPJ - sempre aparece */}
                 <div className="doc-field">
-                  <span className="doc-label">CNPJ:</span>
+                  <span className="doc-label">CNPJ: </span>
                   <span className="doc-value">{document.establishment.cnpj}</span>
                 </div>
                 
                 {/* Telefone - só se preenchido */}
                 {document.establishment.responsavel_telefone && (
                   <div className="doc-field">
-                    <span className="doc-label">Telefone:</span>
+                    <span className="doc-label">Telefone: </span>
                     <span className="doc-value">{document.establishment.responsavel_telefone}</span>
                   </div>
                 )}
@@ -490,23 +494,23 @@ export function DocumentViewer({
                 {/* Email - só se preenchido */}
                 {(document.establishment as any).email && (
                   <div className="doc-field">
-                    <span className="doc-label">Email:</span>
+                    <span className="doc-label">Email: </span>
                     <span className="doc-value">{(document.establishment as any).email}</span>
                   </div>
                 )}
                 
                 {/* Atividade/CNAE - só se preenchido */}
                 {(document.establishment as any).cnae_principal && (
-                  <div className="doc-field col-span-2">
-                    <span className="doc-label">Atividade:</span>
+                  <div className="doc-field">
+                    <span className="doc-label">Atividade: </span>
                     <span className="doc-value">{(document.establishment as any).cnae_principal}</span>
                   </div>
                 )}
                 
                 {/* Responsável Técnico - só se preenchido */}
                 {(document.establishment as any).responsavel_tecnico && (
-                  <div className="doc-field col-span-2">
-                    <span className="doc-label">Responsável Técnico:</span>
+                  <div className="doc-field">
+                    <span className="doc-label">Responsável Técnico: </span>
                     <span className="doc-value">
                       {(document.establishment as any).responsavel_tecnico}
                       {(document.establishment as any).inscricao_conselho && ` (${(document.establishment as any).inscricao_conselho})`}
@@ -516,8 +520,8 @@ export function DocumentViewer({
                 
                 {/* Responsável - só se preenchido */}
                 {document.establishment.responsavel_nome && (
-                  <div className="doc-field col-span-2">
-                    <span className="doc-label">Responsável:</span>
+                  <div className="doc-field">
+                    <span className="doc-label">Responsável: </span>
                     <span className="doc-value">
                       {document.establishment.responsavel_nome}
                       {document.establishment.responsavel_cpf && ` - CPF: ${document.establishment.responsavel_cpf}`}
@@ -525,9 +529,9 @@ export function DocumentViewer({
                   </div>
                 )}
                 
-                {/* Endereço - sempre aparece, na coluna da direita */}
-                <div className="doc-field col-span-2">
-                  <span className="doc-label">Endereço:</span>
+                {/* Endereço - sempre aparece */}
+                <div className="doc-field">
+                  <span className="doc-label">Endereço: </span>
                   <span className="doc-value">{document.establishment.endereco}{document.establishment.bairro ? ` - ${document.establishment.bairro}` : ''}</span>
                 </div>
               </div>
@@ -600,41 +604,56 @@ export function DocumentViewer({
             </div>
           )}
 
-          {/* ASSINATURAS */}
-          <div className="doc-section mt-12">
-            <div className="grid grid-cols-2 gap-8">
-              <div className="text-center">
-                {document.profile?.signature_url ? (
-                  <img 
-                    src={document.profile.signature_url} 
-                    alt="Rubrica do Auditor" 
-                    className="h-14 mx-auto mb-2"
-                  />
-                ) : (
-                  <div className="signature-line mb-2 mt-8" />
-                )}
+          {/* ASSINATURAS - Rubricas acima dos nomes, simétricas */}
+          <div className="doc-section mt-10">
+            <div className="grid grid-cols-2 gap-12">
+              {/* Coluna do Auditor Fiscal */}
+              <div className="text-center flex flex-col items-center">
+                {/* Rubrica do Auditor - ACIMA do nome */}
+                <div className="min-h-[50px] flex items-end justify-center mb-1">
+                  {document.profile?.signature_url ? (
+                    <img 
+                      src={document.profile.signature_url} 
+                      alt="Rubrica do Auditor" 
+                      className="h-12 max-w-[180px] object-contain"
+                    />
+                  ) : (
+                    <div className="signature-line" />
+                  )}
+                </div>
+                {/* Linha de assinatura */}
+                <div className="signature-line mb-1" />
+                {/* Dados do Auditor */}
                 <p className="font-bold text-sm">{document.profile?.full_name || 'Auditor Fiscal'}</p>
                 {document.profile?.registration_number && (
                   <p className="text-xs">Matrícula: {document.profile.registration_number}</p>
                 )}
                 <p className="text-xs text-gray-600">Auditor Fiscal de Saúde Pública</p>
               </div>
-              <div className="text-center">
-                {prepostoPhoto ? (
-                  <img 
-                    src={prepostoPhoto} 
-                    alt="Preposto" 
-                    className="w-16 h-16 object-cover rounded-full border mx-auto mb-2"
-                  />
-                ) : contributorSignatureUrl ? (
-                  <img 
-                    src={contributorSignatureUrl} 
-                    alt="Assinatura" 
-                    className="h-12 mx-auto mb-2 border-b border-gray-400"
-                  />
-                ) : (
-                  <div className="signature-line mb-2 mt-8" />
-                )}
+              
+              {/* Coluna do Contribuinte/Preposto */}
+              <div className="text-center flex flex-col items-center">
+                {/* Rubrica/Foto do Contribuinte - ACIMA do nome */}
+                <div className="min-h-[50px] flex items-end justify-center mb-1">
+                  {prepostoPhoto ? (
+                    <img 
+                      src={prepostoPhoto} 
+                      alt="Preposto" 
+                      className="w-12 h-12 object-cover rounded-full border"
+                    />
+                  ) : contributorSignatureUrl ? (
+                    <img 
+                      src={contributorSignatureUrl} 
+                      alt="Assinatura" 
+                      className="h-12 max-w-[180px] object-contain"
+                    />
+                  ) : (
+                    <div className="signature-line" style={{ visibility: 'hidden' }} />
+                  )}
+                </div>
+                {/* Linha de assinatura */}
+                <div className="signature-line mb-1" />
+                {/* Dados do Contribuinte */}
                 <p className="font-bold text-sm">Ciência do Contribuinte ou Preposto</p>
                 {prepostoName && (
                   <p className="text-xs">{prepostoName}</p>
