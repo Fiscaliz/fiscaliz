@@ -44,7 +44,7 @@ export default function Profile() {
               </div>
               <div className="text-primary-foreground">
                 <h2 className="text-lg font-bold">{fullName}</h2>
-                <p className="text-sm text-primary-foreground/80">{user?.email}</p>
+                <p className="text-sm text-primary-foreground/80">Matrícula: {user?.user_metadata?.registration_number || 'Não informada'}</p>
                 <div className="mt-1 flex items-center gap-1 text-xs text-primary-foreground/70">
                   <Shield className="h-3 w-3" />
                   <span>Auditor Fiscal de Saúde Pública</span>
