@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Shield, Loader2, Eye, EyeOff } from 'lucide-react';
 import fiscalizLogo from '@/assets/logo-fiscaliz-oficial.png';
 
-export default function Auth() {
+const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -101,7 +101,7 @@ export default function Auth() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background safe-area-inset">
+    <div ref={ref} className="flex min-h-screen flex-col bg-background safe-area-inset">
       {/* Header with gradient */}
       <div className="fiscaliz-gradient px-6 pb-12 pt-16 text-center">
         <div className="mx-auto mb-6 flex h-36 w-36 items-center justify-center rounded-2xl bg-primary-foreground/10 backdrop-blur-sm p-3">
@@ -231,4 +231,6 @@ export default function Auth() {
       </div>
     </div>
   );
-}
+});
+
+export default Auth;
