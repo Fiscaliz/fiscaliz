@@ -266,9 +266,9 @@ export default function MonthlyReport() {
       setLicenseEndDate(data.license_end_date ? new Date(data.license_end_date) : undefined);
       setLicenseAttachment(data.license_attachment_url || null);
       
-      // Carregar valores editados salvos anteriormente
-      if (data.field_days !== null) setEditedFieldDays(data.field_days);
-      if (data.internal_days !== null) setEditedInternalDays(data.internal_days);
+      // Não carregar valores editados automaticamente do banco
+      // Os valores serão sempre recalculados a partir dos documentos
+      // O usuário pode editá-los manualmente na prévia se necessário
       
       if (data.documents_summary) {
         setDocumentSummary(data.documents_summary as unknown as DocumentSummary);
@@ -376,15 +376,21 @@ export default function MonthlyReport() {
       const actions: DailyAction[] = data.map((doc: any) => {
         const content = doc.content || {};
         // Usar action_date para determinar o dia, com fallback para created_at
-        const actionDateStr = doc.action_date || doc.created_at;
-        const date = new Date(actionDateStr);
+        // Parse action_date como data local (YYYY-MM-DD) para evitar problemas de timezone
+        let dayNumber: number;
+        if (doc.action_date) {
+          const parts = doc.action_date.split('-');
+          dayNumber = parseInt(parts[2], 10);
+        } else {
+          dayNumber = new Date(doc.created_at).getDate();
+        }
         const isInternal = doc.document_type === 'relatorio_atividade' || !doc.establishment_id;
         
         // Determinar transporte baseado no conteúdo do documento
         const transport: 'MPL' | 'CO' = content.transport_mode || 'MPL';
         
         return {
-          day: date.getDate(),
+          day: dayNumber,
           transport,
           actionType: content.action_type || 'Inspeção',
           establishment: doc.establishments?.nome_fantasia || content.atividade_descricao || 'Atividade Interna',
