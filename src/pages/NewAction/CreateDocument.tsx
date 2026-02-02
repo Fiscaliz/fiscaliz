@@ -35,6 +35,7 @@ import { DocumentCommonFields } from '@/components/documents/DocumentCommonField
 import { VisitaFiscalForm, formatVisitaFiscalContent, type VisitaFiscalData } from '@/components/documents/VisitaFiscalForm';
 import { AutoInfracaoForm, formatAutoInfracaoContent, type AutoInfracaoData } from '@/components/documents/AutoInfracaoForm';
 import { RelatorioTecnicoForm, formatRelatorioTecnicoContent, type RelatorioTecnicoData } from '@/components/documents/RelatorioTecnicoForm';
+import { TransportModeSelector } from '@/components/documents/TransportModeSelector';
 
 type UploadedImage = {
   id: string;
@@ -95,6 +96,7 @@ export default function CreateDocument() {
   const [dengueInspection, setDengueInspection] = useState(false);
   const [documentDate, setDocumentDate] = useState(new Date().toISOString().split('T')[0]);
   const [documentTime, setDocumentTime] = useState(new Date().toTimeString().slice(0, 5));
+  const [transportMode, setTransportMode] = useState<'MPL' | 'CO'>('MPL');
   const [certidaoData, setCertidaoData] = useState({
     selectedOptions: [] as string[],
     observations: {} as Record<string, string>,
@@ -359,6 +361,7 @@ export default function CreateDocument() {
           dengue_inspection: visitaFiscalData.dengueInspection,
           document_date: visitaFiscalData.documentDate,
           document_time: visitaFiscalData.documentTime,
+          transport_mode: transportMode,
         };
       } else if (isAutoInfracao) {
         contentObj = {
@@ -368,6 +371,7 @@ export default function CreateDocument() {
           document_date: autoInfracaoData.documentDate,
           document_time: autoInfracaoData.documentTime,
           prazo_defesa: autoInfracaoData.prazoDefesa,
+          transport_mode: transportMode,
         };
       } else if (isRelatorioTecnico) {
         contentObj = {
@@ -377,6 +381,7 @@ export default function CreateDocument() {
           document_date: relatorioTecnicoData.documentDate,
           document_time: relatorioTecnicoData.documentTime,
           equipe: relatorioTecnicoData.equipe,
+          transport_mode: transportMode,
         };
       } else {
         contentObj = {
@@ -386,6 +391,7 @@ export default function CreateDocument() {
           dengue_inspection: dengueInspection,
           document_date: documentDate,
           document_time: documentTime,
+          transport_mode: transportMode,
         };
       }
 
@@ -611,6 +617,11 @@ export default function CreateDocument() {
               onChange={setVisitaFiscalData}
             />
 
+            <TransportModeSelector
+              value={transportMode}
+              onChange={setTransportMode}
+            />
+
             {/* Photo Attachment Section */}
             <Card className="border-0 shadow-sm">
               <CardContent className="p-4 space-y-3">
@@ -732,6 +743,11 @@ export default function CreateDocument() {
               photosRequired={true}
             />
 
+            <TransportModeSelector
+              value={transportMode}
+              onChange={setTransportMode}
+            />
+
             <Button 
               className="w-full" 
               onClick={handleSave}
@@ -786,6 +802,11 @@ export default function CreateDocument() {
               onCapturePhoto={() => relatorioTecnicoCameraRef.current?.click()}
               onRemovePhoto={removeImage}
               establishmentType={establishment?.cnae_principal}
+            />
+
+            <TransportModeSelector
+              value={transportMode}
+              onChange={setTransportMode}
             />
 
             {/* Photo Attachment Section (for both methods) */}
@@ -1009,6 +1030,9 @@ export default function CreateDocument() {
               showDeadline={tipo === 'termo_intimacao'}
               deadlineDays={deadlineDays}
               onDeadlineChange={setDeadlineDays}
+              transportMode={transportMode}
+              onTransportChange={setTransportMode}
+              showTransport={true}
             />
 
             <div className="flex gap-3">
@@ -1057,6 +1081,9 @@ export default function CreateDocument() {
               showDeadline={tipo === 'termo_intimacao'}
               deadlineDays={deadlineDays}
               onDeadlineChange={setDeadlineDays}
+              transportMode={transportMode}
+              onTransportChange={setTransportMode}
+              showTransport={true}
             />
 
             <div className="flex gap-3">
@@ -1165,6 +1192,9 @@ export default function CreateDocument() {
               showDeadline={tipo === 'termo_intimacao'}
               deadlineDays={deadlineDays}
               onDeadlineChange={setDeadlineDays}
+              transportMode={transportMode}
+              onTransportChange={setTransportMode}
+              showTransport={true}
             />
 
             <div className="flex gap-3">
