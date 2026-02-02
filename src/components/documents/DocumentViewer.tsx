@@ -457,7 +457,12 @@ export function DocumentViewer({
   const handleGeneratePDF = () => {
     setShowPDFPreview(true);
     setTimeout(() => {
-      window.print();
+      // Call the parent's onGeneratePDF if provided (this updates status to 'sent')
+      if (onGeneratePDF) {
+        onGeneratePDF();
+      } else {
+        window.print();
+      }
     }, 500);
   };
 
