@@ -93,6 +93,7 @@ const documentTypeLabels: Record<string, string> = {
   replica: 'RÉPLICA',
   certidao: 'CERTIDÃO SANITÁRIA',
   coleta_amostra: 'TERMO DE COLETA DE AMOSTRA',
+  relatorio_atividade: 'RELATÓRIO DE ATIVIDADE',
 };
 
 export function DocumentViewer({ 

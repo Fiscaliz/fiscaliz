@@ -31,6 +31,7 @@ const documentTypeLabels: Record<string, string> = {
   replica: 'Réplica',
   certidao: 'Certidão',
   coleta_amostra: 'Coleta de Amostra',
+  relatorio_atividade: 'Relatório de Atividade',
 };
 
 export default function DocumentDetail() {
