@@ -241,17 +241,31 @@ export function RelatorioTecnicoForm({
       // Get non-conformities from either format
       const nonConformities = analysisResult?.nonConformities || [];
       
+      console.log('[AI Analysis] Received response:', { 
+        analysisResult, 
+        nonConformitiesCount: nonConformities.length 
+      });
+      
       if (nonConformities.length > 0) {
         // Group non-conformities by photo number for new format
         const legends = photos.map((photo, idx) => {
           const photoNumber = idx + 1;
           // Find all non-conformities for this photo
           const photoNCs = nonConformities.filter(nc => nc.foto === photoNumber);
+          
+          console.log(`[AI Analysis] Photo ${photoNumber}: found ${photoNCs.length} non-conformities`);
+          
           // Combine descriptions if multiple
           const legenda = photoNCs.map(nc => nc.description).join('; ') || '';
-          // Get legal basis (item RDC) - extract just the item number
-          const legalBasis = photoNCs[0]?.legalBasis || '';
-          const itemRdc = legalBasis.replace('RDC 216/2004 - Item ', '');
+          
+          // Combine all RDC items if multiple
+          const itemRdcList = photoNCs.map(nc => {
+            const legalBasis = nc.legalBasis || '';
+            return legalBasis.replace('RDC 216/2004 - Item ', '');
+          }).filter(Boolean);
+          const itemRdc = itemRdcList.join(', ');
+          
+          console.log(`[AI Analysis] Photo ${photoNumber}: legenda="${legenda}", item_rdc="${itemRdc}"`);
           
           return {
             photoIndex: idx,
