@@ -338,6 +338,8 @@ export default function MonthlyReport() {
     }
   };
 
+  const [fullDocuments, setFullDocuments] = useState<any[]>([]);
+
   const loadDailyActions = async () => {
     if (!user) return;
     
@@ -352,8 +354,12 @@ export default function MonthlyReport() {
         document_number,
         created_at,
         content,
+        irregularities,
+        attachments,
+        deadline_days,
+        deadline_date,
         establishment_id,
-        establishments(nome_fantasia)
+        establishments(*)
       `)
       .eq('user_id', user.id)
       .eq('status', 'sent')
@@ -362,6 +368,9 @@ export default function MonthlyReport() {
       .order('created_at', { ascending: true });
 
     if (data) {
+      // Store full documents for PDF attachment
+      setFullDocuments(data);
+      
       const actions: DailyAction[] = data.map((doc: any) => {
         const content = doc.content || {};
         const date = new Date(doc.created_at);
@@ -762,6 +771,140 @@ export default function MonthlyReport() {
           <div className="mt-10 border-t pt-2 text-xs">
             <p>Gerado em: {format(new Date(), 'dd/MM/yyyy')} | <strong>fiscaliz.app</strong></p>
           </div>
+
+          {/* ANEXOS - PEÇAS FISCAIS COMPLETAS */}
+          {fullDocuments.length > 0 && (
+            <>
+              <div className="page-break" />
+              <div className="mb-6">
+                <div className="section-title">ANEXOS - PEÇAS FISCAIS EMITIDAS</div>
+              </div>
+
+              {fullDocuments.map((doc, docIndex) => (
+                <div key={doc.id} className="mb-8">
+                  {/* Page break entre documentos (não no primeiro) */}
+                  {docIndex > 0 && <div className="page-break" />}
+                  
+                  {/* Cabeçalho do documento anexo */}
+                  <div className="mb-4 border-b-2 border-gray-800 pb-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="flex items-center gap-2">
+                        <img src={BRASAO_GOIANIA_SVG} alt="Brasão" className="h-12 w-auto" />
+                        <img src={SUS_LOGO_SVG} alt="SUS" className="h-8 w-auto" />
+                      </div>
+                      <div className="text-right text-xs text-gray-600">
+                        <p>Anexo {docIndex + 1} de {fullDocuments.length}</p>
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs font-bold">PREFEITURA DE GOIÂNIA - SMS - VIGILÂNCIA SANITÁRIA</p>
+                    </div>
+                    <div className="mt-2 py-2 bg-gray-800 text-white text-center">
+                      <h3 className="text-sm font-bold">
+                        {documentTypeLabels[doc.document_type]?.toUpperCase() || doc.document_type}
+                      </h3>
+                      {doc.document_number && (
+                        <p className="text-xs">Nº {doc.document_number}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Dados do estabelecimento */}
+                  {doc.establishments && (
+                    <div className="border border-gray-300 p-3 mb-4 text-xs">
+                      <h4 className="font-bold bg-gray-100 -m-3 mb-2 p-2 border-b border-gray-300">ESTABELECIMENTO</h4>
+                      <div className="space-y-1">
+                        <p><strong>Razão Social:</strong> {doc.establishments.razao_social}</p>
+                        {doc.establishments.nome_fantasia && (
+                          <p><strong>Nome Fantasia:</strong> {doc.establishments.nome_fantasia}</p>
+                        )}
+                        <p><strong>CNPJ:</strong> {doc.establishments.cnpj}</p>
+                        <p><strong>Endereço:</strong> {doc.establishments.endereco}{doc.establishments.bairro ? ` - ${doc.establishments.bairro}` : ''}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Conteúdo do documento */}
+                  <div className="border border-gray-300 p-3 mb-4 text-xs">
+                    <h4 className="font-bold bg-gray-100 -m-3 mb-2 p-2 border-b border-gray-300">CONTEÚDO</h4>
+                    <div className="whitespace-pre-wrap leading-relaxed min-h-[80px]">
+                      {doc.content?.text || 'Sem conteúdo especificado.'}
+                    </div>
+                  </div>
+
+                  {/* Observações adicionais */}
+                  {doc.content?.observations && (
+                    <div className="border border-gray-300 p-3 mb-4 text-xs">
+                      <h4 className="font-bold bg-gray-100 -m-3 mb-2 p-2 border-b border-gray-300">OBSERVAÇÕES</h4>
+                      <div className="whitespace-pre-wrap leading-relaxed">
+                        {doc.content.observations}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Prazo (se aplicável) */}
+                  {doc.deadline_date && (
+                    <div className="border border-yellow-400 bg-yellow-50 p-3 mb-4 text-xs">
+                      <h4 className="font-bold">PRAZO PARA ADEQUAÇÃO</h4>
+                      <p className="mt-1">
+                        <strong>{doc.deadline_days} dias</strong> - até {format(new Date(doc.deadline_date), 'dd/MM/yyyy')}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Registro fotográfico */}
+                  {doc.attachments && Array.isArray(doc.attachments) && doc.attachments.length > 0 && (
+                    <div className="border border-gray-300 p-3 mb-4">
+                      <h4 className="font-bold bg-gray-100 -m-3 mb-2 p-2 border-b border-gray-300 text-xs">REGISTRO FOTOGRÁFICO</h4>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(doc.attachments as any[]).slice(0, 4).map((att: any, attIdx: number) => (
+                          <div key={attIdx} className="aspect-[4/3] border border-gray-200 rounded overflow-hidden">
+                            <img 
+                              src={att.url} 
+                              alt={`Foto ${attIdx + 1}`} 
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      {doc.attachments.length > 4 && (
+                        <p className="text-xs text-gray-500 text-center mt-2">
+                          + {doc.attachments.length - 4} foto(s) adicionais
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Data e hora do documento */}
+                  <div className="text-xs text-gray-600 text-right mt-2">
+                    <p>
+                      Data: {doc.content?.document_date ? format(new Date(doc.content.document_date), 'dd/MM/yyyy') : format(new Date(doc.created_at), 'dd/MM/yyyy')}
+                      {doc.content?.document_time && ` às ${doc.content.document_time}`}
+                    </p>
+                  </div>
+
+                  {/* Assinatura do documento */}
+                  <div className="mt-6 pt-4 border-t">
+                    <div className="flex justify-between">
+                      <div className="text-center w-40">
+                        {profile?.signature_url && (
+                          <img src={profile.signature_url} alt="Assinatura" className="h-10 mx-auto mb-1 object-contain" />
+                        )}
+                        <div className="border-t border-black w-full mb-1" />
+                        <p className="text-xs font-bold">{profile?.full_name}</p>
+                        <p className="text-[9px]">Auditor Fiscal</p>
+                      </div>
+                      <div className="text-center w-40">
+                        <div className="h-10" />
+                        <div className="border-t border-black w-full mb-1" />
+                        <p className="text-xs font-bold">Ciência do Contribuinte</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
         </div>
 
         <div className="no-print fixed bottom-4 right-4 flex gap-2">
