@@ -16,7 +16,8 @@ import {
   ClipboardList,
   ChevronDown,
   ChevronUp,
-  Search
+  Search,
+  FolderOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { 
@@ -46,6 +47,7 @@ interface AutoInfracaoFormProps {
   onChange: (data: AutoInfracaoData) => void;
   photos: { id: string; previewUrl: string }[];
   onAddPhoto: () => void;
+  onCapturePhoto?: () => void;
   onRemovePhoto: (index: number) => void;
   photosRequired?: boolean;
 }
@@ -63,7 +65,8 @@ export function AutoInfracaoForm({
   value, 
   onChange, 
   photos, 
-  onAddPhoto, 
+  onAddPhoto,
+  onCapturePhoto,
   onRemovePhoto,
   photosRequired = true 
 }: AutoInfracaoFormProps) {
@@ -230,26 +233,41 @@ export function AutoInfracaoForm({
             Anexe fotos das irregularidades como prova documental para fundamentar o auto.
           </p>
 
-          <div className="grid grid-cols-4 gap-2">
-            {photos.map((photo, idx) => (
-              <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden">
-                <img src={photo.previewUrl} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
-                <button
-                  onClick={() => onRemovePhoto(idx)}
-                  className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-            
-            <button
-              onClick={onAddPhoto}
-              className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 hover:border-primary hover:bg-primary/5 transition-colors"
+          {photos.length > 0 && (
+            <div className="grid grid-cols-4 gap-2">
+              {photos.map((photo, idx) => (
+                <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden">
+                  <img src={photo.previewUrl} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => onRemovePhoto(idx)}
+                    className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onCapturePhoto || onAddPhoto}
+              className="flex-1 h-12"
             >
-              <Camera className="h-5 w-5 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Adicionar</span>
-            </button>
+              <Camera className="h-5 w-5 mr-2" />
+              Capturar
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onAddPhoto}
+              className="flex-1 h-12"
+            >
+              <FolderOpen className="h-5 w-5 mr-2" />
+              Galeria
+            </Button>
           </div>
 
           {photosRequired && photos.length === 0 && (

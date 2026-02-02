@@ -21,7 +21,8 @@ import {
   ClipboardList,
   Gavel,
   CheckCircle,
-  Loader2
+  Loader2,
+  FolderOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { checklistTemplates, getAllCategories, type ChecklistItem } from '@/data/checklists';
@@ -69,6 +70,7 @@ interface RelatorioTecnicoFormProps {
   onChange: (data: RelatorioTecnicoData) => void;
   photos: UploadedImage[];
   onAddPhoto: () => void;
+  onCapturePhoto?: () => void;
   onRemovePhoto: (index: number) => void;
   establishmentType?: string;
 }
@@ -103,6 +105,7 @@ export function RelatorioTecnicoForm({
   onChange,
   photos,
   onAddPhoto,
+  onCapturePhoto,
   onRemovePhoto,
   establishmentType,
 }: RelatorioTecnicoFormProps) {
@@ -338,33 +341,48 @@ export function RelatorioTecnicoForm({
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-2">
-              {photos.map((img, idx) => (
-                <div key={idx} className="relative aspect-square rounded-lg overflow-hidden">
-                  <img src={img.previewUrl} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
-                  <button
-                    onClick={() => onRemovePhoto(idx)}
-                    className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-              
-              {photos.length < 50 && (
-                <button
-                  onClick={onAddPhoto}
-                  className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 hover:border-primary hover:bg-primary/5 transition-colors"
-                >
-                  <Camera className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-[10px] text-muted-foreground">Adicionar</span>
-                </button>
-              )}
-            </div>
+            {photos.length > 0 && (
+              <div className="grid grid-cols-4 gap-2">
+                {photos.map((img, idx) => (
+                  <div key={idx} className="relative aspect-square rounded-lg overflow-hidden">
+                    <img src={img.previewUrl} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => onRemovePhoto(idx)}
+                      className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <p className="text-xs text-muted-foreground text-center">
               {photos.length}/50 fotos
             </p>
+
+            {photos.length < 50 && (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onCapturePhoto || onAddPhoto}
+                  className="flex-1 h-12"
+                >
+                  <Camera className="h-5 w-5 mr-2" />
+                  Capturar
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onAddPhoto}
+                  className="flex-1 h-12"
+                >
+                  <FolderOpen className="h-5 w-5 mr-2" />
+                  Galeria
+                </Button>
+              </div>
+            )}
 
             <Button 
               onClick={handleAnalyzeWithAI}
