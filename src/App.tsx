@@ -21,6 +21,7 @@ import DocumentTypeSelection from "./pages/NewAction/DocumentTypeSelection";
 import CreateDocument from "./pages/NewAction/CreateDocument";
 import InternalActivitySelection from "./pages/NewAction/InternalActivitySelection";
 import CreateRA from "./pages/NewAction/CreateRA";
+import PFESelection from "./pages/NewAction/PFESelection";
 import MonthlyReport from "./pages/MonthlyReport";
 import DocumentDetail from "./pages/DocumentDetail";
 import Documents from "./pages/Documents";
@@ -98,6 +99,11 @@ const App = () => (
             <Route path="/nova-acao/criar-ra" element={
               <ProtectedRoute>
                 <CreateRA />
+              </ProtectedRoute>
+            } />
+            <Route path="/nova-acao/pfe" element={
+              <ProtectedRoute>
+                <PFESelection />
               </ProtectedRoute>
             } />
             <Route path="/relatorio-mensal" element={

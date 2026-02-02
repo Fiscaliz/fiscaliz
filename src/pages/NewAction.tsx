@@ -9,14 +9,16 @@ import {
   AlertTriangle,
   Beaker,
   Handshake,
-  Flag
+  Flag,
+  Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const actionReasons = [
   { id: 'rotina', icon: MapPin, label: 'Rotina', color: 'text-primary', priority: 'low' },
   { id: 'investigativa', icon: Search, label: 'Inspeção Investigativa', color: 'text-warning', priority: 'high' },
-  { id: 'demanda_interna', icon: Flag, label: 'Demanda Interna', sublabel: 'Plantão Fiscal ou Plantão Fiscal Especial', color: 'text-warning', priority: 'medium' },
+  { id: 'demanda_interna', icon: Flag, label: 'Demanda Interna', sublabel: 'Atividades administrativas internas', color: 'text-warning', priority: 'medium' },
+  { id: 'pfe', icon: Clock, label: 'PFE', sublabel: 'Plantão Fiscal Especial', color: 'text-info', priority: 'medium' },
   { id: 'operacao_conjunta', icon: Handshake, label: 'Operação Conjunta', color: 'text-info', priority: 'medium' },
   { id: 'coleta', icon: Beaker, label: 'Coleta de Amostra', color: 'text-secondary', priority: 'medium' },
   { id: 'surto', icon: AlertTriangle, label: 'Surto', color: 'text-destructive', priority: 'high' },
@@ -33,6 +35,12 @@ export default function NewAction() {
     // Demanda Interna vai para seleção de atividade interna (RA)
     if (reasonId === 'demanda_interna') {
       navigate(`/nova-acao/atividade-interna?motivo=${reasonId}`);
+      return;
+    }
+    
+    // PFE vai para seleção entre "À disposição da chefia" ou "Ação fiscal"
+    if (reasonId === 'pfe') {
+      navigate('/nova-acao/pfe');
       return;
     }
     
