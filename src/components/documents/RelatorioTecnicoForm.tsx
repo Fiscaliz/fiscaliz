@@ -179,12 +179,19 @@ export function RelatorioTecnicoForm({
     updateField('isAnalyzing', true);
 
     try {
-      // Upload photos to storage first
+      // Get authenticated user for RLS-compliant file paths
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      // Upload photos to storage with user_id prefix for RLS compliance
       const uploadedUrls: string[] = [];
       
       for (const img of photos) {
         const fileExt = img.file.name.split('.').pop() || 'jpg';
-        const fileName = `temp/${crypto.randomUUID()}.${fileExt}`;
+        // Use user_id as folder prefix to comply with storage RLS policy
+        const fileName = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from('fiscal-photos')
