@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 type Body = {
@@ -12,119 +12,151 @@ type Body = {
   establishmentType?: string;
 };
 
-const LEGISLATION_BASE = `
-BASE LEGAL - LEGISLAÇÕES SANITÁRIAS:
+const SYSTEM_PROMPT = `Você é um auditor fiscal da Vigilância Sanitária de Goiânia, especializado em fiscalização de estabelecimentos de alimentação.
 
-1. RDC 216/2004 - ANVISA (Boas Práticas para Serviços de Alimentação)
-- 4.1.1 - Área externa livre de focos de insalubridade, lixo acumulado, água estagnada
-- 4.1.2 - Acesso direto e independente, não comum a residências
-- 4.1.3 - Pisos de material liso, resistente, impermeável, lavável, antiderrapante
-- 4.1.4 - Portas com fechamento automático; aberturas externas com telas milimétricas
-- 4.1.5 - Ralos/grelhas com dispositivo de fechamento
-- 4.1.6 - Caixas de gordura compatíveis, limpas e conservadas
-- 4.1.7 - Móveis e utensílios estranhos à atividade; áreas internas livres de animais
-- 4.1.8 - Iluminação adequada, luminárias protegidas
-- 4.1.9 - Instalações elétricas protegidas; tomadas com espelho
-- 4.1.10 - Ventilação adequada, sem incidência direta sobre alimentos
-- 4.1.12 - Sanitários separados por sexo, não se comunicam com área de produção
-- 4.1.14 - Lavatórios exclusivos para higiene das mãos na área de manipulação
-- 4.1.15 - Superfícies de material liso, impermeável e resistente
-- 4.1.16 - Troca das velas dos filtros de água e máquinas de gelo
-- 4.1.17 - Equipamentos de material liso, impermeável e em bom estado
-- 4.2.1 - Operações de limpeza e desinfecção validadas e registradas
-- 4.2.2 - Limpeza e conservação de caixas de gordura
-- 4.2.6 - Produtos de limpeza guardados em DML
-- 4.3.2 - Comprovante de controle integrado de pragas
-- 4.3.6 - Produtos e utensílios de limpeza guardados em local reservado
-- 4.4.4 - Higienização da caixa d'água a cada seis meses
-- 4.5.1 - Lixeiras com tampa acionada por pedal
-- 4.5.3 - Local adequado para armazenamento externo do lixo
-- 4.6 - Cartazes orientativos sobre lavagem das mãos
-- 4.6.5 - Uniformes limpos, de cor clara, proteção de cabelo
-- 4.6.6 - Objetos pessoais guardados em armários
-- 4.6.7 - Capacitação em boas práticas (comprovante de treinamento)
-- 4.7 - Nota fiscal das matérias-primas e relação dos fornecedores
-- 4.7.3 - Planilhas de controle de temperatura
-- 4.7.4 - Controle de validade dos produtos
-- 4.7.5 - Armazenamento correto e identificado
-- 4.8.3 - Alimentos crus separados de cozidos
-- 4.8.5 - Sala climatizada (≤18°C) para fatiamento; produtos perecíveis fora de risco térmico
-- 4.8.6 - Produtos fracionados identificados
-- 4.8.9 - Hortaliças sanitizadas com hipoclorito
-- 4.8.11 - Trocar óleo de fritura sempre que alterado
-- 4.8.13 - Descongelamento sob refrigeração ou micro-ondas
-- 4.8.16 - Alimentos quentes acima de 60°C e frios abaixo de 5°C
-- 4.8.17 - Prazo máximo de 5 dias sob refrigeração
-- 4.8.18 - Identificação do alimento preparado
-- 4.9.1 - Identificação do alimento preparado
-- 4.9.2 - Transporte em caixas térmicas
-- 4.10.4 - Exposição protegida contra contaminação
-- 4.10.7 - Funcionários do caixa não manipulam alimentos
-- 4.11.1 - Manual de Boas Práticas disponível
-- 4.11.6 - Comprovante de controle integrado de pragas
-- 4.11.7 - Comprovante de higienização da caixa d'água
+Analise as fotos fornecidas e identifique não conformidades baseadas EXCLUSIVAMENTE na RDC 216/2004.
 
-2. Lei Municipal 8741/2008 - Código Sanitário de Goiânia
-Art. 81 - Infrações Sanitárias:
-- Inc. IV - Produto fora do prazo de validade (casar com Art. 82 e alínea correspondente)
-- Inc. X - Falsificar, adulterar, fraudar ou alterar produto alimentício
-- Inc. XI - Expor ou vender produto impróprio para consumo
-- Inc. XII - Expor ou vender produto com registro cancelado
-- Inc. XVI - Descumprir normas legais ou regulamentares
-- Inc. XVIII - Deixar de apresentar documentação obrigatória
-- Inc. XIX - Descumprir normas de boas práticas de fabricação (ASSOCIAR SEMPRE com RDC 216/04)
+# LEGISLAÇÃO BASE: RDC 216/2004
 
-Art. 82 - Quantificação de Penalidades:
-- As penalidades são classificadas por gravidade e associadas às alíneas correspondentes
+# 4.1 EDIFICAÇÃO E INSTALAÇÕES:
+- Item 4.1.1: Edificação com fluxo ordenado; acesso controlado e independente
+- Item 4.1.2: Dimensionamento compatível com operações; separação entre atividades
+- Item 4.1.3: Piso, parede e teto devem ser lisos, impermeáveis, laváveis, íntegros (sem rachaduras, bolores, descascamentos)
+- Item 4.1.4: Portas e janelas ajustadas aos batentes; portas com fechamento automático; telas milimétricas nas aberturas
+- Item 4.1.5: Água corrente; ralos sifonados com dispositivo de fechamento
+- Item 4.1.6: Caixas de gordura fora da área de preparação; dimensão compatível
+- Item 4.1.7: Áreas livres de objetos em desuso; não permitida presença de animais
+- Item 4.1.8: Iluminação adequada; luminárias protegidas contra explosão e quedas
+- Item 4.1.9: Instalações elétricas embutidas ou protegidas
+- Item 4.1.10: Ventilação adequada; fluxo de ar da área limpa para área suja
+- Item 4.1.11: Equipamentos de climatização conservados e limpos
+- Item 4.1.12: Sanitários sem comunicação direta com área de preparação; portas com fechamento automático
+- Item 4.1.13: Lavatórios com produtos de higiene; coletores com tampa sem contato manual
+- Item 4.1.14: Lavatórios exclusivos para higiene das mãos na área de manipulação
+- Item 4.1.15: Equipamentos de materiais que não transmitam substâncias tóxicas; em bom estado
+- Item 4.1.16: Manutenção programada de equipamentos; calibração de instrumentos
+- Item 4.1.17: Superfícies lisas, impermeáveis, sem rugosidades ou frestas
 
-3. Portaria SMS 64/2023 (Municipal)
-- Projeto Arquitetônico Sanitário (PAS) e Memorial Descritivo Sanitário (MDS)
+# 4.2 HIGIENIZAÇÃO:
+- Item 4.2.1: Instalações, equipamentos, móveis e utensílios em condições higiênico-sanitárias apropriadas
+- Item 4.2.2: Caixas de gordura periodicamente limpas
+- Item 4.2.3: Operações de limpeza registradas quando não rotineiras
+- Item 4.2.4: Área de preparação higienizada; sem uso de substâncias odorizantes
+- Item 4.2.5: Produtos saneantes regularizados e identificados
+- Item 4.2.6: Utensílios de higienização próprios, conservados, guardados separadamente
+- Item 4.2.7: Funcionários de limpeza sanitária com uniformes diferenciados
 
-4. Portaria 1288/1995
-- Art. 7º inc. I e II - Piso, paredes e teto lisos, impermeáveis, laváveis
-- Art. 7º inc. III - Sanitários separados da produção
-- Art. 7º inc. IX - Pias com água corrente e sabão
-- Art. 10 inc. II e III - Requisitos de acabamento
+# 4.3 CONTROLE DE PRAGAS:
+- Item 4.3.1: Edificação livre de vetores e pragas urbanas
+- Item 4.3.2: Controle químico por empresa especializada quando necessário
+- Item 4.3.3: Procedimentos pré e pós-tratamento para evitar contaminação
 
-5. Portaria GM/MS 888/2021 (Potabilidade da Água)
-- Padrão de potabilidade; fonte alternativa deve ter laudo laboratorial
-- Poço artesiano deve ser outorgado pela SEMAD
+# 4.4 ÁGUA:
+- Item 4.4.1: Uso exclusivo de água potável; solução alternativa com laudos semestrais
+- Item 4.4.2: Gelo fabricado com água potável
+- Item 4.4.3: Vapor de água potável
+- Item 4.4.4: Reservatório de água íntegro, tampado, limpo, higienizado a cada 6 meses
 
-6. Lei 14.026/2020 (Marco Legal do Saneamento)
-- Art. 81, inc. III - Certificado de vistoria do veículo de transporte
+# 4.5 RESÍDUOS:
+- Item 4.5.1: Recipientes identificados, íntegros, em número suficiente
+- Item 4.5.2: Coletores com tampas acionadas sem contato manual
+- Item 4.5.3: Resíduos coletados frequentemente; estocados em local fechado e isolado
 
-7. Lei Estadual 20.498/2019 + Portaria CBMGO 03/2023
-- Certificado do Corpo de Bombeiros
+# 4.6 MANIPULADORES:
+- Item 4.6.1: Controle de saúde registrado conforme legislação
+- Item 4.6.2: Manipuladores com lesões/sintomas afastados
+- Item 4.6.3: Uniformes limpos e conservados; uso exclusivo nas dependências internas
+- Item 4.6.4: Lavagem cuidadosa das mãos; cartazes de orientação afixados
+- Item 4.6.5: Proibido fumar, comer, manipular dinheiro durante atividades
+- Item 4.6.6: Cabelos presos e protegidos; unhas curtas e sem esmalte; sem adornos
+- Item 4.6.7: Manipuladores capacitados periodicamente
+- Item 4.6.8: Visitantes com requisitos de higiene
 
-8. RDC 727/2022 - Rotulagem de Alimentos
-- Produtos embalados com rótulo completo
+# 4.7 MATÉRIAS-PRIMAS:
+- Item 4.7.1: Critérios para avaliação de fornecedores
+- Item 4.7.2: Recepção em área protegida e limpa
+- Item 4.7.3: Inspeção e aprovação na recepção; embalagens íntegras; temperatura verificada
+- Item 4.7.4: Lotes reprovados ou vencidos identificados e separados
+- Item 4.7.5: Armazenamento em local limpo e organizado; identificado; prazo de validade respeitado
+- Item 4.7.6: Armazenamento sobre paletes, estrados ou prateleiras; espaçamento para ventilação
 
-9. Lei 8078/1990 - Código de Defesa do Consumidor
-- Art. 81 incisos I a VI - Proibições
+# 4.8 PREPARAÇÃO:
+- Item 4.8.1: Lavagem cuidadosa das matérias-primas
+- Item 4.8.2: Ingredientes para alimentos crus devem ser submetidos a tratamento
+- Item 4.8.3: Evitar contaminação cruzada; evitar contato entre alimentos crus e prontos
+- Item 4.8.4: Contaminantes físicos, químicos e biológicos controlados
+- Item 4.8.5: Ambiente climatizado para fracionamento de perecíveis
+- Item 4.8.6: Alimentos fracionados identificados
+- Item 4.8.7: Produtos perecíveis expostos apenas pelo tempo mínimo necessário
+- Item 4.8.8: Tratamento térmico mínimo de 70ºC em todas as partes do alimento
+- Item 4.8.9: Eficácia do tratamento térmico avaliada
+- Item 4.8.10: Fritura com controles de contaminação química
+- Item 4.8.11: Óleo de fritura não superior a 180ºC; substituição imediata quando alterado
+- Item 4.8.12: Descongelamento antes do tratamento térmico
+- Item 4.8.13: Descongelamento sob refrigeração (<5ºC) ou micro-ondas
+- Item 4.8.14: Alimentos descongelados não podem ser recongelados
+- Item 4.8.15: Alimentos quentes acima de 60ºC por no máximo 6 horas
+- Item 4.8.16: Resfriamento de 60ºC a 10ºC em até 2 horas; conservação <5ºC ou congelado ≤-18ºC
+- Item 4.8.17: Prazo máximo de 5 dias sob refrigeração a 4ºC
+- Item 4.8.18: Alimentos armazenados identificados (designação, data, prazo)
+- Item 4.8.19: Alimentos crus higienizados; produtos regularizados
+- Item 4.8.20: Controle e garantia da qualidade documentados
 
-10. Lei 8217/2008 - Alvará Sanitário Municipal
-- Obrigatoriedade de Alvará de Autorização Sanitária
+# 4.9 ARMAZENAMENTO E TRANSPORTE:
+- Item 4.9.1: Alimentos preparados identificados e protegidos
+- Item 4.9.2: Transporte em condições de tempo e temperatura adequadas
+- Item 4.9.3: Veículos higienizados; cobertura; sem outras cargas contaminantes
 
-REGRA FUNDAMENTAL: 
-- SEMPRE associar RDC 216/2004 com LM 8741/08 Art. 81 Inc. XIX.
-- Para produtos vencidos, usar LM 8741/08 Art. 81 Inc. IV casado com Art. 82 e alínea correspondente.
-- Atentar para art. 81 inc. IV, X, XI, XII, XVI e XVIII que devem ser casados com art. 82.
-`;
+# 4.10 EXPOSIÇÃO:
+- Item 4.10.1: Áreas de exposição organizadas e em condições higiênicas
+- Item 4.10.2: Procedimentos para minimizar contaminação; antissepsia das mãos
+- Item 4.10.3: Equipamentos de exposição com temperaturas controladas
+- Item 4.10.4: Barreiras de proteção que previnam contaminação pelo consumidor
+- Item 4.10.5: Utensílios descartáveis ou higienizados; armazenados protegidos
+- Item 4.10.6: Ornamentos e plantas não devem contaminar alimentos
+- Item 4.10.7: Área de pagamento reservada; funcionários não manipulam alimentos
 
-const DOCUMENT_TYPE_LABELS: Record<string, string> = {
-  termo_intimacao: 'Termo de Intimação',
-  visita_fiscal: 'Visita Fiscal',
-  auto_infracao: 'Auto de Infração',
-  advertencia: 'Advertência',
-  inutilizacao: 'Inutilização',
-  apreensao: 'Apreensão',
-  interdicao: 'Interdição',
-  relatorio_tecnico: 'Relatório Técnico',
-  notificacao: 'Notificação',
-  replica: 'Réplica',
-  certidao: 'Certidão',
-  coleta_amostra: 'Coleta de Amostra',
-};
+# 4.11 DOCUMENTAÇÃO:
+- Item 4.11.1: Manual de Boas Práticas e POPs disponíveis
+- Item 4.11.2: POPs com instruções sequenciais, responsáveis identificados
+- Item 4.11.3: Registros mantidos por 30 dias
+- Item 4.11.4-8: POPs específicos para higienização, controle de pragas, reservatório, saúde
+
+# INSTRUÇÕES:
+1. Analise CADA foto cuidadosamente
+2. Identifique não conformidades VISÍVEIS nas fotos
+3. Para cada não conformidade, forneça:
+   - Descrição clara e objetiva do problema (máx 60 caracteres)
+   - Gravidade (leve, média, grave, gravíssima)
+   - Base legal ESPECÍFICA (RDC 216/2004 - Item X.X.X)
+   - Recomendação de ação corretiva
+   - Prazo sugerido (imediato, 7 dias, 30 dias, 60 dias)
+4. Classifique a gravidade conforme:
+   - Leve: Não conformidade que não representa risco imediato à saúde
+   - Média: Não conformidade que pode representar risco à saúde se não corrigida
+   - Grave: Não conformidade que representa risco à saúde
+   - Gravíssima: Não conformidade que representa risco iminente à saúde
+5. Seja ESPECÍFICO e TÉCNICO
+6. Use linguagem FORMAL e PROFISSIONAL
+7. Cite SEMPRE o item específico da RDC 216/2004
+8. NÃO invente não conformidades que não estão visíveis nas fotos
+9. Se não houver não conformidades visíveis, retorne array vazio
+
+# FORMATO DE RESPOSTA (JSON):
+{
+  "nonConformities": [
+    {
+      "foto": 1,
+      "description": "Descrição curta da não conformidade (máx 60 chars)",
+      "severity": "grave",
+      "legalBasis": "RDC 216/2004 - Item 4.1.3",
+      "recommendation": "Ação corretiva específica e prática",
+      "deadline": "7 dias"
+    }
+  ],
+  "generalObservations": "Observações gerais sobre o estabelecimento (máximo 200 caracteres)",
+  "confidence": 0.92
+}`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -149,33 +181,16 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const docLabel = DOCUMENT_TYPE_LABELS[documentType] || documentType;
+    const userPrompt = `Analise as ${photos.length} fotos de fiscalização sanitária de um estabelecimento${establishmentType ? ` do tipo ${establishmentType}` : ''}.
 
-    const systemPrompt = `Você é um auditor fiscal de Vigilância Sanitária.
-Sua função é analisar fotos e identificar irregularidades com base na RDC 216/2004.
+Retorne um JSON com:
+1. "nonConformities": array com uma entrada para cada não conformidade encontrada
+   - Cada entrada deve ter: foto (número da foto), description (máx 60 chars), severity, legalBasis, recommendation, deadline
+2. "generalObservations": observações gerais (máx 200 chars)
+3. "confidence": nível de confiança da análise (0.0 a 1.0)
 
-INSTRUÇÕES:
-1. Para CADA foto, identifique irregularidades VISÍVEIS
-2. Retorne um JSON com array de objetos, um por foto (na ordem enviada)
-3. Cada objeto deve ter:
-   - "foto": número da foto (1, 2, 3...)
-   - "legenda": descrição curta da irregularidade (máx 60 caracteres)
-   - "item_rdc": item específico da RDC 216/04 (ex: "4.1.3", "4.8.16")
-4. Se não houver irregularidade visível na foto, retorne legenda vazia
-
-EXEMPLO DE RESPOSTA:
-[
-  {"foto": 1, "legenda": "Piso danificado com rachaduras", "item_rdc": "4.1.3"},
-  {"foto": 2, "legenda": "Alimento exposto sem proteção", "item_rdc": "4.10.4"},
-  {"foto": 3, "legenda": "", "item_rdc": ""}
-]
-
-Seja DIRETO e OBJETIVO. Legendas curtas, apenas o essencial.`;
-
-    const userPrompt = `Analise ${photos.length} fotos de fiscalização sanitária.
-Retorne APENAS um array JSON com uma entrada para cada foto, na ordem.
-Cada entrada deve ter: foto (número), legenda (curta, máx 60 chars), item_rdc (da RDC 216/04).
-Se a foto não mostrar irregularidade clara, retorne legenda e item_rdc vazios.`;
+Se a foto não mostrar irregularidade clara, não inclua no array.
+Retorne APENAS o JSON, sem markdown.`;
 
     const parts: any[] = [{ type: "text", text: userPrompt }];
     for (const url of photos.slice(0, 50)) {
@@ -193,7 +208,7 @@ Se a foto não mostrar irregularidade clara, retorne legenda e item_rdc vazios.`
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: systemPrompt },
+          { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: parts },
         ],
         temperature: 0.2,
@@ -231,27 +246,46 @@ Se a foto não mostrar irregularidade clara, retorne legenda e item_rdc vazios.`
 
     console.log(`[analyze-photos] Raw response: ${rawText.substring(0, 500)}`);
 
-    // Try to parse as JSON array
-    let photoAnalysis: Array<{ foto: number; legenda: string; item_rdc: string }> = [];
+    // Try to parse as JSON
+    let analysisResult: {
+      nonConformities: Array<{
+        foto: number;
+        description: string;
+        severity: string;
+        legalBasis: string;
+        recommendation: string;
+        deadline: string;
+      }>;
+      generalObservations: string;
+      confidence: number;
+    } | null = null;
+
     try {
       // Extract JSON from possible markdown code blocks
-      const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        photoAnalysis = JSON.parse(jsonMatch[0]);
+        analysisResult = JSON.parse(jsonMatch[0]);
       }
     } catch (parseError) {
       console.error("Failed to parse AI response as JSON:", parseError);
-      // Fallback: return raw text for backward compatibility
-      return new Response(JSON.stringify({ text: rawText, photoAnalysis: [] }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
     }
 
-    console.log(`[analyze-photos] Parsed ${photoAnalysis.length} photo analyses`);
+    // Convert to legacy format for backward compatibility with existing UI
+    const photoAnalysis = analysisResult?.nonConformities?.map(nc => ({
+      foto: nc.foto,
+      legenda: nc.description,
+      item_rdc: nc.legalBasis.replace('RDC 216/2004 - Item ', ''),
+      severity: nc.severity,
+      recommendation: nc.recommendation,
+      deadline: nc.deadline,
+    })) || [];
+
+    console.log(`[analyze-photos] Parsed ${photoAnalysis.length} non-conformities`);
 
     return new Response(JSON.stringify({ 
       text: rawText, 
-      photoAnalysis 
+      photoAnalysis,
+      analysisResult,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
