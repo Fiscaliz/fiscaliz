@@ -275,9 +275,14 @@ export function RelatorioTecnicoForm({
           };
         });
         
+        console.log('[AI Analysis] Final legends to save:', JSON.stringify(legends, null, 2));
+        
         updateField('photoLegends', legends);
         
         const photosWithLegends = legends.filter(l => l.legenda);
+        
+        console.log('[AI Analysis] Photos with legends:', photosWithLegends.length);
+        
         toast({
           title: 'Análise concluída!',
           description: `${nonConformities.length} irregularidades em ${photosWithLegends.length} fotos. Edite as legendas conforme necessário.`,
