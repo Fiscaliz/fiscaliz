@@ -31,6 +31,7 @@ import { checklistTemplates, getAllCategories, type ChecklistItem } from '@/data
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { getNextDocumentNumber } from '@/hooks/useDocumentNumber';
 import { CertidaoForm, formatCertidaoContent } from '@/components/documents/CertidaoForm';
 import { DocumentCommonFields } from '@/components/documents/DocumentCommonFields';
 import { VisitaFiscalForm, formatVisitaFiscalContent, type VisitaFiscalData } from '@/components/documents/VisitaFiscalForm';
@@ -414,18 +415,29 @@ export default function CreateDocument() {
         }));
       }
 
+      // Obter número sequencial do documento (se aplicável)
+      let documentNumber: string | null = null;
+      try {
+        documentNumber = await getNextDocumentNumber(tipo);
+      } catch (numError) {
+        console.error('Error getting document number:', numError);
+        // Continuar sem número - não é crítico
+      }
+
       const insertData: any = {
         id: plannedDocId,
         user_id: user.id,
         establishment_id: establishmentId,
         fiscal_action_id: action.id,
         document_type: tipo,
+        document_number: documentNumber,
         content: contentObj,
         irregularities: finalIrregularities,
         attachments,
         deadline_days: tipo === 'termo_intimacao' ? parseInt(deadlineDays) : null,
         deadline_date: tipo === 'termo_intimacao' ? deadlineDate.toISOString().split('T')[0] : null,
         priority: motivo === 'denuncia' || motivo === 'surto' || isAutoInfracao ? 'high' : 'medium',
+        action_date: documentDate || new Date().toISOString().split('T')[0],
       };
 
       const { data: newDoc, error: docError } = await supabase
