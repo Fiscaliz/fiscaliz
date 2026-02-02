@@ -1148,18 +1148,18 @@ _Enviado via FISCALIZ®_`;
                   <div className="space-y-3 print:hidden">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="deadlineDays" className="text-xs">Prazo (1-90 dias)</Label>
+                        <Label htmlFor="deadlineDays" className="text-xs">Prazo (1-45 dias)</Label>
                         <Input
                           id="deadlineDays"
                           type="number"
                           min="1"
-                          max="90"
+                          max="45"
                           value={deadlineDays || ''}
                           onChange={(e) => {
                             let days = parseInt(e.target.value) || undefined;
-                            // Limitar entre 1 e 90 dias
+                            // Limitar entre 1 e 45 dias
                             if (days !== undefined) {
-                              days = Math.max(1, Math.min(90, days));
+                              days = Math.max(1, Math.min(45, days));
                             }
                             setDeadlineDays(days);
                             if (days) {
