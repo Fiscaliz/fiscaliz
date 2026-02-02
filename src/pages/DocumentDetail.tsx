@@ -201,8 +201,22 @@ export default function DocumentDetail() {
   const selfContainedDocTypes = ['visita_fiscal', 'certidao', 'relatorio_tecnico'];
   const isSelfContainedDoc = selfContainedDocTypes.includes(document?.document_type);
 
+  // Salvar PDF - apenas gera o PDF, NÃO bloqueia o documento
   const handleGeneratePDF = async () => {
     if (!id || !user) return;
+
+    toast({
+      title: 'Gerando PDF...',
+      description: 'O documento continua editável até ser enviado.'
+    });
+
+    // Open print dialog without changing status
+    window.print();
+  };
+
+  // Enviar documento - bloqueia e muda status
+  const handleSendDocument = async (method: 'sefiz' | 'email' | 'whatsapp', destination?: string) => {
+    if (!id || !user || !document) return;
 
     try {
       // Documentos autocontidos vão para 'archived' (Concluídas)
@@ -214,7 +228,8 @@ export default function DocumentDetail() {
         .update({
           status: newStatus,
           is_locked: true,
-          sent_at: new Date().toISOString()
+          sent_at: new Date().toISOString(),
+          sent_to: destination || method
         })
         .eq('id', id);
 
@@ -236,23 +251,17 @@ export default function DocumentDetail() {
           });
       }
 
-      const successMessage = isSelfContainedDoc 
-        ? 'O documento foi salvo na pasta de Concluídas e está disponível para o relatório mensal.'
-        : 'O documento foi salvo na pasta de peças fiscais e está disponível para o relatório mensal.';
-
+      const statusLabel = isSelfContainedDoc ? 'Concluídas' : 'Enviados';
       toast({
-        title: 'PDF salvo!',
-        description: successMessage
+        title: 'Documento enviado!',
+        description: `O documento foi bloqueado e movido para ${statusLabel}.`
       });
-
-      // Open print dialog
-      window.print();
 
       // Reload document to reflect new status
       loadDocument();
     } catch (error: any) {
       toast({
-        title: 'Erro ao salvar PDF',
+        title: 'Erro ao enviar',
         description: error.message,
         variant: 'destructive'
       });
@@ -295,6 +304,7 @@ export default function DocumentDetail() {
           document={document}
           onSave={handleSave}
           onSend={handleSend}
+          onSendDocument={handleSendDocument}
           onGeneratePDF={handleGeneratePDF}
           editable={!document.is_locked}
         />
