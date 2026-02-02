@@ -3,7 +3,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Calendar, Clock, Bug, FileText } from 'lucide-react';
+import { Calendar, Clock, Bug, FileText, Car } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface DocumentCommonFieldsProps {
   documentType: string;
@@ -18,6 +19,10 @@ interface DocumentCommonFieldsProps {
   showDeadline?: boolean;
   deadlineDays?: string;
   onDeadlineChange?: (days: string) => void;
+  // Transporte
+  transportMode?: 'MPL' | 'CO';
+  onTransportChange?: (mode: 'MPL' | 'CO') => void;
+  showTransport?: boolean;
 }
 
 export function DocumentCommonFields({
@@ -33,6 +38,9 @@ export function DocumentCommonFields({
   showDeadline = false,
   deadlineDays,
   onDeadlineChange,
+  transportMode = 'MPL',
+  onTransportChange,
+  showTransport = true,
 }: DocumentCommonFieldsProps) {
   // Vistoria de Dengue é obrigatória para Termo de Intimação e Visita Fiscal
   const requiresDengue = documentType === 'termo_intimacao' || documentType === 'visita_fiscal';
@@ -69,6 +77,51 @@ export function DocumentCommonFields({
             />
           </div>
         </div>
+
+        {/* Meio de Locomoção */}
+        {showTransport && onTransportChange && (
+          <div className="space-y-2">
+            <Label className="text-xs flex items-center gap-1">
+              <Car className="h-3 w-3" />
+              Meio de Locomoção
+            </Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div
+                className={cn(
+                  'p-3 rounded-lg border-2 cursor-pointer transition-all text-center',
+                  transportMode === 'MPL' 
+                    ? 'border-primary bg-primary/10' 
+                    : 'border-muted hover:border-primary/50'
+                )}
+                onClick={() => onTransportChange('MPL')}
+              >
+                <Car className={cn(
+                  'h-5 w-5 mx-auto mb-1',
+                  transportMode === 'MPL' ? 'text-primary' : 'text-muted-foreground'
+                )} />
+                <p className="font-medium text-xs">MPL</p>
+                <p className="text-[10px] text-muted-foreground">Meios Próprios</p>
+              </div>
+              
+              <div
+                className={cn(
+                  'p-3 rounded-lg border-2 cursor-pointer transition-all text-center',
+                  transportMode === 'CO' 
+                    ? 'border-primary bg-primary/10' 
+                    : 'border-muted hover:border-primary/50'
+                )}
+                onClick={() => onTransportChange('CO')}
+              >
+                <Car className={cn(
+                  'h-5 w-5 mx-auto mb-1',
+                  transportMode === 'CO' ? 'text-primary' : 'text-muted-foreground'
+                )} />
+                <p className="font-medium text-xs">CO</p>
+                <p className="text-[10px] text-muted-foreground">Carro Oficial</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Prazo (se aplicável) */}
         {showDeadline && (
