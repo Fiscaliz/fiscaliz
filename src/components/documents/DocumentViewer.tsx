@@ -73,6 +73,7 @@ interface DocumentViewerProps {
   };
   onSave?: (data: any) => void;
   onSend?: (data: { email?: string; whatsapp?: string }) => void;
+  onSendDocument?: (method: 'sefiz' | 'email' | 'whatsapp', destination?: string) => void;
   onGeneratePDF?: () => void;
   editable?: boolean;
 }
@@ -95,7 +96,8 @@ const documentTypeLabels: Record<string, string> = {
 export function DocumentViewer({ 
   document, 
   onSave, 
-  onSend, 
+  onSend,
+  onSendDocument,
   onGeneratePDF,
   editable = true 
 }: DocumentViewerProps) {
@@ -1478,12 +1480,13 @@ export function DocumentViewer({
           {!showSendModal && (
             <div className="space-y-4">
               <p className="text-xs text-muted-foreground text-center">
-                Ao finalizar, o documento será bloqueado para edição.
+                O documento pode ser salvo e editado. Só será bloqueado após o envio.
               </p>
               
-              {/* Salvar PDF - Ação principal */}
+              {/* Salvar PDF - Não bloqueia */}
               <Button 
                 onClick={handleGeneratePDF}
+                variant="outline"
                 className="w-full gap-2"
                 size="lg"
               >
@@ -1491,17 +1494,23 @@ export function DocumentViewer({
                 Salvar PDF
               </Button>
 
-              {/* Enviar - 3 opções */}
+              {/* Enviar - Bloqueia o documento */}
               <div className="space-y-2">
-                <p className="text-xs font-medium text-center text-muted-foreground">Ou enviar documento:</p>
+                <p className="text-xs font-medium text-center text-muted-foreground">
+                  Enviar e finalizar documento:
+                </p>
                 <div className="grid grid-cols-3 gap-2">
                   <Button 
-                    variant="outline" 
+                    variant="default" 
                     onClick={() => {
-                      toast({
-                        title: "SEFIZ",
-                        description: "Integração com SEFIZ em desenvolvimento",
-                      });
+                      if (onSendDocument) {
+                        onSendDocument('sefiz');
+                      } else {
+                        toast({
+                          title: "SEFIZ",
+                          description: "Integração com SEFIZ em desenvolvimento",
+                        });
+                      }
                     }}
                     className="gap-1 text-xs h-auto py-3 flex-col"
                   >
@@ -1509,7 +1518,7 @@ export function DocumentViewer({
                     Via SEFIZ
                   </Button>
                   <Button 
-                    variant="outline" 
+                    variant="default" 
                     onClick={() => {
                       setShowSendModal(true);
                       setWhatsapp('');
@@ -1520,7 +1529,7 @@ export function DocumentViewer({
                     Via Email
                   </Button>
                   <Button 
-                    variant="outline" 
+                    variant="default" 
                     onClick={() => {
                       setShowSendModal(true);
                       setEmail('');
