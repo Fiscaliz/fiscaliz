@@ -88,13 +88,20 @@ const documentTypeLabels: Record<string, string> = {
   inutilizacao: 'TERMO DE INUTILIZAÇÃO',
   apreensao: 'TERMO DE APREENSÃO',
   interdicao: 'TERMO DE INTERDIÇÃO',
-  relatorio_tecnico: 'PARECER TÉCNICO',
+  relatorio_tecnico: 'RELATÓRIO TÉCNICO DE INSPEÇÃO SANITÁRIA',
   notificacao: 'NOTIFICAÇÃO',
   replica: 'RÉPLICA',
   certidao: 'CERTIDÃO SANITÁRIA',
   coleta_amostra: 'TERMO DE COLETA DE AMOSTRA',
   relatorio_atividade: 'RELATÓRIO DE ATIVIDADE',
 };
+
+interface PhotoLegend {
+  photoIndex: number;
+  legenda: string;
+  item_rdc: string;
+  previewUrl?: string;
+}
 
 export function DocumentViewer({ 
   document, 
@@ -134,6 +141,14 @@ export function DocumentViewer({
       .filter(a => a.url)
       .map(a => a.url);
   }, [document.attachments]);
+
+  // Check if this is a Relatório Técnico with photo legends
+  const isRelatorioTecnico = document.document_type === 'relatorio_tecnico';
+  const relatorioTecnicoData = document.content?.relatorio_tecnico_data;
+  const photoLegends: PhotoLegend[] = useMemo(() => {
+    if (!isRelatorioTecnico || !relatorioTecnicoData?.photoLegends) return [];
+    return relatorioTecnicoData.photoLegends.filter((l: PhotoLegend) => l.legenda?.trim());
+  }, [isRelatorioTecnico, relatorioTecnicoData]);
 
   const isLocked = document.is_locked || document.status === 'sent';
   const canEdit = editable && !isLocked;
@@ -539,7 +554,9 @@ export function DocumentViewer({
           {/* DADOS DO ESTABELECIMENTO - somente campos com valor, layout simétrico alinhado à esquerda */}
           {document.establishment && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
-              <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">IDENTIFICAÇÃO DO ESTABELECIMENTO</h3>
+              <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">
+                {isRelatorioTecnico ? '1. IDENTIFICAÇÃO' : 'IDENTIFICAÇÃO DO ESTABELECIMENTO'}
+              </h3>
               <div className="space-y-1 text-left">
                 {/* Razão Social - sempre aparece */}
                 <div className="doc-field">
@@ -655,8 +672,42 @@ export function DocumentViewer({
             </div>
           )}
 
-          {/* REGISTRO FOTOGRÁFICO - Layout 2x4 (8 fotos por página) */}
-          {attachedPhotos.length > 0 && (
+          {/* ANÁLISE FOTOGRÁFICA DAS IRREGULARIDADES - Para Relatório Técnico com legendas */}
+          {isRelatorioTecnico && photoLegends.length > 0 && attachedPhotos.length > 0 && (
+            <div className="doc-section border border-gray-300 p-4 mb-6">
+              <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">2. ANÁLISE FOTOGRÁFICA DAS IRREGULARIDADES</h3>
+              <p className="text-xs text-gray-600 mb-4">
+                Foram constatadas as seguintes irregularidades, analisadas por IA e detalhadas nas imagens a seguir, com base na RDC 216/2004:
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                {attachedPhotos.map((photoUrl, idx) => {
+                  const legend = photoLegends.find(l => l.photoIndex === idx);
+                  return (
+                    <div key={idx} className="flex flex-col">
+                      <div className="aspect-[4/3] border border-gray-300 rounded overflow-hidden mb-2">
+                        <img 
+                          src={photoUrl} 
+                          alt={`Foto ${idx + 1}`} 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      {legend && legend.legenda && (
+                        <p className="text-[9pt] text-gray-700 leading-tight">
+                          {legend.legenda}
+                          {legend.item_rdc && (
+                            <span className="font-semibold"> (Item RDC 216/2004: {legend.item_rdc})</span>
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* REGISTRO FOTOGRÁFICO - Layout padrão para outros documentos */}
+          {(!isRelatorioTecnico || photoLegends.length === 0) && attachedPhotos.length > 0 && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">REGISTRO FOTOGRÁFICO</h3>
               <div className="grid grid-cols-2 gap-3">
