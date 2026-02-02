@@ -134,7 +134,7 @@ export function DocumentCommonFields({
                   id="prazo"
                   type="number"
                   min="1"
-                  max="90"
+                  max="45"
                   value={deadlineDays || '15'}
                   onChange={(e) => onDeadlineChange?.(e.target.value)}
                   className="w-20"

@@ -1386,7 +1386,7 @@ export default function CreateDocument() {
                           id="prazoUpload"
                           type="number"
                           min="1"
-                          max="90"
+                          max="45"
                           value={deadlineDays}
                           onChange={(e) => setDeadlineDays(e.target.value)}
                           className="w-20"
@@ -1483,7 +1483,7 @@ export default function CreateDocument() {
                           id="prazoOtros"
                           type="number"
                           min="1"
-                          max="90"
+                          max="45"
                           value={deadlineDays}
                           onChange={(e) => setDeadlineDays(e.target.value)}
                           className="w-20"
