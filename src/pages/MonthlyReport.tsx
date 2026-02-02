@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -142,6 +143,7 @@ const licenseTypes = [
 ];
 
 export default function MonthlyReport() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -1867,7 +1869,13 @@ export default function MonthlyReport() {
                     {dailyActions.slice().sort((a, b) => a.actionDateFull.localeCompare(b.actionDateFull)).map((action) => (
                       <div 
                         key={action.id}
-                        className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
+                        className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted/80 transition-colors"
+                        onClick={() => {
+                          // Só navegar se não for documento de prévia
+                          if (!action.id.startsWith('preview-')) {
+                            navigate(`/documentos/${action.documentId}`);
+                          }
+                        }}
                       >
                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                           <span className="text-xs font-bold text-primary">{action.day}</span>
@@ -1884,8 +1892,16 @@ export default function MonthlyReport() {
                                 Risco {action.riskLevel}
                               </Badge>
                             )}
+                            {action.id.startsWith('preview-') && (
+                              <Badge variant="outline" className="text-[10px] bg-warning/10 text-warning border-warning">
+                                Prévia
+                              </Badge>
+                            )}
                           </div>
                         </div>
+                        {!action.id.startsWith('preview-') && (
+                          <Edit2 className="h-4 w-4 text-muted-foreground" />
+                        )}
                       </div>
                     ))}
                   </div>
