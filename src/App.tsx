@@ -19,6 +19,8 @@ import NewAction from "./pages/NewAction";
 import EstablishmentEntry from "./pages/NewAction/EstablishmentEntry";
 import DocumentTypeSelection from "./pages/NewAction/DocumentTypeSelection";
 import CreateDocument from "./pages/NewAction/CreateDocument";
+import InternalActivitySelection from "./pages/NewAction/InternalActivitySelection";
+import CreateRA from "./pages/NewAction/CreateRA";
 import MonthlyReport from "./pages/MonthlyReport";
 import DocumentDetail from "./pages/DocumentDetail";
 import Documents from "./pages/Documents";
@@ -86,6 +88,16 @@ const App = () => (
             <Route path="/nova-acao/criar-documento" element={
               <ProtectedRoute>
                 <CreateDocument />
+              </ProtectedRoute>
+            } />
+            <Route path="/nova-acao/atividade-interna" element={
+              <ProtectedRoute>
+                <InternalActivitySelection />
+              </ProtectedRoute>
+            } />
+            <Route path="/nova-acao/criar-ra" element={
+              <ProtectedRoute>
+                <CreateRA />
               </ProtectedRoute>
             } />
             <Route path="/relatorio-mensal" element={

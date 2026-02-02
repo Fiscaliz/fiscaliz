@@ -531,6 +531,7 @@ export type Database = {
         | "replica"
         | "certidao"
         | "coleta_amostra"
+        | "relatorio_atividade"
       establishment_risk_level: "I" | "II" | "III"
       fiscal_action_reason:
         | "denuncia"
@@ -543,6 +544,7 @@ export type Database = {
         | "coleta"
         | "demanda_especifica"
         | "outros"
+        | "demanda_interna"
       priority_level: "high" | "medium" | "low"
       task_status: "pending" | "in_progress" | "completed" | "overdue"
     }
@@ -687,6 +689,7 @@ export const Constants = {
         "replica",
         "certidao",
         "coleta_amostra",
+        "relatorio_atividade",
       ],
       establishment_risk_level: ["I", "II", "III"],
       fiscal_action_reason: [
@@ -700,6 +703,7 @@ export const Constants = {
         "coleta",
         "demanda_especifica",
         "outros",
+        "demanda_interna",
       ],
       priority_level: ["high", "medium", "low"],
       task_status: ["pending", "in_progress", "completed", "overdue"],
