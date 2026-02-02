@@ -22,7 +22,8 @@ import {
   Camera,
   X,
   Image as ImageIcon,
-  Clock
+  Clock,
+  FolderOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { checklistTemplates, getAllCategories, type ChecklistItem } from '@/data/checklists';
@@ -140,9 +141,12 @@ export default function CreateDocument() {
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const aiFileInputRef = useRef<HTMLInputElement>(null);
+  const aiCameraInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
+  const attachmentCameraRef = useRef<HTMLInputElement>(null);
   const autoInfracaoFileInputRef = useRef<HTMLInputElement>(null);
   const relatorioTecnicoFileInputRef = useRef<HTMLInputElement>(null);
+  const relatorioTecnicoCameraRef = useRef<HTMLInputElement>(null);
 
   // Auto-select certidao method for certidao type
   const isCertidao = tipo === 'certidao';
@@ -485,11 +489,18 @@ export default function CreateDocument() {
                 </div>
                 
                 <input
+                  ref={attachmentCameraRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => handleImageUpload(e, false)}
+                />
+                <input
                   ref={attachmentInputRef}
                   type="file"
                   accept="image/*"
                   multiple
-                  capture="environment"
                   className="hidden"
                   onChange={(e) => handleImageUpload(e, false)}
                 />
@@ -515,11 +526,20 @@ export default function CreateDocument() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => attachmentInputRef.current?.click()}
-                      className="flex-1"
+                      onClick={() => attachmentCameraRef.current?.click()}
+                      className="flex-1 h-12"
                     >
-                      <Camera className="h-4 w-4 mr-1" />
-                      Adicionar Fotos
+                      <Camera className="h-5 w-5 mr-2" />
+                      Capturar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => attachmentInputRef.current?.click()}
+                      className="flex-1 h-12"
+                    >
+                      <FolderOpen className="h-5 w-5 mr-2" />
+                      Galeria
                     </Button>
                   </div>
                 )}
@@ -602,11 +622,18 @@ export default function CreateDocument() {
                 </div>
                 
                 <input
+                  ref={attachmentCameraRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => handleImageUpload(e, false)}
+                />
+                <input
                   ref={attachmentInputRef}
                   type="file"
                   accept="image/*"
                   multiple
-                  capture="environment"
                   className="hidden"
                   onChange={(e) => handleImageUpload(e, false)}
                 />
@@ -632,11 +659,20 @@ export default function CreateDocument() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => attachmentInputRef.current?.click()}
-                      className="flex-1"
+                      onClick={() => attachmentCameraRef.current?.click()}
+                      className="flex-1 h-12"
                     >
-                      <Camera className="h-4 w-4 mr-1" />
-                      Adicionar Fotos
+                      <Camera className="h-5 w-5 mr-2" />
+                      Capturar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => attachmentInputRef.current?.click()}
+                      className="flex-1 h-12"
+                    >
+                      <FolderOpen className="h-5 w-5 mr-2" />
+                      Galeria
                     </Button>
                   </div>
                 )}
@@ -673,6 +709,13 @@ export default function CreateDocument() {
               type="file"
               accept="image/*"
               multiple
+              className="hidden"
+              onChange={(e) => handleImageUpload(e, false)}
+            />
+            <input
+              id="autoInfracaoCameraInput"
+              type="file"
+              accept="image/*"
               capture="environment"
               className="hidden"
               onChange={(e) => handleImageUpload(e, false)}
@@ -683,6 +726,7 @@ export default function CreateDocument() {
               onChange={setAutoInfracaoData}
               photos={uploadedImages.map(img => ({ id: img.id, previewUrl: img.previewUrl }))}
               onAddPhoto={() => autoInfracaoFileInputRef.current?.click()}
+              onCapturePhoto={() => document.getElementById('autoInfracaoCameraInput')?.click()}
               onRemovePhoto={removeImage}
               photosRequired={true}
             />
@@ -721,6 +765,13 @@ export default function CreateDocument() {
               type="file"
               accept="image/*"
               multiple
+              className="hidden"
+              onChange={(e) => handleImageUpload(e, true)}
+            />
+            <input
+              ref={relatorioTecnicoCameraRef}
+              type="file"
+              accept="image/*"
               capture="environment"
               className="hidden"
               onChange={(e) => handleImageUpload(e, true)}
@@ -731,6 +782,7 @@ export default function CreateDocument() {
               onChange={setRelatorioTecnicoData}
               photos={uploadedImages.map(img => ({ id: img.id, file: img.file, previewUrl: img.previewUrl }))}
               onAddPhoto={() => relatorioTecnicoFileInputRef.current?.click()}
+              onCapturePhoto={() => relatorioTecnicoCameraRef.current?.click()}
               onRemovePhoto={removeImage}
               establishmentType={establishment?.cnae_principal}
             />
@@ -768,11 +820,20 @@ export default function CreateDocument() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => relatorioTecnicoFileInputRef.current?.click()}
-                        className="flex-1"
+                        onClick={() => relatorioTecnicoCameraRef.current?.click()}
+                        className="flex-1 h-12"
                       >
-                        <Camera className="h-4 w-4 mr-1" />
-                        Adicionar Fotos
+                        <Camera className="h-5 w-5 mr-2" />
+                        Capturar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => relatorioTecnicoFileInputRef.current?.click()}
+                        className="flex-1 h-12"
+                      >
+                        <FolderOpen className="h-5 w-5 mr-2" />
+                        Galeria
                       </Button>
                     </div>
                   )}
@@ -1028,42 +1089,64 @@ export default function CreateDocument() {
                 </div>
 
                 <input
-                  ref={aiFileInputRef}
+                  ref={aiCameraInputRef}
                   type="file"
                   accept="image/*"
-                  multiple
                   capture="environment"
                   className="hidden"
                   onChange={(e) => handleImageUpload(e, true)}
                 />
+                <input
+                  ref={aiFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => handleImageUpload(e, true)}
+                />
 
-                <div className="grid grid-cols-3 gap-2">
-                  {uploadedImages.map((img, idx) => (
-                    <div key={idx} className="relative aspect-square rounded-lg overflow-hidden">
-                      <img src={img.previewUrl} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
-                      <button
-                        onClick={() => removeImage(idx)}
-                        className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                  
-                  {uploadedImages.length < 50 && (
-                    <button
-                      onClick={() => aiFileInputRef.current?.click()}
-                      className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 hover:border-primary hover:bg-primary/5 transition-colors"
-                    >
-                      <Camera className="h-6 w-6 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">Adicionar</span>
-                    </button>
-                  )}
-                </div>
+                {uploadedImages.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {uploadedImages.map((img, idx) => (
+                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden">
+                        <img src={img.previewUrl} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => removeImage(idx)}
+                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <p className="text-xs text-muted-foreground text-center">
                   {uploadedImages.length}/50 fotos
                 </p>
+
+                {uploadedImages.length < 50 && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => aiCameraInputRef.current?.click()}
+                      className="flex-1 h-12"
+                    >
+                      <Camera className="h-5 w-5 mr-2" />
+                      Capturar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => aiFileInputRef.current?.click()}
+                      className="flex-1 h-12"
+                    >
+                      <FolderOpen className="h-5 w-5 mr-2" />
+                      Galeria
+                    </Button>
+                  </div>
+                )}
 
               </CardContent>
             </Card>
@@ -1114,38 +1197,60 @@ export default function CreateDocument() {
                 </div>
 
                 <input
-                  ref={fileInputRef}
+                  id="uploadCameraInput"
                   type="file"
                   accept="image/*"
-                  multiple
                   capture="environment"
                   className="hidden"
                   onChange={(e) => handleImageUpload(e, false)}
                 />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => handleImageUpload(e, false)}
+                />
 
-                <div className="grid grid-cols-2 gap-2">
-                  {uploadedImages.map((img, idx) => (
-                    <div key={idx} className="relative aspect-[3/4] rounded-lg overflow-hidden">
-                      <img src={img.previewUrl} alt={`Documento ${idx + 1}`} className="w-full h-full object-cover" />
-                      <button
-                        onClick={() => removeImage(idx)}
-                        className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                  
-                  {uploadedImages.length < 10 && (
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="aspect-[3/4] rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-2 hover:border-primary hover:bg-primary/5 transition-colors"
+                {uploadedImages.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {uploadedImages.map((img, idx) => (
+                      <div key={idx} className="relative aspect-[3/4] rounded-lg overflow-hidden">
+                        <img src={img.previewUrl} alt={`Documento ${idx + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => removeImage(idx)}
+                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {uploadedImages.length < 10 && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => document.getElementById('uploadCameraInput')?.click()}
+                      className="flex-1 h-12"
                     >
-                      <Camera className="h-8 w-8 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Tirar foto</span>
-                    </button>
-                  )}
-                </div>
+                      <Camera className="h-5 w-5 mr-2" />
+                      Capturar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex-1 h-12"
+                    >
+                      <FolderOpen className="h-5 w-5 mr-2" />
+                      Galeria
+                    </Button>
+                  </div>
+                )}
 
                 {tipo === 'termo_intimacao' && uploadedImages.length > 0 && (
                   <div className="flex items-center gap-3 pt-2 border-t">
