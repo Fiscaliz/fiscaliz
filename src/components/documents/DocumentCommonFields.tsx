@@ -136,7 +136,12 @@ export function DocumentCommonFields({
                   min="1"
                   max="45"
                   value={deadlineDays || '15'}
-                  onChange={(e) => onDeadlineChange?.(e.target.value)}
+                  onChange={(e) => {
+                    let days = parseInt(e.target.value) || 15;
+                    // Limitar entre 1 e 45 dias
+                    days = Math.max(1, Math.min(45, days));
+                    onDeadlineChange?.(days.toString());
+                  }}
                   className="w-20"
                 />
                 <span className="text-sm text-muted-foreground">dias</span>
