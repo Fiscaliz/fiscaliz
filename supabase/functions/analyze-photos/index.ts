@@ -151,48 +151,31 @@ serve(async (req) => {
 
     const docLabel = DOCUMENT_TYPE_LABELS[documentType] || documentType;
 
-    const systemPrompt = `Você é um auditor fiscal especializado em Vigilância Sanitária do Município de Goiânia/GO.
-Sua função é analisar fotos de estabelecimentos e identificar não conformidades sanitárias com base nas seguintes legislações:
+    const systemPrompt = `Você é um auditor fiscal de Vigilância Sanitária.
+Sua função é analisar fotos e identificar irregularidades com base na RDC 216/2004.
 
-${LEGISLATION_BASE}
+INSTRUÇÕES:
+1. Para CADA foto, identifique irregularidades VISÍVEIS
+2. Retorne um JSON com array de objetos, um por foto (na ordem enviada)
+3. Cada objeto deve ter:
+   - "foto": número da foto (1, 2, 3...)
+   - "legenda": descrição curta da irregularidade (máx 60 caracteres)
+   - "item_rdc": item específico da RDC 216/04 (ex: "4.1.3", "4.8.16")
+4. Se não houver irregularidade visível na foto, retorne legenda vazia
 
-INSTRUÇÕES DE ANÁLISE:
-1. Analise CUIDADOSAMENTE cada foto fornecida
-2. Identifique APENAS não conformidades que você pode VER claramente nas fotos
-3. NÃO invente ou assuma não conformidades que não estão visíveis
-4. Seja ESPECÍFICO e TÉCNICO nas descrições
-5. Use linguagem formal, imperativa (ex: "Adequar", "Providenciar", "Corrigir", "Manter")
-6. SEMPRE cite a base legal completa, associando RDC 216/04 com LM 8741/08 Art. 81 Inc. XIX
-7. Para produtos vencidos, cite LM 8741/08 Art. 81 Inc. IV casado com Art. 82
+EXEMPLO DE RESPOSTA:
+[
+  {"foto": 1, "legenda": "Piso danificado com rachaduras", "item_rdc": "4.1.3"},
+  {"foto": 2, "legenda": "Alimento exposto sem proteção", "item_rdc": "4.10.4"},
+  {"foto": 3, "legenda": "", "item_rdc": ""}
+]
 
-FORMATO DA BASE LEGAL:
-- Correto: "RDC 216/2004 item 4.1.3; LM 8741/08 Art. 81 Inc. XIX"
-- Correto para validade: "LM 8741/08 Art. 81 Inc. IV c/c Art. 82"
+Seja DIRETO e OBJETIVO. Legendas curtas, apenas o essencial.`;
 
-CRITÉRIOS DE GRAVIDADE:
-- Leve: Não conformidades que não oferecem risco imediato à saúde
-- Média: Não conformidades que podem oferecer risco se não corrigidas
-- Grave: Não conformidades que oferecem risco significativo à saúde
-- Gravíssima: Não conformidades que oferecem risco iminente à saúde
-
-Se NÃO identificar nenhuma não conformidade, retorne: "Não foram identificadas irregularidades nas fotos analisadas."
-
-Gere o texto em português do Brasil, objetivo, em tom imperativo, pronto para inserção em documento fiscal.`;
-
-    const userPrompt = `Analise as fotos de uma fiscalização e produza o conteúdo para um documento do tipo: ${docLabel}.
-${establishmentType ? `Tipo de estabelecimento: ${establishmentType}` : ''}
-
-Saída desejada:
-1) Uma lista numerada de irregularidades/achados encontrados nas fotos.
-2) Para cada item, inclua:
-   - Descrição clara e objetiva do problema
-   - Base legal COMPLETA (RDC 216/04 + LM 8741/08 Art. 81 Inc. XIX)
-   - Recomendação de adequação em linguagem imperativa
-3) Se não for possível identificar algo com segurança, diga "Não foi possível confirmar nas fotos".
-
-LEMBRE-SE: Associar SEMPRE RDC 216/04 com LM 8741/08 Art. 81 Inc. XIX.
-NÃO invente dados como CNPJ, endereço ou nomes de pessoas.
-O fiscal poderá EDITAR todas as sugestões antes de gerar o documento final.`;
+    const userPrompt = `Analise ${photos.length} fotos de fiscalização sanitária.
+Retorne APENAS um array JSON com uma entrada para cada foto, na ordem.
+Cada entrada deve ter: foto (número), legenda (curta, máx 60 chars), item_rdc (da RDC 216/04).
+Se a foto não mostrar irregularidade clara, retorne legenda e item_rdc vazios.`;
 
     const parts: any[] = [{ type: "text", text: userPrompt }];
     for (const url of photos.slice(0, 50)) {
@@ -244,11 +227,32 @@ O fiscal poderá EDITAR todas as sugestões antes de gerar o documento final.`;
     }
 
     const json = await aiResp.json();
-    const text = (json?.choices?.[0]?.message?.content as string | undefined) || "";
+    const rawText = (json?.choices?.[0]?.message?.content as string | undefined) || "";
 
-    console.log(`[analyze-photos] Analysis complete. Response length: ${text.length}`);
+    console.log(`[analyze-photos] Raw response: ${rawText.substring(0, 500)}`);
 
-    return new Response(JSON.stringify({ text }), {
+    // Try to parse as JSON array
+    let photoAnalysis: Array<{ foto: number; legenda: string; item_rdc: string }> = [];
+    try {
+      // Extract JSON from possible markdown code blocks
+      const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        photoAnalysis = JSON.parse(jsonMatch[0]);
+      }
+    } catch (parseError) {
+      console.error("Failed to parse AI response as JSON:", parseError);
+      // Fallback: return raw text for backward compatibility
+      return new Response(JSON.stringify({ text: rawText, photoAnalysis: [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log(`[analyze-photos] Parsed ${photoAnalysis.length} photo analyses`);
+
+    return new Response(JSON.stringify({ 
+      text: rawText, 
+      photoAnalysis 
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

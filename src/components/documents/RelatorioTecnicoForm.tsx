@@ -54,6 +54,14 @@ export type RelatorioTecnicoData = {
     dispositivo: string;
   }>;
   
+  // Fotos com legendas editáveis (para análise IA)
+  photoLegends: Array<{
+    photoIndex: number;
+    legenda: string;
+    item_rdc: string;
+    previewUrl?: string;
+  }>;
+  
   // Fotos para análise IA
   aiAnalysisResult: string;
   isAnalyzing: boolean;
@@ -157,7 +165,7 @@ export function RelatorioTecnicoForm({
     updateField('equipe', value.equipe.filter((_, i) => i !== index));
   };
 
-  // Análise por IA
+  // Análise por IA - retorna legendas curtas para cada foto
   const handleAnalyzeWithAI = async () => {
     if (photos.length === 0) {
       toast({
@@ -199,19 +207,43 @@ export function RelatorioTecnicoForm({
 
       if (aiError) throw aiError;
       
-      const aiText = (aiData as any)?.text as string | undefined;
-      if (!aiText?.trim()) {
-        throw new Error('A IA não retornou texto. Tente novamente com fotos mais nítidas.');
+      // Parse new format with photo legends
+      const photoAnalysis = (aiData as any)?.photoAnalysis as Array<{ foto: number; legenda: string; item_rdc: string }> | undefined;
+      
+      if (photoAnalysis && photoAnalysis.length > 0) {
+        // Create editable legends for each photo
+        const legends = photos.map((photo, idx) => {
+          const analysis = photoAnalysis.find(a => a.foto === idx + 1);
+          return {
+            photoIndex: idx,
+            legenda: analysis?.legenda || '',
+            item_rdc: analysis?.item_rdc || '',
+            previewUrl: photo.previewUrl,
+          };
+        });
+        
+        updateField('photoLegends', legends);
+        
+        toast({
+          title: 'Análise concluída!',
+          description: `${legends.filter(l => l.legenda).length} irregularidades identificadas. Edite as legendas conforme necessário.`,
+        });
+      } else {
+        // Fallback: create empty legends for editing
+        const legends = photos.map((photo, idx) => ({
+          photoIndex: idx,
+          legenda: '',
+          item_rdc: '',
+          previewUrl: photo.previewUrl,
+        }));
+        updateField('photoLegends', legends);
+        
+        toast({
+          title: 'Análise incompleta',
+          description: 'Não foi possível identificar irregularidades. Preencha as legendas manualmente.',
+          variant: 'destructive',
+        });
       }
-
-      // Parse AI result into description section
-      updateField('aiAnalysisResult', aiText);
-      updateField('descricao', aiText);
-
-      toast({
-        title: 'Análise concluída!',
-        description: 'A IA identificou as irregularidades. Revise e edite conforme necessário.',
-      });
     } catch (error: any) {
       console.error('AI analysis error:', error);
       toast({
@@ -222,6 +254,47 @@ export function RelatorioTecnicoForm({
     } finally {
       updateField('isAnalyzing', false);
     }
+  };
+
+  // Update a single photo legend
+  const updatePhotoLegend = (index: number, field: 'legenda' | 'item_rdc', val: string) => {
+    const updated = [...value.photoLegends];
+    if (updated[index]) {
+      updated[index] = { ...updated[index], [field]: val };
+      updateField('photoLegends', updated);
+    }
+  };
+
+  // Generate text from photo legends
+  const generateTextFromLegends = () => {
+    const legendsWithContent = value.photoLegends.filter(l => l.legenda.trim());
+    if (legendsWithContent.length === 0) {
+      toast({
+        title: 'Nenhuma legenda',
+        description: 'Preencha pelo menos uma legenda para gerar o texto.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    const text = legendsWithContent.map((l, idx) => 
+      `${idx + 1}. ${l.legenda}${l.item_rdc ? ` (RDC 216/04 - item ${l.item_rdc})` : ''}`
+    ).join('\n');
+    
+    updateField('descricao', text);
+    
+    // Also populate irregularidades for document generation
+    const irregularidades = legendsWithContent.map((l, idx) => ({
+      id: `irr_${idx}`,
+      descricao: l.legenda,
+      dispositivo: l.item_rdc ? `RDC 216/04 item ${l.item_rdc}` : '',
+    }));
+    updateField('irregularidades', irregularidades);
+    
+    toast({
+      title: 'Texto gerado!',
+      description: `${legendsWithContent.length} irregularidades incluídas no relatório.`,
+    });
   };
 
   // Import from checklist
@@ -336,12 +409,13 @@ export function RelatorioTecnicoForm({
               <div>
                 <h3 className="font-semibold">Fotos para Análise</h3>
                 <p className="text-sm text-muted-foreground">
-                  Adicione fotos do estabelecimento para análise automática
+                  Adicione fotos e clique em "Analisar" para legendas automáticas
                 </p>
               </div>
             </div>
 
-            {photos.length > 0 && (
+            {/* Photo grid with upload buttons */}
+            {photos.length > 0 && value.photoLegends.length === 0 && (
               <div className="grid grid-cols-4 gap-2">
                 {photos.map((img, idx) => (
                   <div key={idx} className="relative aspect-square rounded-lg overflow-hidden">
@@ -352,6 +426,9 @@ export function RelatorioTecnicoForm({
                     >
                       <X className="h-3 w-3" />
                     </button>
+                    <span className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
+                      {idx + 1}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -361,7 +438,7 @@ export function RelatorioTecnicoForm({
               {photos.length}/50 fotos
             </p>
 
-            {photos.length < 50 && (
+            {photos.length < 50 && value.photoLegends.length === 0 && (
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -384,23 +461,82 @@ export function RelatorioTecnicoForm({
               </div>
             )}
 
-            <Button 
-              onClick={handleAnalyzeWithAI}
-              disabled={photos.length === 0 || value.isAnalyzing}
-              className="w-full"
-            >
-              {value.isAnalyzing ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Analisando fotos...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Analisar com IA ({photos.length} fotos)
-                </>
-              )}
-            </Button>
+            {value.photoLegends.length === 0 && (
+              <Button 
+                onClick={handleAnalyzeWithAI}
+                disabled={photos.length === 0 || value.isAnalyzing}
+                className="w-full"
+              >
+                {value.isAnalyzing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Analisando fotos...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Analisar com IA ({photos.length} fotos)
+                  </>
+                )}
+              </Button>
+            )}
+
+            {/* Editable photo legends after analysis */}
+            {value.photoLegends.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-primary">Legendas Editáveis</p>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => updateField('photoLegends', [])}
+                    className="text-xs"
+                  >
+                    Reanalisar
+                  </Button>
+                </div>
+                
+                {value.photoLegends.map((legend, idx) => (
+                  <div key={idx} className="flex gap-3 p-3 bg-muted/50 rounded-lg">
+                    <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden">
+                      <img 
+                        src={legend.previewUrl || photos[idx]?.previewUrl} 
+                        alt={`Foto ${idx + 1}`} 
+                        className="w-full h-full object-cover" 
+                      />
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          Foto {idx + 1}
+                        </span>
+                        <Input
+                          placeholder="Item RDC (ex: 4.1.3)"
+                          value={legend.item_rdc}
+                          onChange={(e) => updatePhotoLegend(idx, 'item_rdc', e.target.value)}
+                          className="h-7 text-xs w-28 px-2"
+                        />
+                      </div>
+                      <Input
+                        placeholder="Legenda da irregularidade..."
+                        value={legend.legenda}
+                        onChange={(e) => updatePhotoLegend(idx, 'legenda', e.target.value)}
+                        className="text-sm"
+                      />
+                    </div>
+                  </div>
+                ))}
+                
+                <Button 
+                  onClick={generateTextFromLegends}
+                  className="w-full"
+                  disabled={value.photoLegends.filter(l => l.legenda.trim()).length === 0}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Gerar Texto das Infrações ({value.photoLegends.filter(l => l.legenda.trim()).length})
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
