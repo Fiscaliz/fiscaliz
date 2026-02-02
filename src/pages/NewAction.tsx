@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 const actionReasons = [
   { id: 'rotina', icon: MapPin, label: 'Rotina', color: 'text-primary', priority: 'low' },
   { id: 'investigativa', icon: Search, label: 'Inspeção Investigativa', color: 'text-warning', priority: 'high' },
-  { id: 'demanda_chefia', icon: Flag, label: 'Demanda Interna', sublabel: 'Plantão Fiscal ou Plantão Fiscal Especial', color: 'text-warning', priority: 'medium' },
+  { id: 'demanda_interna', icon: Flag, label: 'Demanda Interna', sublabel: 'Plantão Fiscal ou Plantão Fiscal Especial', color: 'text-warning', priority: 'medium' },
   { id: 'operacao_conjunta', icon: Handshake, label: 'Operação Conjunta', color: 'text-info', priority: 'medium' },
   { id: 'coleta', icon: Beaker, label: 'Coleta de Amostra', color: 'text-secondary', priority: 'medium' },
   { id: 'surto', icon: AlertTriangle, label: 'Surto', color: 'text-destructive', priority: 'high' },
@@ -29,7 +29,14 @@ export default function NewAction() {
 
   const handleReasonSelect = (reasonId: string) => {
     setSelectedReason(reasonId);
-    // Navigate to establishment selection/entry
+    
+    // Demanda Interna vai para seleção de atividade interna (RA)
+    if (reasonId === 'demanda_interna') {
+      navigate(`/nova-acao/atividade-interna?motivo=${reasonId}`);
+      return;
+    }
+    
+    // Outros motivos vão para seleção de estabelecimento
     navigate(`/nova-acao/estabelecimento?motivo=${reasonId}`);
   };
 
