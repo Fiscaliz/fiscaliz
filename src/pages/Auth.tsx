@@ -14,6 +14,8 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [registrationNumber, setRegistrationNumber] = useState('');
+  const [identificationType, setIdentificationType] = useState<'cnpj' | 'cpf' | 'inscricao_municipal'>('cpf');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -133,19 +135,78 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
           <CardContent className="px-0">
             <form onSubmit={handleSubmit} className="space-y-4">
               {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Nome Completo</Label>
-                  <Input
-                    id="fullName"
-                    type="text"
-                    placeholder="Seu nome completo"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required={!isLogin}
-                    className="h-12"
-                    autoComplete="name"
-                  />
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName">Nome Completo</Label>
+                    <Input
+                      id="fullName"
+                      type="text"
+                      placeholder="Seu nome completo"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required={!isLogin}
+                      className="h-12"
+                      autoComplete="name"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Tipo de Identificação (opcional)</Label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIdentificationType('cpf')}
+                        className={`flex-1 py-2 px-3 text-sm rounded-md border transition-colors ${
+                          identificationType === 'cpf' 
+                            ? 'bg-primary text-primary-foreground border-primary' 
+                            : 'bg-background border-input hover:bg-accent'
+                        }`}
+                      >
+                        CPF
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIdentificationType('cnpj')}
+                        className={`flex-1 py-2 px-3 text-sm rounded-md border transition-colors ${
+                          identificationType === 'cnpj' 
+                            ? 'bg-primary text-primary-foreground border-primary' 
+                            : 'bg-background border-input hover:bg-accent'
+                        }`}
+                      >
+                        CNPJ
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIdentificationType('inscricao_municipal')}
+                        className={`flex-1 py-2 px-3 text-sm rounded-md border transition-colors ${
+                          identificationType === 'inscricao_municipal' 
+                            ? 'bg-primary text-primary-foreground border-primary' 
+                            : 'bg-background border-input hover:bg-accent'
+                        }`}
+                      >
+                        Insc. Municipal
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="registrationNumber">
+                      {identificationType === 'cpf' ? 'CPF' : identificationType === 'cnpj' ? 'CNPJ' : 'Inscrição Municipal'} (opcional)
+                    </Label>
+                    <Input
+                      id="registrationNumber"
+                      type="text"
+                      placeholder={
+                        identificationType === 'cpf' ? '000.000.000-00' : 
+                        identificationType === 'cnpj' ? '00.000.000/0000-00' : 
+                        'Número da inscrição'
+                      }
+                      value={registrationNumber}
+                      onChange={(e) => setRegistrationNumber(e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+                </>
               )}
               
               <div className="space-y-2">
@@ -208,6 +269,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
                   setEmail('');
                   setPassword('');
                   setFullName('');
+                  setRegistrationNumber('');
                 }}
                 className="text-sm text-primary hover:underline"
               >
