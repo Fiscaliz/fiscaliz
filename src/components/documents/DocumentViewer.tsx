@@ -1476,22 +1476,27 @@ export function DocumentViewer({
           )}
 
           {!showSendModal && (
-            <div className="grid grid-cols-2 gap-3">
-              <Button 
-                variant="outline" 
-                onClick={handleGeneratePDF}
-                className="gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Gerar PDF
-              </Button>
-              <Button 
-                onClick={handleOpenSendModal}
-                className="gap-2"
-              >
-                <Send className="h-4 w-4" />
-                Enviar
-              </Button>
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground text-center">
+                Ao salvar o PDF, o documento será enviado para a pasta de peças fiscais e não poderá mais ser editado.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={handleOpenSendModal}
+                  className="gap-2"
+                >
+                  <Mail className="h-4 w-4" />
+                  Enviar por Email
+                </Button>
+                <Button 
+                  onClick={handleGeneratePDF}
+                  className="gap-2 bg-primary"
+                >
+                  <Save className="h-4 w-4" />
+                  Salvar PDF
+                </Button>
+              </div>
             </div>
           )}
         </div>
