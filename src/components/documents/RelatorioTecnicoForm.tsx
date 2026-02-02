@@ -217,23 +217,61 @@ export function RelatorioTecnicoForm({
 
       if (aiError) throw aiError;
       
-      // Parse response - handle both legacy and new format
-      const photoAnalysis = (aiData as any)?.photoAnalysis as Array<{ 
+      // Parse response - the edge function now returns analysisResult with new format
+      const analysisResult = (aiData as any)?.analysisResult as {
+        nonConformities: Array<{
+          foto: number;
+          description: string;
+          severity: string;
+          legalBasis: string;
+          recommendation: string;
+          deadline: string;
+        }>;
+        generalObservations?: string;
+        confidence?: number;
+      } | undefined;
+      
+      // Also check legacy photoAnalysis format for backward compatibility
+      const legacyPhotoAnalysis = (aiData as any)?.photoAnalysis as Array<{ 
         foto: number; 
         legenda: string; 
         item_rdc: string;
-        severity?: string;
-        recommendation?: string;
-        deadline?: string;
       }> | undefined;
       
-      console.log('[AI Analysis] photoAnalysis received:', photoAnalysis);
+      // Get non-conformities from either format
+      const nonConformities = analysisResult?.nonConformities || [];
       
-      if (photoAnalysis && photoAnalysis.length > 0) {
-        // Create editable legends for each photo that has analysis
+      if (nonConformities.length > 0) {
+        // Group non-conformities by photo number for new format
         const legends = photos.map((photo, idx) => {
-          const analysis = photoAnalysis.find(a => a.foto === idx + 1);
-          console.log(`[AI Analysis] Photo ${idx + 1} analysis:`, analysis);
+          const photoNumber = idx + 1;
+          // Find all non-conformities for this photo
+          const photoNCs = nonConformities.filter(nc => nc.foto === photoNumber);
+          // Combine descriptions if multiple
+          const legenda = photoNCs.map(nc => nc.description).join('; ') || '';
+          // Get legal basis (item RDC) - extract just the item number
+          const legalBasis = photoNCs[0]?.legalBasis || '';
+          const itemRdc = legalBasis.replace('RDC 216/2004 - Item ', '');
+          
+          return {
+            photoIndex: idx,
+            legenda,
+            item_rdc: itemRdc,
+            previewUrl: photo.previewUrl,
+          };
+        });
+        
+        updateField('photoLegends', legends);
+        
+        const photosWithLegends = legends.filter(l => l.legenda);
+        toast({
+          title: 'Análise concluída!',
+          description: `${nonConformities.length} irregularidades em ${photosWithLegends.length} fotos. Edite as legendas conforme necessário.`,
+        });
+      } else if (legacyPhotoAnalysis && legacyPhotoAnalysis.length > 0) {
+        // Fallback to legacy format
+        const legends = photos.map((photo, idx) => {
+          const analysis = legacyPhotoAnalysis.find(a => a.foto === idx + 1);
           return {
             photoIndex: idx,
             legenda: analysis?.legenda || '',
@@ -242,7 +280,6 @@ export function RelatorioTecnicoForm({
           };
         });
         
-        console.log('[AI Analysis] Final legends:', legends);
         updateField('photoLegends', legends);
         
         toast({
