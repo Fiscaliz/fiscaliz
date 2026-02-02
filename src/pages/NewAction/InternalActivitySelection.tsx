@@ -4,6 +4,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { BrandHeader } from '@/components/layout/BrandHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { ChevronLeft, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -28,28 +29,43 @@ const internalActivities = [
   { id: 'O17', label: 'Desenvolvimento de ações educativas' },
   { id: 'O18', label: 'Avaliação de Risco a Saúde' },
   { id: 'O19', label: 'Apoio técnico/Suporte a fiscalização' },
-  { id: 'O20', label: 'Outras atividades determinadas pela Chefia' },
+  { id: 'O20', label: 'Outras atividades determinadas pela Chefia', allowCustom: true },
 ];
 
 export default function InternalActivitySelection() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
+  const [customDescription, setCustomDescription] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
 
   const motivo = searchParams.get('motivo') || 'demanda_interna';
 
   const handleActivitySelect = (activityId: string) => {
-    setSelectedActivity(activityId);
     const activity = internalActivities.find(a => a.id === activityId);
+    
+    // Se for O20 (permite descrição customizada), mostra o campo de texto
+    if (activity?.allowCustom) {
+      setSelectedActivity(activityId);
+      setShowCustomInput(true);
+      return;
+    }
+    
+    setSelectedActivity(activityId);
     // Navegar para criar o RA com a atividade selecionada
     navigate(`/nova-acao/criar-ra?motivo=${motivo}&atividade=${activityId}&atividade_descricao=${encodeURIComponent(activity?.label || '')}`);
+  };
+
+  const handleConfirmCustomActivity = () => {
+    if (!customDescription.trim()) return;
+    navigate(`/nova-acao/criar-ra?motivo=${motivo}&atividade=O20&atividade_descricao=${encodeURIComponent(customDescription)}`);
   };
 
   return (
     <AppLayout>
       <BrandHeader />
       
-      <div className="p-4">
+      <div className="p-4 pb-32">
         <Button
           variant="ghost"
           size="sm"
@@ -61,7 +77,7 @@ export default function InternalActivitySelection() {
         </Button>
 
         <h1 className="text-xl font-bold text-center mb-4 text-primary">
-          ATIVIDADE INTERNA
+          DEMANDA
         </h1>
         
         <Card className="mb-4 border-0 shadow-sm bg-primary/5">
@@ -71,7 +87,7 @@ export default function InternalActivitySelection() {
               <span className="font-medium">Relatório de Atividade (RA)</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              Selecione a atividade interna realizada. Será gerado um RA para registro.
+              Selecione a atividade realizada. Será gerado um RA para registro.
             </p>
           </CardContent>
         </Card>
@@ -97,6 +113,49 @@ export default function InternalActivitySelection() {
             </Card>
           ))}
         </div>
+
+        {/* Campo de descrição customizada para O20 */}
+        {showCustomInput && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <Card className="w-full max-w-md">
+              <CardContent className="p-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-primary bg-primary/10 px-2 py-1 rounded">
+                    O20
+                  </span>
+                  <span className="font-medium text-sm">Descreva a atividade</span>
+                </div>
+                <Textarea
+                  placeholder="Descreva a atividade determinada pela chefia..."
+                  value={customDescription}
+                  onChange={(e) => setCustomDescription(e.target.value)}
+                  rows={4}
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => {
+                      setShowCustomInput(false);
+                      setSelectedActivity(null);
+                      setCustomDescription('');
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button 
+                    className="flex-1"
+                    onClick={handleConfirmCustomActivity}
+                    disabled={!customDescription.trim()}
+                  >
+                    Confirmar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </AppLayout>
   );
