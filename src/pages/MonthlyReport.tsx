@@ -53,10 +53,12 @@ interface DocumentSummary {
 interface EditableDailyAction {
   id: string;
   day: number;
-  transport: 'MPL' | 'CO';
+  actionDate: string; // Data completa formatada
+  transport: 'MPL' | 'CO' | '';
   actionType: string;
   establishment: string;
   document: string;
+  documentNumber: string; // Número completo do documento (ex: TI-000001)
   documentId: string;
   documentType: string;
   isInternal: boolean;
@@ -65,6 +67,9 @@ interface EditableDailyAction {
   difficultyJustifications: string[];
   riskPoints: number;
   totalPoints: number;
+  economicActivity: string; // Atividade Econômica/CNAE
+  cnaeCode: string; // Código CNAE (A33, SA41, etc)
+  scale: string; // Escala (Plantão Fiscal1, Plantão Fiscal2, etc)
 }
 
 // Tabela de pontos por risco sanitário (Tabela Anvisa)
@@ -194,10 +199,13 @@ export default function MonthlyReport() {
     dailyActions.forEach(action => {
       const existing = dayMap.get(action.day) || { hasMpl: false, hasCo: false, hasField: false, hasInternal: false };
       
-      if (action.transport === 'MPL') {
-        existing.hasMpl = true;
-      } else {
-        existing.hasCo = true;
+      // MPL/CO só conta para ações de campo (não internas)
+      if (!action.isInternal && action.transport) {
+        if (action.transport === 'MPL') {
+          existing.hasMpl = true;
+        } else if (action.transport === 'CO') {
+          existing.hasCo = true;
+        }
       }
       
       if (action.isInternal) {
@@ -418,16 +426,20 @@ export default function MonthlyReport() {
         // Usar action_date para determinar o dia, com fallback para created_at
         // Parse action_date como data local (YYYY-MM-DD) para evitar problemas de timezone
         let dayNumber: number;
+        let actionDateFormatted: string;
         if (doc.action_date) {
           const parts = doc.action_date.split('-');
           dayNumber = parseInt(parts[2], 10);
+          actionDateFormatted = `${parts[2]}/${parts[1]}`;
         } else {
-          dayNumber = new Date(doc.created_at).getDate();
+          const createdDate = new Date(doc.created_at);
+          dayNumber = createdDate.getDate();
+          actionDateFormatted = format(createdDate, 'dd/MM');
         }
         const isInternal = doc.document_type === 'relatorio_atividade' || !doc.establishment_id;
         
-        // Determinar transporte baseado no conteúdo do documento
-        const transport: 'MPL' | 'CO' = content.transport_mode || 'MPL';
+        // Determinar transporte baseado no conteúdo do documento - vazio para atividades internas
+        const transport: 'MPL' | 'CO' | '' = isInternal ? '' : (content.transport_mode || 'MPL');
         
         // Obter nível de risco do estabelecimento
         const riskLevel = doc.establishments?.risk_level as 'I' | 'II' | 'III' | null;
@@ -443,13 +455,38 @@ export default function MonthlyReport() {
         const difficultyJustifications = content.difficulty_justifications || [];
         const totalPoints = riskPoints * difficultyGrade;
         
+        // Determinar tipo de ação (Inspeção, Reinspeção, Insp. Investigativa, Serviço Interno)
+        let actionType = 'Inspeção';
+        if (isInternal) {
+          actionType = 'Serviço Interno';
+        } else if (content.action_type) {
+          actionType = content.action_type;
+        }
+        
+        // Obter atividade econômica/CNAE do estabelecimento
+        const cnaeCode = doc.establishments?.cnae_principal || '';
+        // Extrair código simplificado (ex: A33, SA41)
+        const economicActivity = doc.establishments?.cnae_descricao || 
+          content.cnae_descricao || 
+          doc.establishments?.atividade_economica ||
+          '';
+        
+        // Escala (Plantão Fiscal1 como padrão)
+        const scale = content.scale || 'Plantão Fiscal1';
+        
+        // Número do documento
+        const docAbbrev = documentTypeAbbreviation[doc.document_type] || 'DOC';
+        const documentNumber = doc.document_number || docAbbrev;
+        
         return {
           id: doc.id,
           day: dayNumber,
+          actionDate: actionDateFormatted,
           transport,
-          actionType: content.action_type || 'Inspeção',
+          actionType,
           establishment: establishmentName,
-          document: doc.document_number || `${documentTypeAbbreviation[doc.document_type] || 'DOC'}`,
+          document: docAbbrev,
+          documentNumber,
           documentId: doc.id,
           documentType: doc.document_type,
           isInternal,
@@ -458,6 +495,9 @@ export default function MonthlyReport() {
           difficultyJustifications,
           riskPoints,
           totalPoints,
+          economicActivity,
+          cnaeCode,
+          scale,
         };
       });
       setDailyActions(actions);
@@ -810,22 +850,30 @@ export default function MonthlyReport() {
           {/* Page Break */}
           <div className="page-break" />
 
-          {/* Ações - Tabela Editável */}
+          {/* Ações - Tabela no formato do modelo oficial DESCRIÇÃO DOS PROCEDIMENTOS */}
           <div className="mb-6">
-            <div className="section-title">DESCRIÇÃO DAS AÇÕES DIÁRIAS</div>
-            <table>
+            <div className="section-title">DESCRIÇÃO DOS PROCEDIMENTOS</div>
+            <table style={{ fontSize: '8pt' }}>
               <thead>
                 <tr>
-                  <th style={{ width: '50px' }}>Dia</th>
-                  <th style={{ width: '50px' }}>ML</th>
-                  <th>Estabelecimento (Razão Social)</th>
-                  <th style={{ width: '80px' }}>Doc.</th>
+                  <th style={{ width: '35px', textAlign: 'center' }}>Dia</th>
+                  <th style={{ width: '40px', textAlign: 'center' }}>ML</th>
+                  <th style={{ width: '80px' }}>Ação</th>
+                  <th style={{ width: '80px' }}>Escala</th>
+                  <th style={{ width: '50px', textAlign: 'center' }}>Niv.Gr.</th>
+                  <th>Estabelecimento/Descrição</th>
+                  <th style={{ width: '45px', textAlign: 'center' }}>Cód.</th>
+                  <th style={{ width: '100px' }}>Atividade Econômica/Tipo de Ação</th>
+                  <th style={{ width: '80px', textAlign: 'center' }}>Doc.Em.</th>
+                  <th style={{ width: '35px', textAlign: 'center' }}>OS</th>
                 </tr>
               </thead>
               <tbody>
-                {dailyActions.map((action) => (
+                {dailyActions
+                  .sort((a, b) => a.day - b.day)
+                  .map((action) => (
                   <tr key={action.id}>
-                    <td className={editingPreview ? 'editable-field' : ''}>
+                    <td style={{ textAlign: 'center' }} className={editingPreview ? 'editable-field' : ''}>
                       {editingPreview ? (
                         <input
                           type="number"
@@ -833,21 +881,53 @@ export default function MonthlyReport() {
                           max="31"
                           value={action.day}
                           onChange={(e) => updateDailyAction(action.id, 'day', parseInt(e.target.value) || 1)}
-                          className="editable-input w-12"
+                          className="editable-input w-10"
                         />
                       ) : action.day}
                     </td>
-                    <td className={editingPreview ? 'editable-field' : ''}>
+                    <td style={{ textAlign: 'center' }} className={editingPreview ? 'editable-field' : ''}>
                       {editingPreview ? (
                         <select
                           value={action.transport}
                           onChange={(e) => updateDailyAction(action.id, 'transport', e.target.value)}
-                          className="editable-input"
+                          className="editable-input w-12"
                         >
+                          <option value="">-</option>
                           <option value="MPL">MPL</option>
                           <option value="CO">CO</option>
                         </select>
-                      ) : action.transport}
+                      ) : action.transport || '-'}
+                    </td>
+                    <td className={editingPreview ? 'editable-field' : ''}>
+                      {editingPreview ? (
+                        <select
+                          value={action.actionType}
+                          onChange={(e) => updateDailyAction(action.id, 'actionType', e.target.value)}
+                          className="editable-input w-full"
+                        >
+                          <option value="Inspeção">Inspeção</option>
+                          <option value="Reinspeção">Reinspeção</option>
+                          <option value="Insp.Investigativa">Insp.Investigativa</option>
+                          <option value="Serviço Interno">Serviço Interno</option>
+                        </select>
+                      ) : action.actionType}
+                    </td>
+                    <td className={editingPreview ? 'editable-field' : ''}>
+                      {editingPreview ? (
+                        <select
+                          value={action.scale}
+                          onChange={(e) => updateDailyAction(action.id, 'scale', e.target.value)}
+                          className="editable-input w-full"
+                        >
+                          <option value="Plantão Fiscal1">Plantão Fiscal1</option>
+                          <option value="Plantão Fiscal2">Plantão Fiscal2</option>
+                        </select>
+                      ) : action.scale}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      {action.riskLevel ? (
+                        <>x {action.difficultyGrade === 2 ? 'x' : ''}</>
+                      ) : '-'}
                     </td>
                     <td className={editingPreview ? 'editable-field' : ''}>
                       {editingPreview ? (
@@ -859,24 +939,44 @@ export default function MonthlyReport() {
                         />
                       ) : action.establishment}
                     </td>
+                    <td style={{ textAlign: 'center' }}>
+                      {action.cnaeCode ? action.cnaeCode.slice(0, 4) : '-'}
+                    </td>
                     <td className={editingPreview ? 'editable-field' : ''}>
                       {editingPreview ? (
                         <input
                           type="text"
-                          value={action.document}
-                          onChange={(e) => updateDailyAction(action.id, 'document', e.target.value)}
+                          value={action.economicActivity}
+                          onChange={(e) => updateDailyAction(action.id, 'economicActivity', e.target.value)}
                           className="editable-input w-full"
                         />
-                      ) : (
-                        <>
-                          {documentTypeAbbreviation[action.documentType] === 'VF' ? 'VF' : action.document}
-                        </>
-                      )}
+                      ) : (action.economicActivity || action.actionType)}
                     </td>
+                    <td style={{ textAlign: 'center' }} className={editingPreview ? 'editable-field' : ''}>
+                      {editingPreview ? (
+                        <input
+                          type="text"
+                          value={action.documentNumber}
+                          onChange={(e) => updateDailyAction(action.id, 'documentNumber', e.target.value)}
+                          className="editable-input w-16"
+                        />
+                      ) : action.documentNumber}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>PF</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            
+            {/* Contagem de MPL e CO no rodapé da tabela */}
+            <div className="mt-3 p-2 bg-gray-50 border border-gray-200 text-xs flex justify-between">
+              <div>
+                <strong>Total de Saídas:</strong> {dailyActions.filter(a => a.transport).length}
+              </div>
+              <div>
+                <strong>MPL:</strong> {finalMplDays} | <strong>CO:</strong> {finalCoDays}
+              </div>
+            </div>
           </div>
 
           {/* Page Break */}
