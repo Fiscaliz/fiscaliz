@@ -1476,26 +1476,61 @@ export function DocumentViewer({
           )}
 
           {!showSendModal && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <p className="text-xs text-muted-foreground text-center">
-                Ao salvar o PDF, o documento será enviado para a pasta de peças fiscais e não poderá mais ser editado.
+                Ao finalizar, o documento será bloqueado para edição.
               </p>
-              <div className="grid grid-cols-2 gap-3">
-                <Button 
-                  variant="outline" 
-                  onClick={handleOpenSendModal}
-                  className="gap-2"
-                >
-                  <Mail className="h-4 w-4" />
-                  Enviar por Email
-                </Button>
-                <Button 
-                  onClick={handleGeneratePDF}
-                  className="gap-2 bg-primary"
-                >
-                  <Save className="h-4 w-4" />
-                  Salvar PDF
-                </Button>
+              
+              {/* Salvar PDF - Ação principal */}
+              <Button 
+                onClick={handleGeneratePDF}
+                className="w-full gap-2"
+                size="lg"
+              >
+                <Download className="h-5 w-5" />
+                Salvar PDF
+              </Button>
+
+              {/* Enviar - 3 opções */}
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-center text-muted-foreground">Ou enviar documento:</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      toast({
+                        title: "SEFIZ",
+                        description: "Integração com SEFIZ em desenvolvimento",
+                      });
+                    }}
+                    className="gap-1 text-xs h-auto py-3 flex-col"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Via SEFIZ
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowSendModal(true);
+                      setWhatsapp('');
+                    }}
+                    className="gap-1 text-xs h-auto py-3 flex-col"
+                  >
+                    <Mail className="h-4 w-4" />
+                    Via Email
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowSendModal(true);
+                      setEmail('');
+                    }}
+                    className="gap-1 text-xs h-auto py-3 flex-col"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    Via WhatsApp
+                  </Button>
+                </div>
               </div>
             </div>
           )}
