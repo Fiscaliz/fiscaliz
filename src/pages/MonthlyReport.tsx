@@ -1280,7 +1280,11 @@ export default function MonthlyReport() {
                   {/* Data e hora do documento */}
                   <div className="text-xs text-gray-600 text-right mt-2">
                     <p>
-                      Data: {doc.action_date ? format(new Date(doc.action_date + 'T12:00:00'), 'dd/MM/yyyy') : format(new Date(doc.created_at), 'dd/MM/yyyy')}
+                      Data: {doc.content?.document_date 
+                        ? format(new Date(doc.content.document_date + 'T12:00:00'), 'dd/MM/yyyy') 
+                        : doc.action_date 
+                          ? format(new Date(doc.action_date + 'T12:00:00'), 'dd/MM/yyyy') 
+                          : format(new Date(doc.created_at), 'dd/MM/yyyy')}
                       {doc.content?.document_time && ` às ${doc.content.document_time}`}
                     </p>
                   </div>
