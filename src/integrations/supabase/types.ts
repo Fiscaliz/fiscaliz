@@ -47,6 +47,33 @@ export type Database = {
         }
         Relationships: []
       }
+      document_sequences: {
+        Row: {
+          created_at: string
+          document_type: string
+          id: string
+          last_number: number
+          prefix: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          document_type: string
+          id?: string
+          last_number?: number
+          prefix: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          document_type?: string
+          id?: string
+          last_number?: number
+          prefix?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       establishments: {
         Row: {
           alvara_numero: string | null
@@ -528,6 +555,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_next_document_number: {
+        Args: { p_document_type: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
