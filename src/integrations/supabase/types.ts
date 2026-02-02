@@ -168,6 +168,7 @@ export type Database = {
       }
       fiscal_documents: {
         Row: {
+          action_date: string | null
           attachments: Json | null
           content: Json
           created_at: string
@@ -196,6 +197,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          action_date?: string | null
           attachments?: Json | null
           content?: Json
           created_at?: string
@@ -224,6 +226,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          action_date?: string | null
           attachments?: Json | null
           content?: Json
           created_at?: string

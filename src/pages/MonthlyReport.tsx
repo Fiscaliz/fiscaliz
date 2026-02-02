@@ -300,16 +300,16 @@ export default function MonthlyReport() {
   const loadDocumentStats = async () => {
     if (!user) return;
     
-    const startDate = new Date(selectedYear, selectedMonth - 1, 1);
-    const endDate = new Date(selectedYear, selectedMonth, 0);
+    const startDate = format(new Date(selectedYear, selectedMonth - 1, 1), 'yyyy-MM-dd');
+    const endDate = format(new Date(selectedYear, selectedMonth, 0), 'yyyy-MM-dd');
     
     const { data } = await supabase
       .from('fiscal_documents')
-      .select('document_type, status')
+      .select('document_type, status, action_date')
       .eq('user_id', user.id)
       .in('status', ['sent', 'draft'])
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString());
+      .gte('action_date', startDate)
+      .lte('action_date', endDate);
 
     if (data) {
       const summary: DocumentSummary = {
@@ -343,8 +343,8 @@ export default function MonthlyReport() {
   const loadDailyActions = async () => {
     if (!user) return;
     
-    const startDate = new Date(selectedYear, selectedMonth - 1, 1);
-    const endDate = new Date(selectedYear, selectedMonth, 0);
+    const startDate = format(new Date(selectedYear, selectedMonth - 1, 1), 'yyyy-MM-dd');
+    const endDate = format(new Date(selectedYear, selectedMonth, 0), 'yyyy-MM-dd');
     
     const { data } = await supabase
       .from('fiscal_documents')
@@ -353,6 +353,7 @@ export default function MonthlyReport() {
         document_type,
         document_number,
         created_at,
+        action_date,
         content,
         irregularities,
         attachments,
@@ -364,9 +365,9 @@ export default function MonthlyReport() {
       `)
       .eq('user_id', user.id)
       .in('status', ['sent', 'draft'])
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString())
-      .order('created_at', { ascending: true });
+      .gte('action_date', startDate)
+      .lte('action_date', endDate)
+      .order('action_date', { ascending: true });
 
     if (data) {
       // Store full documents for PDF attachment
@@ -374,7 +375,9 @@ export default function MonthlyReport() {
       
       const actions: DailyAction[] = data.map((doc: any) => {
         const content = doc.content || {};
-        const date = new Date(doc.created_at);
+        // Usar action_date para determinar o dia, com fallback para created_at
+        const actionDateStr = doc.action_date || doc.created_at;
+        const date = new Date(actionDateStr);
         const isInternal = doc.document_type === 'relatorio_atividade' || !doc.establishment_id;
         
         // Determinar transporte baseado no conteúdo do documento
