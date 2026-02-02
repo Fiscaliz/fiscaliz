@@ -197,15 +197,22 @@ export default function DocumentDetail() {
     }
   };
 
+  // Documentos que são autocontidos e não geram tarefas (vão direto para Concluídas)
+  const selfContainedDocTypes = ['visita_fiscal', 'certidao', 'relatorio_tecnico'];
+  const isSelfContainedDoc = selfContainedDocTypes.includes(document?.document_type);
+
   const handleGeneratePDF = async () => {
     if (!id || !user) return;
 
     try {
-      // Update document status to sent and lock it
+      // Documentos autocontidos vão para 'archived' (Concluídas)
+      // Documentos que precisam de acompanhamento vão para 'sent' (Enviados)
+      const newStatus = isSelfContainedDoc ? 'archived' : 'sent';
+
       const { error: updateError } = await supabase
         .from('fiscal_documents')
         .update({
-          status: 'sent',
+          status: newStatus,
           is_locked: true,
           sent_at: new Date().toISOString()
         })
@@ -229,9 +236,13 @@ export default function DocumentDetail() {
           });
       }
 
+      const successMessage = isSelfContainedDoc 
+        ? 'O documento foi salvo na pasta de Concluídas e está disponível para o relatório mensal.'
+        : 'O documento foi salvo na pasta de peças fiscais e está disponível para o relatório mensal.';
+
       toast({
-        title: 'PDF gerado!',
-        description: 'O documento foi salvo na pasta de peças fiscais e está disponível para o relatório mensal.'
+        title: 'PDF salvo!',
+        description: successMessage
       });
 
       // Open print dialog
@@ -241,7 +252,7 @@ export default function DocumentDetail() {
       loadDocument();
     } catch (error: any) {
       toast({
-        title: 'Erro ao gerar PDF',
+        title: 'Erro ao salvar PDF',
         description: error.message,
         variant: 'destructive'
       });
