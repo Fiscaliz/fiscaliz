@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +21,8 @@ import {
   Building2,
   Briefcase,
   Upload,
-  AlertCircle
+  AlertCircle,
+  Edit2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -48,14 +49,13 @@ interface DocumentSummary {
 
 interface DailyAction {
   day: number;
-  transport: string;
+  transport: 'MPL' | 'CO';
   actionType: string;
-  level: string;
-  grade: number;
   establishment: string;
   document: string;
   documentId: string;
   documentType: string;
+  isInternal: boolean;
 }
 
 const months = [
@@ -113,8 +113,8 @@ export default function MonthlyReport() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [reportVersion, setReportVersion] = useState(1);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
+  const [editingPreview, setEditingPreview] = useState(false);
   const [dailyActions, setDailyActions] = useState<DailyAction[]>([]);
   
   // Período - Licenças
@@ -123,18 +123,16 @@ export default function MonthlyReport() {
   const [licenseEndDate, setLicenseEndDate] = useState<Date | undefined>();
   const [licenseAttachment, setLicenseAttachment] = useState<string | null>(null);
   
-  // OS e Locomoção
+  // OS (campos manuais que ainda são necessários)
   const [osNumber, setOsNumber] = useState('');
   const [daysToWork, setDaysToWork] = useState('');
-  const [osProgrammed, setOsProgrammed] = useState('');
   const [pfeDays, setPfeDays] = useState('');
-  const [transportMode, setTransportMode] = useState<'MPL' | 'CO'>('MPL');
-  const [totalKm, setTotalKm] = useState('');
   
-  // Escala
-  const [fieldDays, setFieldDays] = useState('');
-  const [internalDays, setInternalDays] = useState('');
-  const [dutyDays, setDutyDays] = useState('');
+  // Campos editáveis na prévia (valores calculados que podem ser ajustados)
+  const [editedMplDays, setEditedMplDays] = useState<number | null>(null);
+  const [editedCoDays, setEditedCoDays] = useState<number | null>(null);
+  const [editedFieldDays, setEditedFieldDays] = useState<number | null>(null);
+  const [editedInternalDays, setEditedInternalDays] = useState<number | null>(null);
   
   const [documentSummary, setDocumentSummary] = useState<DocumentSummary>({
     termo_intimacao: 0,
@@ -150,6 +148,51 @@ export default function MonthlyReport() {
     certidao: 0,
     coleta_amostra: 0,
   });
+
+  // Calcula automaticamente MPL, CO, dias em campo e dias internos
+  const calculatedStats = useMemo(() => {
+    // Agrupar ações por dia para contar dias únicos
+    const dayMap = new Map<number, { hasMpl: boolean; hasCo: boolean; hasField: boolean; hasInternal: boolean }>();
+    
+    dailyActions.forEach(action => {
+      const existing = dayMap.get(action.day) || { hasMpl: false, hasCo: false, hasField: false, hasInternal: false };
+      
+      if (action.transport === 'MPL') {
+        existing.hasMpl = true;
+      } else {
+        existing.hasCo = true;
+      }
+      
+      if (action.isInternal) {
+        existing.hasInternal = true;
+      } else {
+        existing.hasField = true;
+      }
+      
+      dayMap.set(action.day, existing);
+    });
+    
+    let mplDays = 0;
+    let coDays = 0;
+    let fieldDays = 0;
+    let internalDays = 0;
+    
+    dayMap.forEach(day => {
+      // 1 MPL por dia trabalhado com veículo próprio (não acumula)
+      if (day.hasMpl) mplDays++;
+      if (day.hasCo) coDays++;
+      if (day.hasField) fieldDays++;
+      if (day.hasInternal) internalDays++;
+    });
+    
+    return { mplDays, coDays, fieldDays, internalDays };
+  }, [dailyActions]);
+
+  // Valores finais (editados ou calculados)
+  const finalMplDays = editedMplDays ?? calculatedStats.mplDays;
+  const finalCoDays = editedCoDays ?? calculatedStats.coDays;
+  const finalFieldDays = editedFieldDays ?? calculatedStats.fieldDays;
+  const finalInternalDays = editedInternalDays ?? calculatedStats.internalDays;
 
   useEffect(() => {
     if (user) {
@@ -212,15 +255,15 @@ export default function MonthlyReport() {
       setOsNumber(data.os_number || '');
       setDaysToWork(data.days_to_work?.toString() || '');
       setPfeDays(data.pfe_days?.toString() || '');
-      setFieldDays(data.field_days?.toString() || '');
-      setInternalDays(data.internal_days?.toString() || '');
-      setDutyDays(data.duty_days?.toString() || '');
-      setTotalKm(data.total_km?.toString() || '');
-      setTransportMode(data.transportation_mode === 'CO' ? 'CO' : 'MPL');
       setSelectedLicenseType(data.license_type || null);
       setLicenseStartDate(data.license_start_date ? new Date(data.license_start_date) : undefined);
       setLicenseEndDate(data.license_end_date ? new Date(data.license_end_date) : undefined);
       setLicenseAttachment(data.license_attachment_url || null);
+      
+      // Carregar valores editados salvos anteriormente
+      if (data.field_days !== null) setEditedFieldDays(data.field_days);
+      if (data.internal_days !== null) setEditedInternalDays(data.internal_days);
+      
       if (data.documents_summary) {
         setDocumentSummary(data.documents_summary as unknown as DocumentSummary);
       }
@@ -236,15 +279,14 @@ export default function MonthlyReport() {
     setOsNumber('');
     setDaysToWork('');
     setPfeDays('');
-    setFieldDays('');
-    setInternalDays('');
-    setDutyDays('');
-    setTotalKm('');
-    setTransportMode('MPL');
     setSelectedLicenseType(null);
     setLicenseStartDate(undefined);
     setLicenseEndDate(undefined);
     setLicenseAttachment(null);
+    setEditedMplDays(null);
+    setEditedCoDays(null);
+    setEditedFieldDays(null);
+    setEditedInternalDays(null);
   };
 
   const loadDocumentStats = async () => {
@@ -257,6 +299,7 @@ export default function MonthlyReport() {
       .from('fiscal_documents')
       .select('document_type')
       .eq('user_id', user.id)
+      .eq('status', 'sent')
       .gte('created_at', startDate.toISOString())
       .lte('created_at', endDate.toISOString());
 
@@ -284,7 +327,6 @@ export default function MonthlyReport() {
       });
       
       setDocumentSummary(summary);
-      setOsProgrammed(data.length.toString());
     }
   };
 
@@ -302,9 +344,11 @@ export default function MonthlyReport() {
         document_number,
         created_at,
         content,
+        establishment_id,
         establishments(nome_fantasia)
       `)
       .eq('user_id', user.id)
+      .eq('status', 'sent')
       .gte('created_at', startDate.toISOString())
       .lte('created_at', endDate.toISOString())
       .order('created_at', { ascending: true });
@@ -313,16 +357,20 @@ export default function MonthlyReport() {
       const actions: DailyAction[] = data.map((doc: any) => {
         const content = doc.content || {};
         const date = new Date(doc.created_at);
+        const isInternal = doc.document_type === 'relatorio_atividade' || !doc.establishment_id;
+        
+        // Determinar transporte baseado no conteúdo do documento
+        const transport: 'MPL' | 'CO' = content.transport_mode || 'MPL';
+        
         return {
           day: date.getDate(),
-          transport: transportMode,
+          transport,
           actionType: content.action_type || 'Inspeção',
-          level: content.nivel || 'M',
-          grade: content.grau || 2,
           establishment: doc.establishments?.nome_fantasia || content.atividade_descricao || 'Atividade Interna',
           document: doc.document_number || `${documentTypeAbbreviation[doc.document_type] || 'DOC'}`,
           documentId: doc.id,
           documentType: doc.document_type,
+          isInternal,
         };
       });
       setDailyActions(actions);
@@ -341,11 +389,10 @@ export default function MonthlyReport() {
         os_number: osNumber,
         days_to_work: parseInt(daysToWork) || 0,
         pfe_days: parseInt(pfeDays) || 0,
-        field_days: parseInt(fieldDays) || 0,
-        internal_days: parseInt(internalDays) || 0,
-        duty_days: parseInt(dutyDays) || 0,
-        total_km: parseFloat(totalKm) || 0,
-        transportation_mode: transportMode,
+        field_days: finalFieldDays,
+        internal_days: finalInternalDays,
+        duty_days: 0, // Será calculado se necessário
+        transportation_mode: finalMplDays > 0 ? 'MPL' : 'CO',
         license_type: selectedLicenseType,
         license_start_date: licenseStartDate?.toISOString().split('T')[0] || null,
         license_end_date: licenseEndDate?.toISOString().split('T')[0] || null,
@@ -418,9 +465,6 @@ export default function MonthlyReport() {
 
   const handleGeneratePDF = () => {
     setShowPDFPreview(true);
-    setTimeout(() => {
-      window.print();
-    }, 500);
   };
 
   const handleLicenseSelect = (licenseId: string) => {
@@ -466,7 +510,7 @@ export default function MonthlyReport() {
   const totalDocuments = Object.values(documentSummary).reduce((a, b) => a + b, 0);
   const isLocked = report?.is_locked;
 
-  // PDF Preview
+  // PDF Preview com edição
   if (showPDFPreview) {
     return (
       <div className="min-h-screen bg-white text-black print:text-black" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11pt' }}>
@@ -483,6 +527,7 @@ export default function MonthlyReport() {
           table { width: 100%; border-collapse: collapse; margin: 10px 0; }
           th, td { border: 1px solid #333; padding: 6px; text-align: left; font-size: 10pt; }
           th { background: #f0f0f0; font-weight: bold; }
+          .editable-field { background: #fffbeb; }
         `}</style>
 
         <div className="p-8 max-w-4xl mx-auto">
@@ -499,6 +544,26 @@ export default function MonthlyReport() {
               RELATÓRIO MENSAL DE PRODUTIVIDADE - {months[selectedMonth - 1].toUpperCase()}/{selectedYear}
             </h2>
           </div>
+
+          {/* Modo de edição */}
+          {!isLocked && (
+            <div className="no-print mb-4 flex items-center gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
+              <Edit2 className="h-4 w-4 text-amber-600" />
+              <span className="text-sm text-amber-700">
+                {editingPreview 
+                  ? 'Clique nos campos amarelos para editar os valores calculados'
+                  : 'Você pode revisar e editar os dados antes de enviar'}
+              </span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="ml-auto"
+                onClick={() => setEditingPreview(!editingPreview)}
+              >
+                {editingPreview ? 'Concluir Edição' : 'Editar Valores'}
+              </Button>
+            </div>
+          )}
 
           {/* Identificação */}
           <div className="mb-6">
@@ -536,10 +601,33 @@ export default function MonthlyReport() {
               </thead>
               <tbody>
                 <tr><td>Dias a Cumprir no Período</td><td>{daysToWork || 0}</td></tr>
-                <tr><td>OS Programadas</td><td>{osProgrammed || totalDocuments}</td></tr>
-                <tr><td>Fiscalização em Área</td><td>{fieldDays || 0}</td></tr>
-                <tr><td>Ação Interna</td><td>{internalDays || 0}</td></tr>
-                <tr><td>Plantão Fiscal</td><td>{dutyDays || 0}</td></tr>
+                <tr><td>OS Programadas</td><td>{totalDocuments}</td></tr>
+                <tr>
+                  <td>Fiscalização em Área</td>
+                  <td className={editingPreview ? 'editable-field' : ''}>
+                    {editingPreview ? (
+                      <input
+                        type="number"
+                        value={finalFieldDays}
+                        onChange={(e) => setEditedFieldDays(parseInt(e.target.value) || 0)}
+                        className="w-16 px-1 border rounded"
+                      />
+                    ) : finalFieldDays}
+                  </td>
+                </tr>
+                <tr>
+                  <td>Ação Interna</td>
+                  <td className={editingPreview ? 'editable-field' : ''}>
+                    {editingPreview ? (
+                      <input
+                        type="number"
+                        value={finalInternalDays}
+                        onChange={(e) => setEditedInternalDays(parseInt(e.target.value) || 0)}
+                        className="w-16 px-1 border rounded"
+                      />
+                    ) : finalInternalDays}
+                  </td>
+                </tr>
                 <tr><td>Plantão Fiscal Especial (PFE)</td><td>{pfeDays || 0}</td></tr>
               </tbody>
             </table>
@@ -550,18 +638,34 @@ export default function MonthlyReport() {
             <div className="section-title">MEIO DE LOCOMOÇÃO</div>
             <table>
               <thead>
-                <tr><th>Tipo</th><th>Utilizado</th><th>Km</th></tr>
+                <tr><th>Tipo</th><th>Saídas (dias)</th></tr>
               </thead>
               <tbody>
                 <tr>
                   <td>MPL - Meios Próprios de Locomoção</td>
-                  <td>{transportMode === 'MPL' ? '✓' : '-'}</td>
-                  <td>{transportMode === 'MPL' ? `${totalKm || 0} km` : '-'}</td>
+                  <td className={editingPreview ? 'editable-field' : ''}>
+                    {editingPreview ? (
+                      <input
+                        type="number"
+                        value={editedMplDays ?? calculatedStats.mplDays}
+                        onChange={(e) => setEditedMplDays(parseInt(e.target.value) || 0)}
+                        className="w-16 px-1 border rounded"
+                      />
+                    ) : finalMplDays}
+                  </td>
                 </tr>
                 <tr>
                   <td>CO - Carro Oficial</td>
-                  <td>{transportMode === 'CO' ? '✓' : '-'}</td>
-                  <td>{transportMode === 'CO' ? `${totalKm || 0} km` : '-'}</td>
+                  <td className={editingPreview ? 'editable-field' : ''}>
+                    {editingPreview ? (
+                      <input
+                        type="number"
+                        value={editedCoDays ?? calculatedStats.coDays}
+                        onChange={(e) => setEditedCoDays(parseInt(e.target.value) || 0)}
+                        className="w-16 px-1 border rounded"
+                      />
+                    ) : finalCoDays}
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -586,7 +690,7 @@ export default function MonthlyReport() {
                 {dailyActions.map((action, idx) => (
                   <tr key={idx}>
                     <td>{action.day}</td>
-                    <td>{transportMode}</td>
+                    <td>{action.transport}</td>
                     <td>{action.establishment}</td>
                     <td>{action.document}</td>
                   </tr>
@@ -636,12 +740,23 @@ export default function MonthlyReport() {
         </div>
 
         <div className="no-print fixed bottom-4 right-4 flex gap-2">
-          <Button variant="outline" onClick={() => setShowPDFPreview(false)}>
+          <Button variant="outline" onClick={() => { setShowPDFPreview(false); setEditingPreview(false); }}>
             Voltar
           </Button>
+          {!isLocked && (
+            <Button variant="outline" onClick={handleSave}>
+              Salvar Alterações
+            </Button>
+          )}
           <Button onClick={() => window.print()}>
             Imprimir PDF
           </Button>
+          {!isLocked && (
+            <Button onClick={handleSendReport}>
+              <Send className="h-4 w-4 mr-2" />
+              Enviar Relatório
+            </Button>
+          )}
         </div>
       </div>
     );
@@ -832,7 +947,7 @@ export default function MonthlyReport() {
             </Card>
           </TabsContent>
 
-          {/* OS e Locomoção */}
+          {/* OS */}
           <TabsContent value="os" className="space-y-4">
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-2">
@@ -864,132 +979,32 @@ export default function MonthlyReport() {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="osProgrammed">OS Programadas</Label>
-                    <Input
-                      id="osProgrammed"
-                      type="number"
-                      value={osProgrammed}
-                      onChange={(e) => setOsProgrammed(e.target.value)}
-                      disabled={isLocked}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="pfeDays">Plantão Fiscal Especial</Label>
-                    <Input
-                      id="pfeDays"
-                      type="number"
-                      value={pfeDays}
-                      onChange={(e) => setPfeDays(e.target.value)}
-                      disabled={isLocked}
-                      className="mt-1"
-                    />
-                  </div>
+                <div>
+                  <Label htmlFor="pfeDays">Plantão Fiscal Especial (PFE)</Label>
+                  <Input
+                    id="pfeDays"
+                    type="number"
+                    value={pfeDays}
+                    onChange={(e) => setPfeDays(e.target.value)}
+                    disabled={isLocked}
+                    className="mt-1"
+                  />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Car className="h-4 w-4" />
-                  Meio de Locomoção
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div
-                    className={cn(
-                      'p-4 rounded-lg border-2 cursor-pointer transition-all text-center',
-                      transportMode === 'MPL' 
-                        ? 'border-primary bg-primary/10' 
-                        : 'border-muted hover:border-primary/50'
-                    )}
-                    onClick={() => !isLocked && setTransportMode('MPL')}
-                  >
-                    <Car className={cn(
-                      'h-6 w-6 mx-auto mb-2',
-                      transportMode === 'MPL' ? 'text-primary' : 'text-muted-foreground'
-                    )} />
-                    <p className="font-medium text-sm">MPL</p>
-                    <p className="text-xs text-muted-foreground">Meios Próprios</p>
-                  </div>
-                  
-                  <div
-                    className={cn(
-                      'p-4 rounded-lg border-2 cursor-pointer transition-all text-center',
-                      transportMode === 'CO' 
-                        ? 'border-primary bg-primary/10' 
-                        : 'border-muted hover:border-primary/50'
-                    )}
-                    onClick={() => !isLocked && setTransportMode('CO')}
-                  >
-                    <Car className={cn(
-                      'h-6 w-6 mx-auto mb-2',
-                      transportMode === 'CO' ? 'text-primary' : 'text-muted-foreground'
-                    )} />
-                    <p className="font-medium text-sm">CO</p>
-                    <p className="text-xs text-muted-foreground">Carro Oficial</p>
-                  </div>
-                </div>
-                
-                {transportMode === 'MPL' && (
-                  <div>
-                    <Label htmlFor="totalKm">Quilometragem Total</Label>
-                    <Input
-                      id="totalKm"
-                      type="number"
-                      value={totalKm}
-                      onChange={(e) => setTotalKm(e.target.value)}
-                      placeholder="Km rodados"
-                      disabled={isLocked}
-                      className="mt-1"
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Escala de Trabalho</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Label htmlFor="fieldDays" className="text-xs">Área</Label>
-                    <Input
-                      id="fieldDays"
-                      type="number"
-                      value={fieldDays}
-                      onChange={(e) => setFieldDays(e.target.value)}
-                      disabled={isLocked}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="internalDays" className="text-xs">Interna</Label>
-                    <Input
-                      id="internalDays"
-                      type="number"
-                      value={internalDays}
-                      onChange={(e) => setInternalDays(e.target.value)}
-                      disabled={isLocked}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="dutyDays" className="text-xs">Plantão</Label>
-                    <Input
-                      id="dutyDays"
-                      type="number"
-                      value={dutyDays}
-                      onChange={(e) => setDutyDays(e.target.value)}
-                      disabled={isLocked}
-                      className="mt-1"
-                    />
+            {/* Info automático */}
+            <Card className="border-0 shadow-sm bg-muted/30">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div className="text-xs text-muted-foreground">
+                    <p className="font-medium mb-1">Campos automáticos:</p>
+                    <ul className="space-y-1">
+                      <li>• <strong>MPL/CO</strong>: Calculado por dia trabalhado (1 por dia, não por estabelecimento)</li>
+                      <li>• <strong>Escala de trabalho</strong>: Baseada nas peças fiscais enviadas</li>
+                      <li>• Edite na prévia do PDF antes de enviar, se necessário</li>
+                    </ul>
                   </div>
                 </div>
               </CardContent>
@@ -1020,7 +1035,7 @@ export default function MonthlyReport() {
                       <CalendarIcon className="h-5 w-5 text-info" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">{fieldDays || 0}</p>
+                      <p className="text-2xl font-bold">{finalFieldDays}</p>
                       <p className="text-xs text-muted-foreground">Dias em Campo</p>
                     </div>
                   </div>
@@ -1034,8 +1049,8 @@ export default function MonthlyReport() {
                       <Car className="h-5 w-5 text-success" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">{totalKm || 0}</p>
-                      <p className="text-xs text-muted-foreground">Km ({transportMode})</p>
+                      <p className="text-2xl font-bold">{finalMplDays}</p>
+                      <p className="text-xs text-muted-foreground">Saídas MPL</p>
                     </div>
                   </div>
                 </CardContent>
@@ -1048,7 +1063,7 @@ export default function MonthlyReport() {
                       <Clock className="h-5 w-5 text-warning" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">{pfeDays || 0}</p>
+                      <p className="text-2xl font-bold">{parseInt(pfeDays) || 0}</p>
                       <p className="text-xs text-muted-foreground">Dias PFE</p>
                     </div>
                   </div>
@@ -1073,7 +1088,8 @@ export default function MonthlyReport() {
                 {totalDocuments === 0 && (
                   <div className="flex flex-col items-center py-6 text-muted-foreground">
                     <AlertCircle className="h-8 w-8 mb-2" />
-                    <p className="text-sm">Nenhuma peça fiscal neste período</p>
+                    <p className="text-sm">Nenhuma peça fiscal enviada neste período</p>
+                    <p className="text-xs mt-1">Apenas peças com status "Enviado" são contabilizadas</p>
                   </div>
                 )}
                 {totalDocuments > 0 && (
@@ -1100,7 +1116,7 @@ export default function MonthlyReport() {
                   <div className="flex flex-col items-center py-8 text-muted-foreground">
                     <FileText className="h-10 w-10 mb-3 opacity-40" />
                     <p className="text-sm">Nenhuma ação registrada</p>
-                    <p className="text-xs mt-1">Crie peças fiscais para popular este relatório</p>
+                    <p className="text-xs mt-1">Envie peças fiscais para popular este relatório</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -1116,7 +1132,7 @@ export default function MonthlyReport() {
                           </p>
                         </div>
                         <Badge variant="outline" className="text-xs">
-                          {transportMode}
+                          {action.transport}
                         </Badge>
                       </div>
                     ))}
@@ -1136,29 +1152,18 @@ export default function MonthlyReport() {
             disabled={loading}
           >
             <FileDown className="h-4 w-4 mr-2" />
-            PDF
+            Prévia / PDF
           </Button>
           
           {!isLocked && (
-            <>
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={handleSave}
-                disabled={saving}
-              >
-                {saving ? 'Salvando...' : 'Salvar'}
-              </Button>
-              
-              <Button
-                className="flex-1"
-                onClick={handleSendReport}
-                disabled={!report?.id || saving}
-              >
-                <Send className="h-4 w-4 mr-2" />
-                Enviar
-              </Button>
-            </>
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? 'Salvando...' : 'Salvar'}
+            </Button>
           )}
         </div>
       </div>
