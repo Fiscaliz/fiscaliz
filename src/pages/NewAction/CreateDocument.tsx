@@ -136,6 +136,7 @@ export default function CreateDocument() {
     documentDate: new Date().toISOString().split('T')[0],
     documentTime: new Date().toTimeString().slice(0, 5),
     irregularidades: [],
+    photoLegends: [],
     aiAnalysisResult: '',
     isAnalyzing: false,
   });
