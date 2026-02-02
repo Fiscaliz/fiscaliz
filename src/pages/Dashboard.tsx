@@ -138,7 +138,7 @@ export default function Dashboard() {
     const [docsRes, actionsRes] = await Promise.all([
       supabase
         .from('fiscal_documents')
-        .select('document_type, created_at, establishments(bairro)')
+        .select('document_type, created_at, total_weight_kg, establishments(bairro)')
         .gte('created_at', startOfMonth.toISOString()),
       supabase
         .from('fiscal_actions')
@@ -169,6 +169,14 @@ export default function Dashboard() {
       return daysUntilDue <= 7;
     }).length;
 
+    // Calcular total de kg inutilizados
+    const totalInutilizadoKg = myDocuments
+      .filter(doc => doc.document_type === 'inutilizacao')
+      .reduce((sum, doc) => sum + (doc.total_weight_kg || 0), 0);
+
+    // Contar apreensões
+    const totalApreensoes = myDocuments.filter(doc => doc.document_type === 'apreensao').length;
+
     return {
       totalDocuments: myDocuments.length,
       totalActions: myActions.length,
@@ -176,6 +184,8 @@ export default function Dashboard() {
       urgentTasks,
       docsByType,
       actionsByReason,
+      totalInutilizadoKg,
+      totalApreensoes,
     };
   }, [myDocuments, myActions, myTasks]);
 
@@ -196,11 +206,21 @@ export default function Dashboard() {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5);
 
+    // Calcular total de kg inutilizados da divisão
+    const totalInutilizadoKg = divisionDocuments
+      .filter((doc: any) => doc.document_type === 'inutilizacao')
+      .reduce((sum: number, doc: any) => sum + (doc.total_weight_kg || 0), 0);
+
+    // Contar apreensões da divisão
+    const totalApreensoes = divisionDocuments.filter((doc: any) => doc.document_type === 'apreensao').length;
+
     return {
       totalDocuments: divisionDocuments.length,
       totalActions: divisionActions.length,
       docsByType,
       topBairros,
+      totalInutilizadoKg,
+      totalApreensoes,
     };
   }, [divisionDocuments, divisionActions]);
 
@@ -455,7 +475,7 @@ export default function Dashboard() {
                       <Trash2 className="h-5 w-5 text-destructive" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">0 kg</p>
+                      <p className="text-2xl font-bold">{divisionStats.totalInutilizadoKg.toFixed(1)} kg</p>
                       <p className="text-xs text-muted-foreground">Inutilizados</p>
                     </div>
                   </div>
@@ -468,7 +488,7 @@ export default function Dashboard() {
                       <Package className="h-5 w-5 text-warning" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">0</p>
+                      <p className="text-2xl font-bold">{divisionStats.totalApreensoes}</p>
                       <p className="text-xs text-muted-foreground">Apreensões</p>
                     </div>
                   </div>
