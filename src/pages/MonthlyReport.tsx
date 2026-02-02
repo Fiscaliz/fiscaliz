@@ -305,9 +305,9 @@ export default function MonthlyReport() {
     
     const { data } = await supabase
       .from('fiscal_documents')
-      .select('document_type')
+      .select('document_type, status')
       .eq('user_id', user.id)
-      .eq('status', 'sent')
+      .in('status', ['sent', 'draft'])
       .gte('created_at', startDate.toISOString())
       .lte('created_at', endDate.toISOString());
 
@@ -359,10 +359,11 @@ export default function MonthlyReport() {
         deadline_days,
         deadline_date,
         establishment_id,
+        status,
         establishments(*)
       `)
       .eq('user_id', user.id)
-      .eq('status', 'sent')
+      .in('status', ['sent', 'draft'])
       .gte('created_at', startDate.toISOString())
       .lte('created_at', endDate.toISOString())
       .order('created_at', { ascending: true });
