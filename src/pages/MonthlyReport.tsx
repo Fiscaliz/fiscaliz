@@ -61,27 +61,34 @@ interface EditableDailyAction {
   documentType: string;
   isInternal: boolean;
   riskLevel: 'I' | 'II' | 'III' | null;
-  difficultyFactors: string[];
+  difficultyGrade: 1 | 2;
+  difficultyJustifications: string[];
   riskPoints: number;
-  difficultyPoints: number;
+  totalPoints: number;
 }
 
-// Tabela de pontos por risco sanitário (peças fiscais)
+// Tabela de pontos por risco sanitário (Tabela Anvisa)
+// Baixo risco: 2 pts, Médio risco: 3 pts, Alto risco: 6 pts
 const RISK_POINTS: Record<string, number> = {
-  'I': 1,    // Baixo risco
-  'II': 2,   // Médio risco
-  'III': 3,  // Alto risco
+  'I': 2,    // Baixo risco
+  'II': 3,   // Médio risco
+  'III': 6,  // Alto risco
 };
 
-// Fatores de dificuldade da ação fiscal
-const DIFFICULTY_FACTORS = [
-  { id: 'local_distante', label: 'Local distante', points: 1 },
-  { id: 'muito_tempo', label: 'Muito tempo na ação', points: 1 },
-  { id: 'varios_documentos', label: 'Vários documentos gerados', points: 1 },
-  { id: 'acao_complexa', label: 'Ação complexa/muitas irregularidades', points: 2 },
-  { id: 'analise_documental', label: 'Análise documental extensa', points: 1 },
-];
+const RISK_LABELS: Record<string, string> = {
+  'I': 'Baixo',
+  'II': 'Médio',
+  'III': 'Alto',
+};
 
+// Fatores que justificam grau 2 de dificuldade
+const DIFFICULTY_JUSTIFICATIONS = [
+  { id: 'local_distante', label: 'Local distante' },
+  { id: 'muito_tempo', label: 'Muito tempo na ação fiscal' },
+  { id: 'varios_documentos', label: 'Geração de vários documentos' },
+  { id: 'acao_complexa', label: 'Ação complexa com muitas irregularidades' },
+  { id: 'analise_documental', label: 'Análise documental extensa' },
+];
 const months = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
@@ -218,17 +225,17 @@ export default function MonthlyReport() {
     return { mplDays, coDays, fieldDays, internalDays };
   }, [dailyActions]);
 
-  // Calcular pontos totais
+  // Calcular pontos totais (pontos de risco * grau de dificuldade)
   const totalPoints = useMemo(() => {
-    let riskPoints = 0;
-    let difficultyPoints = 0;
+    let basePoints = 0;
+    let totalWithGrade = 0;
     
     dailyActions.forEach(action => {
-      riskPoints += action.riskPoints;
-      difficultyPoints += action.difficultyPoints;
+      basePoints += action.riskPoints;
+      totalWithGrade += action.totalPoints;
     });
     
-    return { riskPoints, difficultyPoints, total: riskPoints + difficultyPoints };
+    return { basePoints, totalWithGrade };
   }, [dailyActions]);
 
   // Valores finais (editados ou calculados)
@@ -431,6 +438,11 @@ export default function MonthlyReport() {
           content.atividade_descricao || 
           'Atividade Interna';
         
+        // Grau de dificuldade (1 = normal, 2 = com justificativa)
+        const difficultyGrade: 1 | 2 = content.difficulty_grade || 1;
+        const difficultyJustifications = content.difficulty_justifications || [];
+        const totalPoints = riskPoints * difficultyGrade;
+        
         return {
           id: doc.id,
           day: dayNumber,
@@ -442,12 +454,10 @@ export default function MonthlyReport() {
           documentType: doc.document_type,
           isInternal,
           riskLevel,
-          difficultyFactors: content.difficulty_factors || [],
+          difficultyGrade,
+          difficultyJustifications,
           riskPoints,
-          difficultyPoints: (content.difficulty_factors || []).reduce((acc: number, factor: string) => {
-            const found = DIFFICULTY_FACTORS.find(f => f.id === factor);
-            return acc + (found?.points || 0);
-          }, 0),
+          totalPoints,
         };
       });
       setDailyActions(actions);
@@ -464,27 +474,25 @@ export default function MonthlyReport() {
       // Recalcular pontos se necessário
       if (field === 'riskLevel') {
         updated.riskPoints = value ? RISK_POINTS[value as 'I' | 'II' | 'III'] : 0;
+        updated.totalPoints = updated.riskPoints * updated.difficultyGrade;
       }
-      if (field === 'difficultyFactors') {
-        updated.difficultyPoints = (value as string[]).reduce((acc: number, factor: string) => {
-          const found = DIFFICULTY_FACTORS.find(f => f.id === factor);
-          return acc + (found?.points || 0);
-        }, 0);
+      if (field === 'difficultyGrade') {
+        updated.totalPoints = updated.riskPoints * (value as 1 | 2);
       }
       
       return updated;
     }));
   };
 
-  const toggleDifficultyFactor = (actionId: string, factorId: string) => {
+  const toggleDifficultyJustification = (actionId: string, justificationId: string) => {
     const action = dailyActions.find(a => a.id === actionId);
     if (!action) return;
     
-    const newFactors = action.difficultyFactors.includes(factorId)
-      ? action.difficultyFactors.filter(f => f !== factorId)
-      : [...action.difficultyFactors, factorId];
+    const newJustifications = action.difficultyJustifications.includes(justificationId)
+      ? action.difficultyJustifications.filter(j => j !== justificationId)
+      : [...action.difficultyJustifications, justificationId];
     
-    updateDailyAction(actionId, 'difficultyFactors', newFactors);
+    updateDailyAction(actionId, 'difficultyJustifications', newJustifications);
   };
 
   const handleSave = async () => {
@@ -878,22 +886,27 @@ export default function MonthlyReport() {
           <div className="mb-6">
             <div className="section-title">TABELA DE PONTOS - CUMPRIMENTO DA OS MENSAL</div>
             
-            {/* Legenda de Risco Sanitário */}
+            {/* Legenda de Risco - Tabela Anvisa */}
             <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded text-xs">
-              <p className="font-bold mb-2">Pontuação por Nível de Risco Sanitário (Peças Fiscais):</p>
-              <div className="flex gap-4">
-                <span><strong>Risco I (Baixo):</strong> 1 ponto</span>
-                <span><strong>Risco II (Médio):</strong> 2 pontos</span>
-                <span><strong>Risco III (Alto):</strong> 3 pontos</span>
+              <p className="font-bold mb-2">Pontuação por Nível de Risco Sanitário (Tabela Anvisa IN nº 66/2020):</p>
+              <div className="flex gap-6">
+                <span><strong>Risco I (Baixo):</strong> 2 pontos</span>
+                <span><strong>Risco II (Médio):</strong> 3 pontos</span>
+                <span><strong>Risco III (Alto):</strong> 6 pontos</span>
               </div>
             </div>
 
-            {/* Legenda de Dificuldade */}
+            {/* Legenda de Grau de Dificuldade */}
             <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded text-xs">
-              <p className="font-bold mb-2">Fatores de Dificuldade da Ação Fiscal:</p>
-              <div className="grid grid-cols-2 gap-2">
-                {DIFFICULTY_FACTORS.map(factor => (
-                  <span key={factor.id}>• {factor.label}: +{factor.points} pt{factor.points > 1 ? 's' : ''}</span>
+              <p className="font-bold mb-2">Grau de Dificuldade (Multiplicador):</p>
+              <div className="flex gap-6 mb-2">
+                <span><strong>Grau 1:</strong> Normal (×1)</span>
+                <span><strong>Grau 2:</strong> Com justificativa (×2)</span>
+              </div>
+              <p className="text-gray-600 italic">Justificativas para Grau 2:</p>
+              <div className="grid grid-cols-2 gap-1 mt-1">
+                {DIFFICULTY_JUSTIFICATIONS.map(j => (
+                  <span key={j.id}>• {j.label}</span>
                 ))}
               </div>
             </div>
@@ -905,10 +918,10 @@ export default function MonthlyReport() {
                   <th style={{ width: '50px' }}>Dia</th>
                   <th>Estabelecimento</th>
                   <th style={{ width: '60px' }}>Risco</th>
-                  <th style={{ width: '200px' }}>Fatores de Dificuldade</th>
-                  <th style={{ width: '50px' }}>Pts Risco</th>
-                  <th style={{ width: '50px' }}>Pts Dific.</th>
-                  <th style={{ width: '50px' }}>Total</th>
+                  <th style={{ width: '50px' }}>Pts Base</th>
+                  <th style={{ width: '60px' }}>Grau</th>
+                  <th style={{ width: '150px' }}>Justificativa (se Grau 2)</th>
+                  <th style={{ width: '60px' }}>Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -924,46 +937,65 @@ export default function MonthlyReport() {
                           className="editable-input w-full"
                         >
                           <option value="">-</option>
-                          <option value="I">I</option>
-                          <option value="II">II</option>
-                          <option value="III">III</option>
+                          <option value="I">I (2pts)</option>
+                          <option value="II">II (3pts)</option>
+                          <option value="III">III (6pts)</option>
                         </select>
-                      ) : (action.riskLevel || '-')}
-                    </td>
-                    <td className={editingPreview ? 'editable-field text-xs' : 'text-xs'}>
-                      {editingPreview ? (
-                        <div className="space-y-1">
-                          {DIFFICULTY_FACTORS.map(factor => (
-                            <label key={factor.id} className="flex items-center gap-1 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={action.difficultyFactors.includes(factor.id)}
-                                onChange={() => toggleDifficultyFactor(action.id, factor.id)}
-                                className="w-3 h-3"
-                              />
-                              <span className="text-[9px]">{factor.label}</span>
-                            </label>
-                          ))}
-                        </div>
                       ) : (
-                        action.difficultyFactors.length > 0 
-                          ? action.difficultyFactors.map(f => {
-                              const factor = DIFFICULTY_FACTORS.find(df => df.id === f);
-                              return factor?.label;
-                            }).join(', ')
-                          : '-'
+                        action.riskLevel ? `${action.riskLevel} (${RISK_LABELS[action.riskLevel]})` : '-'
                       )}
                     </td>
                     <td className="text-center font-medium">{action.riskPoints}</td>
-                    <td className="text-center font-medium">{action.difficultyPoints}</td>
-                    <td className="text-center font-bold bg-gray-100">{action.riskPoints + action.difficultyPoints}</td>
+                    <td className={editingPreview ? 'editable-field' : ''}>
+                      {editingPreview ? (
+                        <select
+                          value={action.difficultyGrade}
+                          onChange={(e) => updateDailyAction(action.id, 'difficultyGrade', parseInt(e.target.value) as 1 | 2)}
+                          className="editable-input w-full"
+                        >
+                          <option value={1}>×1</option>
+                          <option value={2}>×2</option>
+                        </select>
+                      ) : (
+                        `×${action.difficultyGrade}`
+                      )}
+                    </td>
+                    <td className={editingPreview ? 'editable-field text-xs' : 'text-xs'}>
+                      {action.difficultyGrade === 2 ? (
+                        editingPreview ? (
+                          <div className="space-y-1">
+                            {DIFFICULTY_JUSTIFICATIONS.map(j => (
+                              <label key={j.id} className="flex items-center gap-1 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={action.difficultyJustifications.includes(j.id)}
+                                  onChange={() => toggleDifficultyJustification(action.id, j.id)}
+                                  className="w-3 h-3"
+                                />
+                                <span className="text-[9px]">{j.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        ) : (
+                          action.difficultyJustifications.length > 0 
+                            ? action.difficultyJustifications.map(jId => {
+                                const just = DIFFICULTY_JUSTIFICATIONS.find(dj => dj.id === jId);
+                                return just?.label;
+                              }).join(', ')
+                            : 'Sem justificativa'
+                        )
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td className="text-center font-bold bg-gray-100">{action.totalPoints}</td>
                   </tr>
                 ))}
                 <tr style={{ fontWeight: 'bold', backgroundColor: '#003366', color: 'white' }}>
-                  <td colSpan={4} className="text-right">TOTAL DE PONTOS:</td>
-                  <td className="text-center">{totalPoints.riskPoints}</td>
-                  <td className="text-center">{totalPoints.difficultyPoints}</td>
-                  <td className="text-center">{totalPoints.total}</td>
+                  <td colSpan={3} className="text-right">TOTAL DE PONTOS:</td>
+                  <td className="text-center">{totalPoints.basePoints}</td>
+                  <td colSpan={2}></td>
+                  <td className="text-center">{totalPoints.totalWithGrade}</td>
                 </tr>
               </tbody>
             </table>
@@ -1523,7 +1555,7 @@ export default function MonthlyReport() {
                       <Star className="h-5 w-5 text-warning" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">{totalPoints.total}</p>
+                      <p className="text-2xl font-bold">{totalPoints.totalWithGrade}</p>
                       <p className="text-xs text-muted-foreground">Pontos Total</p>
                     </div>
                   </div>
@@ -1621,36 +1653,37 @@ export default function MonthlyReport() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Resumo de Pontos */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="p-3 rounded-lg bg-blue-50 text-center">
-                    <p className="text-2xl font-bold text-blue-600">{totalPoints.riskPoints}</p>
-                    <p className="text-[10px] text-blue-600">Pts Risco</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-lg bg-primary/10 text-center">
+                    <p className="text-2xl font-bold text-primary">{totalPoints.basePoints}</p>
+                    <p className="text-[10px] text-primary">Pts Base</p>
                   </div>
-                  <div className="p-3 rounded-lg bg-purple-50 text-center">
-                    <p className="text-2xl font-bold text-purple-600">{totalPoints.difficultyPoints}</p>
-                    <p className="text-[10px] text-purple-600">Pts Dificuldade</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-green-50 text-center">
-                    <p className="text-2xl font-bold text-green-600">{totalPoints.total}</p>
-                    <p className="text-[10px] text-green-600">Total</p>
+                  <div className="p-3 rounded-lg bg-success/10 text-center">
+                    <p className="text-2xl font-bold text-success">{totalPoints.totalWithGrade}</p>
+                    <p className="text-[10px] text-success">Total c/ Grau</p>
                   </div>
                 </div>
 
                 {/* Legenda */}
                 <div className="p-3 rounded-lg bg-muted/50 text-xs space-y-2">
-                  <p className="font-medium">Nível de Risco Sanitário:</p>
+                  <p className="font-medium">Nível de Risco Sanitário (Tabela Anvisa):</p>
                   <div className="flex gap-4">
-                    <span>I: 1pt</span>
-                    <span>II: 2pts</span>
-                    <span>III: 3pts</span>
+                    <span>I (Baixo): 2pts</span>
+                    <span>II (Médio): 3pts</span>
+                    <span>III (Alto): 6pts</span>
                   </div>
                 </div>
 
                 <div className="p-3 rounded-lg bg-muted/50 text-xs space-y-2">
-                  <p className="font-medium">Fatores de Dificuldade:</p>
+                  <p className="font-medium">Grau de Dificuldade (Multiplicador):</p>
                   <div className="space-y-1">
-                    {DIFFICULTY_FACTORS.map(f => (
-                      <p key={f.id}>• {f.label}: +{f.points}pt{f.points > 1 ? 's' : ''}</p>
+                    <p>• <strong>Grau 1:</strong> Normal (×1)</p>
+                    <p>• <strong>Grau 2:</strong> Com justificativa (×2)</p>
+                  </div>
+                  <p className="text-muted-foreground italic mt-2">Justificativas para Grau 2:</p>
+                  <div className="space-y-1">
+                    {DIFFICULTY_JUSTIFICATIONS.map(j => (
+                      <p key={j.id}>• {j.label}</p>
                     ))}
                   </div>
                 </div>
