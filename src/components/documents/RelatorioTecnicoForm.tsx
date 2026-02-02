@@ -185,23 +185,43 @@ export function RelatorioTecnicoForm({
         throw new Error('Usuário não autenticado');
       }
 
-      // Upload photos to storage with user_id prefix for RLS compliance
-      const uploadedUrls: string[] = [];
-      
-      for (const img of photos) {
+      // Notify user that upload is starting
+      toast({
+        title: `Enviando ${photos.length} foto${photos.length > 1 ? 's' : ''}...`,
+        description: 'Aguarde o processamento.',
+      });
+
+      // Upload photos in PARALLEL for much faster processing
+      const uploadPromises = photos.map(async (img) => {
         const fileExt = img.file.name.split('.').pop() || 'jpg';
-        // Use user_id as folder prefix to comply with storage RLS policy
         const fileName = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from('fiscal-photos')
           .upload(fileName, img.file, { upsert: true });
         
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('[AI Analysis] Upload error for file:', fileName, uploadError);
+          throw uploadError;
+        }
 
         const { data: urlData } = supabase.storage.from('fiscal-photos').getPublicUrl(fileName);
-        if (urlData?.publicUrl) uploadedUrls.push(urlData.publicUrl);
+        return urlData?.publicUrl;
+      });
+
+      // Wait for all uploads to complete in parallel
+      const uploadResults = await Promise.all(uploadPromises);
+      const uploadedUrls = uploadResults.filter((url): url is string => Boolean(url));
+
+      if (uploadedUrls.length === 0) {
+        throw new Error('Nenhuma foto foi enviada com sucesso');
       }
+
+      // Notify that analysis is starting
+      toast({
+        title: 'Analisando fotos com IA...',
+        description: `${uploadedUrls.length} foto${uploadedUrls.length > 1 ? 's enviadas' : ' enviada'}. Processamento pode levar até 1 minuto.`,
+      });
 
       // Call AI analysis
       console.log('[AI Analysis] Calling edge function with', uploadedUrls.length, 'photos');

@@ -195,10 +195,64 @@ export function DocumentViewer({
     const cleanPhone = whatsapp.replace(/\D/g, '');
     const phoneWithCountry = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
     
-    // Montar mensagem
+    // Montar mensagem COMPLETA com todo o conteúdo do documento
     const docType = documentTypeLabels[document.document_type] || document.document_type;
     const establishment = document.establishment?.nome_fantasia || document.establishment?.razao_social || 'Estabelecimento';
-    const message = `📋 *${docType}*\n\n🏢 *Estabelecimento:* ${establishment}\n📅 *Data:* ${formatDate(documentDate)}\n\n⚠️ Este é um documento oficial da Vigilância Sanitária de Goiânia.\n\nPor favor, verifique o documento anexo e tome as providências necessárias dentro do prazo estabelecido.`;
+    const razaoSocial = document.establishment?.razao_social || '';
+    const cnpj = document.establishment?.cnpj || '';
+    const endereco = document.establishment?.endereco || '';
+    const bairro = document.establishment?.bairro || '';
+    const responsavel = document.establishment?.responsavel_nome || '';
+    const fiscalName = document.profile?.full_name || 'Auditor Fiscal';
+    const matricula = document.profile?.registration_number || '';
+    const documentNumber = document.document_number || '';
+    
+    // Conteúdo completo do documento
+    const documentText = content || document.content?.text || '';
+    
+    // Irregularidades formatadas
+    let irregularidadesText = '';
+    if (document.irregularities && document.irregularities.length > 0) {
+      irregularidadesText = '\n\n📋 *IRREGULARIDADES:*\n' + 
+        document.irregularities.map((irr: any, idx: number) => 
+          `${idx + 1}. ${irr.descricao || irr.text || irr}${irr.dispositivo ? ` (${irr.dispositivo})` : ''}`
+        ).join('\n');
+    }
+    
+    // Prazo se houver
+    let prazoText = '';
+    if (deadlineDays && deadlineDate) {
+      prazoText = `\n\n⏰ *PRAZO:* ${deadlineDays} dias (até ${formatDate(deadlineDate)})`;
+    }
+    
+    // Observações
+    let obsText = '';
+    if (observations) {
+      obsText = `\n\n📝 *OBSERVAÇÕES:*\n${observations}`;
+    }
+    
+    // Montar mensagem completa
+    const message = `━━━━━━━━━━━━━━━━━━━━
+📋 *${docType}*${documentNumber ? ` Nº ${documentNumber}` : ''}
+━━━━━━━━━━━━━━━━━━━━
+
+📅 *Data:* ${formatDate(documentDate)}${documentTime ? ` às ${documentTime}` : ''}
+
+🏢 *IDENTIFICAÇÃO DO ESTABELECIMENTO*
+${razaoSocial ? `• Razão Social: ${razaoSocial}\n` : ''}${establishment !== razaoSocial ? `• Nome Fantasia: ${establishment}\n` : ''}${cnpj ? `• CNPJ: ${cnpj}\n` : ''}${endereco ? `• Endereço: ${endereco}${bairro ? `, ${bairro}` : ''}\n` : ''}${responsavel ? `• Responsável: ${responsavel}` : ''}
+
+📄 *CONTEÚDO:*
+${documentText}${irregularidadesText}${prazoText}${obsText}
+
+━━━━━━━━━━━━━━━━━━━━
+👤 *Fiscal Responsável:* ${fiscalName}${matricula ? `\n🔢 *Matrícula:* ${matricula}` : ''}
+━━━━━━━━━━━━━━━━━━━━
+
+⚠️ *DOCUMENTO OFICIAL*
+Vigilância Sanitária de Goiânia
+Diretoria de Vigilância Sanitária e Ambiental
+
+_Enviado via FISCALIZ®_`;
     
     // Abrir WhatsApp
     const whatsappUrl = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`;
@@ -206,7 +260,7 @@ export function DocumentViewer({
     
     toast({
       title: "WhatsApp aberto",
-      description: "Complete o envio no WhatsApp e depois confirme aqui."
+      description: "Documento completo copiado para o WhatsApp. Envie e confirme aqui."
     });
   };
 
