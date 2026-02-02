@@ -194,11 +194,13 @@ export default function MonthlyReport() {
 
   // Calcula automaticamente MPL, CO, dias em campo e dias internos
   const calculatedStats = useMemo(() => {
-    // Agrupar ações por dia para contar dias únicos
-    const dayMap = new Map<number, { hasMpl: boolean; hasCo: boolean; hasField: boolean; hasInternal: boolean }>();
+    // Agrupar ações por DATA COMPLETA (YYYY-MM-DD) para contar dias únicos
+    const dayMap = new Map<string, { hasMpl: boolean; hasCo: boolean; hasField: boolean; hasInternal: boolean }>();
     
     dailyActions.forEach(action => {
-      const existing = dayMap.get(action.day) || { hasMpl: false, hasCo: false, hasField: false, hasInternal: false };
+      // Usar actionDateFull (YYYY-MM-DD) como chave para agrupar por data completa
+      const dateKey = action.actionDateFull;
+      const existing = dayMap.get(dateKey) || { hasMpl: false, hasCo: false, hasField: false, hasInternal: false };
       
       // MPL/CO só conta para ações de campo (não internas)
       if (!action.isInternal && action.transport) {
@@ -215,7 +217,7 @@ export default function MonthlyReport() {
         existing.hasField = true;
       }
       
-      dayMap.set(action.day, existing);
+      dayMap.set(dateKey, existing);
     });
     
     let mplDays = 0;
