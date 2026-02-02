@@ -545,6 +545,7 @@ export type Database = {
         | "demanda_especifica"
         | "outros"
         | "demanda_interna"
+        | "pfe"
       priority_level: "high" | "medium" | "low"
       task_status: "pending" | "in_progress" | "completed" | "overdue"
     }
@@ -704,6 +705,7 @@ export const Constants = {
         "demanda_especifica",
         "outros",
         "demanda_interna",
+        "pfe",
       ],
       priority_level: ["high", "medium", "low"],
       task_status: ["pending", "in_progress", "completed", "overdue"],
