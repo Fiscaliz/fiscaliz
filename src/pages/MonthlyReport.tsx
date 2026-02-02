@@ -33,6 +33,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BRASAO_GOIANIA_SVG, SUS_LOGO_SVG } from '@/lib/logos';
+import { getRiskByCNAE } from '@/data/cnaeRiskTable';
 
 interface DocumentSummary {
   termo_intimacao: number;
@@ -489,10 +490,11 @@ export default function MonthlyReport() {
         
         // Obter atividade econômica/CNAE do estabelecimento
         const cnaeCode = doc.establishments?.cnae_principal || '';
-        // Extrair código simplificado (ex: A33, SA41)
-        const economicActivity = doc.establishments?.cnae_descricao || 
-          content.cnae_descricao || 
-          doc.establishments?.atividade_economica ||
+        // Buscar descrição da atividade econômica pela tabela CNAE
+        const cnaeEntry = cnaeCode ? getRiskByCNAE(cnaeCode) : null;
+        const economicActivity = cnaeEntry?.description || 
+          content.atividade_economica ||
+          doc.establishments?.nome_fantasia ||
           '';
         
         // Escala (Plantão Fiscal1 como padrão)
