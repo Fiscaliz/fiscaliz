@@ -204,6 +204,7 @@ export function RelatorioTecnicoForm({
       }
 
       // Call AI analysis
+      console.log('[AI Analysis] Calling edge function with', uploadedUrls.length, 'photos');
       const { data: aiData, error: aiError } = await supabase.functions.invoke('analyze-photos', {
         body: {
           documentType: 'relatorio_tecnico',
@@ -212,15 +213,27 @@ export function RelatorioTecnicoForm({
         },
       });
 
+      console.log('[AI Analysis] Response:', aiData, 'Error:', aiError);
+
       if (aiError) throw aiError;
       
-      // Parse new format with photo legends
-      const photoAnalysis = (aiData as any)?.photoAnalysis as Array<{ foto: number; legenda: string; item_rdc: string }> | undefined;
+      // Parse response - handle both legacy and new format
+      const photoAnalysis = (aiData as any)?.photoAnalysis as Array<{ 
+        foto: number; 
+        legenda: string; 
+        item_rdc: string;
+        severity?: string;
+        recommendation?: string;
+        deadline?: string;
+      }> | undefined;
+      
+      console.log('[AI Analysis] photoAnalysis received:', photoAnalysis);
       
       if (photoAnalysis && photoAnalysis.length > 0) {
-        // Create editable legends for each photo
+        // Create editable legends for each photo that has analysis
         const legends = photos.map((photo, idx) => {
           const analysis = photoAnalysis.find(a => a.foto === idx + 1);
+          console.log(`[AI Analysis] Photo ${idx + 1} analysis:`, analysis);
           return {
             photoIndex: idx,
             legenda: analysis?.legenda || '',
@@ -229,6 +242,7 @@ export function RelatorioTecnicoForm({
           };
         });
         
+        console.log('[AI Analysis] Final legends:', legends);
         updateField('photoLegends', legends);
         
         toast({
