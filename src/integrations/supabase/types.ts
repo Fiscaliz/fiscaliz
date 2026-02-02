@@ -271,6 +271,7 @@ export type Database = {
       monthly_reports: {
         Row: {
           created_at: string
+          days_to_work: number | null
           documents_summary: Json | null
           duty_days: number | null
           field_days: number | null
@@ -278,9 +279,14 @@ export type Database = {
           internal_activities: Json | null
           internal_days: number | null
           is_locked: boolean | null
+          license_attachment_url: string | null
+          license_end_date: string | null
+          license_start_date: string | null
+          license_type: string | null
           month: number
           os_number: string | null
           pdf_url: string | null
+          pfe_days: number | null
           sent_at: string | null
           status: Database["public"]["Enums"]["document_status"]
           total_fiscalizations: number | null
@@ -293,6 +299,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          days_to_work?: number | null
           documents_summary?: Json | null
           duty_days?: number | null
           field_days?: number | null
@@ -300,9 +307,14 @@ export type Database = {
           internal_activities?: Json | null
           internal_days?: number | null
           is_locked?: boolean | null
+          license_attachment_url?: string | null
+          license_end_date?: string | null
+          license_start_date?: string | null
+          license_type?: string | null
           month: number
           os_number?: string | null
           pdf_url?: string | null
+          pfe_days?: number | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["document_status"]
           total_fiscalizations?: number | null
@@ -315,6 +327,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          days_to_work?: number | null
           documents_summary?: Json | null
           duty_days?: number | null
           field_days?: number | null
@@ -322,9 +335,14 @@ export type Database = {
           internal_activities?: Json | null
           internal_days?: number | null
           is_locked?: boolean | null
+          license_attachment_url?: string | null
+          license_end_date?: string | null
+          license_start_date?: string | null
+          license_type?: string | null
           month?: number
           os_number?: string | null
           pdf_url?: string | null
+          pfe_days?: number | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["document_status"]
           total_fiscalizations?: number | null

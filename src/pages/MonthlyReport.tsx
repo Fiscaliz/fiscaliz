@@ -7,16 +7,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { 
   FileText, 
-  Calendar, 
+  Calendar as CalendarIcon, 
   Car, 
   Clock,
   Send,
-  Edit3,
   Lock,
   FileDown,
-  Building2
+  Building2,
+  Briefcase,
+  Upload,
+  AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,7 +29,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import marcaDaguaFiscaliz from '@/assets/marca-dagua-fiscaliz.png';
 import { BRASAO_GOIANIA_SVG, SUS_LOGO_SVG } from '@/lib/logos';
 
 interface DocumentSummary {
@@ -72,6 +76,7 @@ const documentTypeLabels: Record<string, string> = {
   replica: 'Réplica',
   certidao: 'Certidão Sanitária',
   coleta_amostra: 'Coleta de Amostra',
+  relatorio_atividade: 'Relatório de Atividade',
 };
 
 const documentTypeAbbreviation: Record<string, string> = {
@@ -87,7 +92,14 @@ const documentTypeAbbreviation: Record<string, string> = {
   replica: 'REP',
   certidao: 'CERT',
   coleta_amostra: 'CA',
+  relatorio_atividade: 'RA',
 };
+
+const licenseTypes = [
+  { id: 'licenca_premio', label: 'Licença Prêmio', needsAttachment: false },
+  { id: 'licenca_medica', label: 'Licença Médica', needsAttachment: false },
+  { id: 'atestado_medico', label: 'Atestado Médico', needsAttachment: true },
+];
 
 export default function MonthlyReport() {
   const { user } = useAuth();
@@ -105,17 +117,24 @@ export default function MonthlyReport() {
   const [showPDFPreview, setShowPDFPreview] = useState(false);
   const [dailyActions, setDailyActions] = useState<DailyAction[]>([]);
   
-  // Editable fields - matching Bárbara's report structure
-  const [workingDays, setWorkingDays] = useState('');
+  // Período - Licenças
+  const [selectedLicenseType, setSelectedLicenseType] = useState<string | null>(null);
+  const [licenseStartDate, setLicenseStartDate] = useState<Date | undefined>();
+  const [licenseEndDate, setLicenseEndDate] = useState<Date | undefined>();
+  const [licenseAttachment, setLicenseAttachment] = useState<string | null>(null);
+  
+  // OS e Locomoção
+  const [osNumber, setOsNumber] = useState('');
+  const [daysToWork, setDaysToWork] = useState('');
+  const [osProgrammed, setOsProgrammed] = useState('');
+  const [pfeDays, setPfeDays] = useState('');
+  const [transportMode, setTransportMode] = useState<'MPL' | 'CO'>('MPL');
+  const [totalKm, setTotalKm] = useState('');
+  
+  // Escala
   const [fieldDays, setFieldDays] = useState('');
   const [internalDays, setInternalDays] = useState('');
   const [dutyDays, setDutyDays] = useState('');
-  const [specialDutyDays, setSpecialDutyDays] = useState('');
-  const [totalKm, setTotalKm] = useState('');
-  const [transportMode, setTransportMode] = useState('CP'); // Carro Próprio
-  const [osNumber, setOsNumber] = useState('');
-  const [posProgrammed, setPosProgrammed] = useState('');
-  const [posExecuted, setPosExecuted] = useState('');
   
   const [documentSummary, setDocumentSummary] = useState<DocumentSummary>({
     termo_intimacao: 0,
@@ -151,11 +170,9 @@ export default function MonthlyReport() {
 
     if (error) {
       console.error('Error loading profile:', error);
-      // Não bloqueia a tela inteira por falha de perfil
       return;
     }
 
-    // Se não existir perfil (ex.: usuário antigo), cria um básico e segue
     if (!data) {
       const fallbackFullName =
         (user.user_metadata as any)?.full_name ||
@@ -192,28 +209,42 @@ export default function MonthlyReport() {
 
     if (data) {
       setReport(data);
-      setWorkingDays(data.working_days?.toString() || '');
+      setOsNumber(data.os_number || '');
+      setDaysToWork(data.days_to_work?.toString() || '');
+      setPfeDays(data.pfe_days?.toString() || '');
       setFieldDays(data.field_days?.toString() || '');
       setInternalDays(data.internal_days?.toString() || '');
       setDutyDays(data.duty_days?.toString() || '');
       setTotalKm(data.total_km?.toString() || '');
-      setTransportMode(data.transportation_mode || 'CP');
-      setOsNumber(data.os_number || '');
+      setTransportMode(data.transportation_mode === 'CO' ? 'CO' : 'MPL');
+      setSelectedLicenseType(data.license_type || null);
+      setLicenseStartDate(data.license_start_date ? new Date(data.license_start_date) : undefined);
+      setLicenseEndDate(data.license_end_date ? new Date(data.license_end_date) : undefined);
+      setLicenseAttachment(data.license_attachment_url || null);
       if (data.documents_summary) {
         setDocumentSummary(data.documents_summary as unknown as DocumentSummary);
       }
     } else {
       setReport(null);
-      setWorkingDays('');
-      setFieldDays('');
-      setInternalDays('');
-      setDutyDays('');
-      setTotalKm('');
-      setTransportMode('CP');
-      setOsNumber('');
+      resetForm();
     }
     
     setLoading(false);
+  };
+
+  const resetForm = () => {
+    setOsNumber('');
+    setDaysToWork('');
+    setPfeDays('');
+    setFieldDays('');
+    setInternalDays('');
+    setDutyDays('');
+    setTotalKm('');
+    setTransportMode('MPL');
+    setSelectedLicenseType(null);
+    setLicenseStartDate(undefined);
+    setLicenseEndDate(undefined);
+    setLicenseAttachment(null);
   };
 
   const loadDocumentStats = async () => {
@@ -253,8 +284,7 @@ export default function MonthlyReport() {
       });
       
       setDocumentSummary(summary);
-      setPosExecuted(data.length.toString());
-      setPosProgrammed(data.length.toString());
+      setOsProgrammed(data.length.toString());
     }
   };
 
@@ -285,12 +315,12 @@ export default function MonthlyReport() {
         const date = new Date(doc.created_at);
         return {
           day: date.getDate(),
-          transport: 'CP',
+          transport: transportMode,
           actionType: content.action_type || 'Inspeção',
           level: content.nivel || 'M',
           grade: content.grau || 2,
-          establishment: doc.establishments?.nome_fantasia || 'Estabelecimento',
-          document: doc.document_number || `${documentTypeAbbreviation[doc.document_type] || 'DOC'} ${doc.id.slice(0,4)}`,
+          establishment: doc.establishments?.nome_fantasia || content.atividade_descricao || 'Atividade Interna',
+          document: doc.document_number || `${documentTypeAbbreviation[doc.document_type] || 'DOC'}`,
           documentId: doc.id,
           documentType: doc.document_type,
         };
@@ -308,13 +338,18 @@ export default function MonthlyReport() {
         user_id: user.id,
         month: selectedMonth,
         year: selectedYear,
-        working_days: parseInt(workingDays) || 0,
+        os_number: osNumber,
+        days_to_work: parseInt(daysToWork) || 0,
+        pfe_days: parseInt(pfeDays) || 0,
         field_days: parseInt(fieldDays) || 0,
         internal_days: parseInt(internalDays) || 0,
         duty_days: parseInt(dutyDays) || 0,
         total_km: parseFloat(totalKm) || 0,
         transportation_mode: transportMode,
-        os_number: osNumber,
+        license_type: selectedLicenseType,
+        license_start_date: licenseStartDate?.toISOString().split('T')[0] || null,
+        license_end_date: licenseEndDate?.toISOString().split('T')[0] || null,
+        license_attachment_url: licenseAttachment,
         documents_summary: JSON.parse(JSON.stringify(documentSummary)),
         total_fiscalizations: Object.values(documentSummary).reduce((a, b) => a + b, 0),
       };
@@ -368,7 +403,7 @@ export default function MonthlyReport() {
 
       toast({
         title: 'Relatório enviado!',
-        description: `Relatório de ${months[selectedMonth - 1]}/${selectedYear} v${reportVersion} enviado com sucesso.`,
+        description: `Relatório de ${months[selectedMonth - 1]}/${selectedYear} enviado com sucesso.`,
       });
       
       loadReport();
@@ -388,11 +423,50 @@ export default function MonthlyReport() {
     }, 500);
   };
 
+  const handleLicenseSelect = (licenseId: string) => {
+    if (selectedLicenseType === licenseId) {
+      setSelectedLicenseType(null);
+      setLicenseStartDate(undefined);
+      setLicenseEndDate(undefined);
+    } else {
+      setSelectedLicenseType(licenseId);
+    }
+  };
+
+  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    const filePath = `attachments/${user.id}/${Date.now()}-${file.name}`;
+    
+    const { data, error } = await supabase.storage
+      .from('fiscal-photos')
+      .upload(filePath, file);
+
+    if (error) {
+      toast({
+        title: 'Erro ao anexar',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const { data: urlData } = supabase.storage
+      .from('fiscal-photos')
+      .getPublicUrl(filePath);
+
+    setLicenseAttachment(urlData.publicUrl);
+    toast({
+      title: 'Anexo enviado!',
+      description: 'O atestado foi anexado com sucesso.',
+    });
+  };
+
   const totalDocuments = Object.values(documentSummary).reduce((a, b) => a + b, 0);
   const isLocked = report?.is_locked;
-  const completionRate = posProgrammed ? Math.round((parseInt(posExecuted) / parseInt(posProgrammed)) * 100) : 100;
 
-  // PDF Preview Component - matching Bárbara's report layout exactly
+  // PDF Preview
   if (showPDFPreview) {
     return (
       <div className="min-h-screen bg-white text-black print:text-black" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11pt' }}>
@@ -412,7 +486,7 @@ export default function MonthlyReport() {
         `}</style>
 
         <div className="p-8 max-w-4xl mx-auto">
-          {/* CABEÇALHO - Logo oficial da prefeitura para PDF */}
+          {/* Header */}
           <div className="text-center mb-6 border-b-2 border-blue-900 pb-4">
             <div className="flex justify-center items-center gap-4 mb-3">
               <img src={BRASAO_GOIANIA_SVG} alt="Brasão de Goiânia" className="h-16 w-auto" />
@@ -426,57 +500,69 @@ export default function MonthlyReport() {
             </h2>
           </div>
 
-          {/* IDENTIFICAÇÃO DO SERVIDOR */}
+          {/* Identificação */}
           <div className="mb-6">
             <div className="section-title">IDENTIFICAÇÃO DO SERVIDOR</div>
             <div className="info-row"><span className="info-label">Nome:</span><span className="info-value">{profile?.full_name}</span></div>
             <div className="info-row"><span className="info-label">Matrícula:</span><span className="info-value">{profile?.registration_number || '-'}</span></div>
-            <div className="info-row"><span className="info-label">Coordenação:</span><span className="info-value">{profile?.division || 'CFA - Coordenação de Fiscalização de Alimentos'}</span></div>
+            <div className="info-row"><span className="info-label">Coordenação:</span><span className="info-value">{profile?.division || 'CFA'}</span></div>
+            <div className="info-row"><span className="info-label">Nº OS:</span><span className="info-value">{osNumber || '-'}</span></div>
             <div className="info-row"><span className="info-label">Período:</span><span className="info-value">01 a {new Date(selectedYear, selectedMonth, 0).getDate()}/{selectedMonth.toString().padStart(2, '0')}/{selectedYear}</span></div>
-            <div className="info-row"><span className="info-label">Data do Relatório:</span><span className="info-value">{format(new Date(), 'dd/MM/yyyy')}</span></div>
           </div>
 
-          {/* PROGRAMAÇÃO DE ORDENS DE SERVIÇO */}
-          <div className="mb-6">
-            <div className="section-title">PROGRAMAÇÃO DE ORDENS DE SERVIÇO (POS)</div>
-            <table>
-              <thead>
-                <tr><th>Descrição</th><th>Quantidade</th></tr>
-              </thead>
-              <tbody>
-                <tr><td>POS Programadas</td><td>{posProgrammed || totalDocuments}</td></tr>
-                <tr><td>POS Executadas</td><td>{posExecuted || totalDocuments}</td></tr>
-                <tr><td>Taxa de Cumprimento</td><td>{completionRate}%</td></tr>
-              </tbody>
-            </table>
-          </div>
+          {/* Licença (se houver) */}
+          {selectedLicenseType && (
+            <div className="mb-6">
+              <div className="section-title">AFASTAMENTO NO PERÍODO</div>
+              <div className="info-row">
+                <span className="info-label">Tipo:</span>
+                <span className="info-value">{licenseTypes.find(l => l.id === selectedLicenseType)?.label}</span>
+              </div>
+              <div className="info-row">
+                <span className="info-label">Período de Gozo:</span>
+                <span className="info-value">
+                  {licenseStartDate ? format(licenseStartDate, 'dd/MM/yyyy') : '-'} a {licenseEndDate ? format(licenseEndDate, 'dd/MM/yyyy') : '-'}
+                </span>
+              </div>
+            </div>
+          )}
 
-          {/* ESCALA DE TRABALHO */}
+          {/* Escala */}
           <div className="mb-6">
             <div className="section-title">ESCALA DE TRABALHO</div>
             <table>
               <thead>
-                <tr><th>Tipo de Atividade</th><th>Quantidade</th></tr>
+                <tr><th>Tipo de Atividade</th><th>Dias</th></tr>
               </thead>
               <tbody>
+                <tr><td>Dias a Cumprir no Período</td><td>{daysToWork || 0}</td></tr>
+                <tr><td>OS Programadas</td><td>{osProgrammed || totalDocuments}</td></tr>
                 <tr><td>Fiscalização em Área</td><td>{fieldDays || 0}</td></tr>
                 <tr><td>Ação Interna</td><td>{internalDays || 0}</td></tr>
                 <tr><td>Plantão Fiscal</td><td>{dutyDays || 0}</td></tr>
-                <tr><td>Plantão Fiscal Especial</td><td>{specialDutyDays || 0}</td></tr>
+                <tr><td>Plantão Fiscal Especial (PFE)</td><td>{pfeDays || 0}</td></tr>
               </tbody>
             </table>
           </div>
 
-          {/* MEIO DE LOCOMOÇÃO */}
+          {/* Locomoção */}
           <div className="mb-6">
             <div className="section-title">MEIO DE LOCOMOÇÃO</div>
             <table>
               <thead>
-                <tr><th>Tipo</th><th>Dias Utilizados</th><th>Quilometragem</th></tr>
+                <tr><th>Tipo</th><th>Utilizado</th><th>Km</th></tr>
               </thead>
               <tbody>
-                <tr><td>Carro Oficial</td><td>{transportMode === 'CO' ? fieldDays : 0}</td><td>-</td></tr>
-                <tr><td>Carro Próprio</td><td>{transportMode === 'CP' ? fieldDays : 0}</td><td>{totalKm || 0} km</td></tr>
+                <tr>
+                  <td>MPL - Meios Próprios de Locomoção</td>
+                  <td>{transportMode === 'MPL' ? '✓' : '-'}</td>
+                  <td>{transportMode === 'MPL' ? `${totalKm || 0} km` : '-'}</td>
+                </tr>
+                <tr>
+                  <td>CO - Carro Oficial</td>
+                  <td>{transportMode === 'CO' ? '✓' : '-'}</td>
+                  <td>{transportMode === 'CO' ? `${totalKm || 0} km` : '-'}</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -484,36 +570,23 @@ export default function MonthlyReport() {
           {/* Page Break */}
           <div className="page-break" />
 
-          {/* AÇÕES DIÁRIAS */}
-          <div className="text-center mb-6">
-            <div className="flex justify-center items-center gap-3 mb-2">
-              <img src={BRASAO_GOIANIA_SVG} alt="Brasão de Goiânia" className="h-12 w-auto" />
-              <img src={SUS_LOGO_SVG} alt="SUS" className="h-8 w-auto" />
-            </div>
-            <h2 className="text-xs text-gray-600">DESCRIÇÃO DETALHADA DAS AÇÕES DIÁRIAS</h2>
-          </div>
-
+          {/* Ações */}
           <div className="mb-6">
+            <div className="section-title">DESCRIÇÃO DAS AÇÕES DIÁRIAS</div>
             <table>
               <thead>
                 <tr>
                   <th>Dia</th>
                   <th>ML</th>
-                  <th>Tipo Ação</th>
-                  <th>Nível</th>
-                  <th>Grau</th>
                   <th>Descrição</th>
-                  <th>Doc. Emitido</th>
+                  <th>Doc.</th>
                 </tr>
               </thead>
               <tbody>
                 {dailyActions.map((action, idx) => (
                   <tr key={idx}>
                     <td>{action.day}</td>
-                    <td>{action.transport}</td>
-                    <td>{action.actionType}</td>
-                    <td>{action.level}</td>
-                    <td>{action.grade}</td>
+                    <td>{transportMode}</td>
                     <td>{action.establishment}</td>
                     <td>{action.document}</td>
                   </tr>
@@ -522,53 +595,12 @@ export default function MonthlyReport() {
             </table>
           </div>
 
-          {/* DESCRIÇÃO DAS AÇÕES */}
+          {/* Resumo */}
           <div className="mb-6">
-            <div className="section-title">DESCRIÇÃO RESUMIDA DAS AÇÕES REALIZADAS</div>
-            <p className="text-justify text-sm p-2">
-              Durante o mês de {months[selectedMonth - 1].toLowerCase()} de {selectedYear}, foram realizadas {totalDocuments} ordens de serviço conforme programação estabelecida pela coordenação. As atividades incluíram inspeções sanitárias em estabelecimentos, reinspecções para verificação de correções, emissão de certidões sanitárias, coletas de amostras para análise laboratorial, atendimentos a denúncias e orientações técnicas aos responsáveis. Todas as ações foram devidamente documentadas através de autos de infração, termos de reinspeção, pareceres técnicos e certidões, conforme anexos comprobatórios.
-            </p>
-          </div>
-
-          {/* DOCUMENTOS ANEXADOS - Bloco de comprovação completo */}
-          <div className="mb-6">
-            <div className="section-title">DOCUMENTAÇÃO COMPROBATÓRIA ANEXADA</div>
-            <p className="text-xs text-gray-600 mb-2 italic">
-              As peças fiscais abaixo relacionadas estão anexadas a este relatório como comprovação das atividades realizadas.
-            </p>
+            <div className="section-title">RESUMO DAS PEÇAS FISCAIS</div>
             <table>
               <thead>
-                <tr>
-                  <th style={{ width: '8%' }}>Nº</th>
-                  <th style={{ width: '12%' }}>Data</th>
-                  <th style={{ width: '25%' }}>Tipo de Documento</th>
-                  <th style={{ width: '20%' }}>Número</th>
-                  <th style={{ width: '35%' }}>Estabelecimento</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dailyActions.map((action, idx) => (
-                  <tr key={idx}>
-                    <td>{idx + 1}</td>
-                    <td>{action.day}/{selectedMonth.toString().padStart(2, '0')}</td>
-                    <td>{documentTypeLabels[action.documentType] || action.documentType}</td>
-                    <td>{action.document}</td>
-                    <td>{action.establishment}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="mt-2 text-xs text-gray-600">
-              <strong>Total de peças anexadas:</strong> {dailyActions.length} documentos
-            </div>
-          </div>
-
-          {/* RESUMO POR TIPO DE DOCUMENTO */}
-          <div className="mb-6">
-            <div className="section-title">RESUMO POR TIPO DE PEÇA FISCAL</div>
-            <table>
-              <thead>
-                <tr><th>Tipo de Documento</th><th>Quantidade</th></tr>
+                <tr><th>Tipo de Documento</th><th>Qtd</th></tr>
               </thead>
               <tbody>
                 {Object.entries(documentSummary).map(([key, value]) => {
@@ -588,25 +620,21 @@ export default function MonthlyReport() {
             </table>
           </div>
 
-          {/* ASSINATURA */}
+          {/* Assinatura */}
           <div className="mt-16 text-center">
             <div className="w-72 mx-auto">
               <div className="border-t border-black mb-2 mt-12" />
               <p className="font-bold">{profile?.full_name}</p>
               <p className="text-sm">Matrícula: {profile?.registration_number}</p>
-              <p className="text-xs text-gray-600">{profile?.division || 'Auditor Fiscal de Vigilância Sanitária'}</p>
+              <p className="text-xs text-gray-600">{profile?.division || 'Auditor Fiscal'}</p>
             </div>
           </div>
 
-          {/* FOOTER */}
           <div className="mt-10 border-t pt-2 text-xs">
-            <p><strong>NOTA:</strong> Eventualmente o número de OS executado poderá exceder o número de OS programado para fechamento de produção.</p>
-            <p><strong>1ª VIA:</strong> CAAIF | <strong>2ª VIA:</strong> DIVISÃO DE FISCALIZAÇÃO</p>
-            <p className="mt-2">Gerado em: {format(new Date(), 'dd/MM/yyyy')} | <strong>fiscaliz.app</strong> © {new Date().getFullYear()}</p>
+            <p>Gerado em: {format(new Date(), 'dd/MM/yyyy')} | <strong>fiscaliz.app</strong></p>
           </div>
         </div>
 
-        {/* Back button (hidden in print) */}
         <div className="no-print fixed bottom-4 right-4 flex gap-2">
           <Button variant="outline" onClick={() => setShowPDFPreview(false)}>
             Voltar
@@ -633,7 +661,7 @@ export default function MonthlyReport() {
           <CardContent className="p-4">
             <div className="flex gap-3">
               <div className="flex-1">
-                <Label>Mês</Label>
+                <Label>Mês de Referência</Label>
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
@@ -655,38 +683,321 @@ export default function MonthlyReport() {
                   className="mt-1"
                 />
               </div>
-              <div className="w-16">
-                <Label>Versão</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={reportVersion}
-                  onChange={(e) => setReportVersion(parseInt(e.target.value) || 1)}
-                  className="mt-1"
-                />
-              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Status Badge */}
         {isLocked && (
           <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 text-warning">
             <Lock className="h-4 w-4" />
-            <span className="text-sm font-medium">Relatório enviado e bloqueado para edição</span>
+            <span className="text-sm font-medium">Relatório enviado e bloqueado</span>
           </div>
         )}
 
-        <Tabs defaultValue="resumo" className="w-full">
+        <Tabs defaultValue="periodo" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="resumo">Resumo</TabsTrigger>
-            <TabsTrigger value="dados">Dados</TabsTrigger>
-            <TabsTrigger value="acoes">Ações</TabsTrigger>
-            <TabsTrigger value="documentos">Docs</TabsTrigger>
+            <TabsTrigger value="periodo" className="text-xs">Período</TabsTrigger>
+            <TabsTrigger value="os" className="text-xs">OS</TabsTrigger>
+            <TabsTrigger value="resumo" className="text-xs">Resumo</TabsTrigger>
+            <TabsTrigger value="acoes" className="text-xs">Ações</TabsTrigger>
           </TabsList>
           
+          {/* PERÍODO - Licenças e Afastamentos */}
+          <TabsContent value="periodo" className="space-y-4">
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Briefcase className="h-4 w-4" />
+                  Afastamentos no Período
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-xs text-muted-foreground">
+                  Selecione se houve algum afastamento durante o período:
+                </p>
+                
+                {licenseTypes.map((license) => (
+                  <div
+                    key={license.id}
+                    className={cn(
+                      'p-4 rounded-lg border-2 cursor-pointer transition-all',
+                      selectedLicenseType === license.id 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-muted hover:border-primary/50'
+                    )}
+                    onClick={() => !isLocked && handleLicenseSelect(license.id)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Checkbox 
+                        checked={selectedLicenseType === license.id}
+                        disabled={isLocked}
+                      />
+                      <span className="font-medium">{license.label}</span>
+                      {license.needsAttachment && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          Anexar
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    {selectedLicenseType === license.id && (
+                      <div className="mt-4 space-y-4 pl-7">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-xs">Data Início</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    'w-full justify-start text-left font-normal mt-1',
+                                    !licenseStartDate && 'text-muted-foreground'
+                                  )}
+                                  disabled={isLocked}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {licenseStartDate ? format(licenseStartDate, 'dd/MM/yyyy') : 'Selecionar'}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                  mode="single"
+                                  selected={licenseStartDate}
+                                  onSelect={setLicenseStartDate}
+                                  locale={ptBR}
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                          <div>
+                            <Label className="text-xs">Data Fim</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    'w-full justify-start text-left font-normal mt-1',
+                                    !licenseEndDate && 'text-muted-foreground'
+                                  )}
+                                  disabled={isLocked}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {licenseEndDate ? format(licenseEndDate, 'dd/MM/yyyy') : 'Selecionar'}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                  mode="single"
+                                  selected={licenseEndDate}
+                                  onSelect={setLicenseEndDate}
+                                  locale={ptBR}
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        </div>
+                        
+                        {license.needsAttachment && (
+                          <div>
+                            <Label className="text-xs">Anexar Atestado</Label>
+                            <div className="mt-1">
+                              {licenseAttachment ? (
+                                <div className="flex items-center gap-2 p-2 bg-success/10 rounded-lg">
+                                  <FileText className="h-4 w-4 text-success" />
+                                  <span className="text-xs text-success">Atestado anexado</span>
+                                </div>
+                              ) : (
+                                <label className="flex items-center gap-2 p-3 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary/50">
+                                  <Upload className="h-4 w-4 text-muted-foreground" />
+                                  <span className="text-xs text-muted-foreground">
+                                    Clique para anexar
+                                  </span>
+                                  <input
+                                    type="file"
+                                    accept="image/*,application/pdf"
+                                    className="hidden"
+                                    onChange={handleAttachmentUpload}
+                                    disabled={isLocked}
+                                  />
+                                </label>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* OS e Locomoção */}
+          <TabsContent value="os" className="space-y-4">
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Ordem de Serviço</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="osNumber">Número da OS</Label>
+                    <Input
+                      id="osNumber"
+                      value={osNumber}
+                      onChange={(e) => setOsNumber(e.target.value)}
+                      placeholder="Ex: 001/2026"
+                      disabled={isLocked}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="daysToWork">Dias a Cumprir</Label>
+                    <Input
+                      id="daysToWork"
+                      type="number"
+                      value={daysToWork}
+                      onChange={(e) => setDaysToWork(e.target.value)}
+                      disabled={isLocked}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="osProgrammed">OS Programadas</Label>
+                    <Input
+                      id="osProgrammed"
+                      type="number"
+                      value={osProgrammed}
+                      onChange={(e) => setOsProgrammed(e.target.value)}
+                      disabled={isLocked}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="pfeDays">Plantão Fiscal Especial</Label>
+                    <Input
+                      id="pfeDays"
+                      type="number"
+                      value={pfeDays}
+                      onChange={(e) => setPfeDays(e.target.value)}
+                      disabled={isLocked}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Car className="h-4 w-4" />
+                  Meio de Locomoção
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div
+                    className={cn(
+                      'p-4 rounded-lg border-2 cursor-pointer transition-all text-center',
+                      transportMode === 'MPL' 
+                        ? 'border-primary bg-primary/10' 
+                        : 'border-muted hover:border-primary/50'
+                    )}
+                    onClick={() => !isLocked && setTransportMode('MPL')}
+                  >
+                    <Car className={cn(
+                      'h-6 w-6 mx-auto mb-2',
+                      transportMode === 'MPL' ? 'text-primary' : 'text-muted-foreground'
+                    )} />
+                    <p className="font-medium text-sm">MPL</p>
+                    <p className="text-xs text-muted-foreground">Meios Próprios</p>
+                  </div>
+                  
+                  <div
+                    className={cn(
+                      'p-4 rounded-lg border-2 cursor-pointer transition-all text-center',
+                      transportMode === 'CO' 
+                        ? 'border-primary bg-primary/10' 
+                        : 'border-muted hover:border-primary/50'
+                    )}
+                    onClick={() => !isLocked && setTransportMode('CO')}
+                  >
+                    <Car className={cn(
+                      'h-6 w-6 mx-auto mb-2',
+                      transportMode === 'CO' ? 'text-primary' : 'text-muted-foreground'
+                    )} />
+                    <p className="font-medium text-sm">CO</p>
+                    <p className="text-xs text-muted-foreground">Carro Oficial</p>
+                  </div>
+                </div>
+                
+                {transportMode === 'MPL' && (
+                  <div>
+                    <Label htmlFor="totalKm">Quilometragem Total</Label>
+                    <Input
+                      id="totalKm"
+                      type="number"
+                      value={totalKm}
+                      onChange={(e) => setTotalKm(e.target.value)}
+                      placeholder="Km rodados"
+                      disabled={isLocked}
+                      className="mt-1"
+                    />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Escala de Trabalho</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label htmlFor="fieldDays" className="text-xs">Área</Label>
+                    <Input
+                      id="fieldDays"
+                      type="number"
+                      value={fieldDays}
+                      onChange={(e) => setFieldDays(e.target.value)}
+                      disabled={isLocked}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="internalDays" className="text-xs">Interna</Label>
+                    <Input
+                      id="internalDays"
+                      type="number"
+                      value={internalDays}
+                      onChange={(e) => setInternalDays(e.target.value)}
+                      disabled={isLocked}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="dutyDays" className="text-xs">Plantão</Label>
+                    <Input
+                      id="dutyDays"
+                      type="number"
+                      value={dutyDays}
+                      onChange={(e) => setDutyDays(e.target.value)}
+                      disabled={isLocked}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* Resumo */}
           <TabsContent value="resumo" className="space-y-4">
-            {/* Stats Overview */}
             <div className="grid grid-cols-2 gap-3">
               <Card className="border-0 shadow-sm">
                 <CardContent className="p-4">
@@ -696,7 +1007,7 @@ export default function MonthlyReport() {
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{totalDocuments}</p>
-                      <p className="text-xs text-muted-foreground">POS Executadas</p>
+                      <p className="text-xs text-muted-foreground">Peças Fiscais</p>
                     </div>
                   </div>
                 </CardContent>
@@ -706,11 +1017,11 @@ export default function MonthlyReport() {
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <div className="rounded-lg p-2 bg-info/10">
-                      <Calendar className="h-5 w-5 text-info" />
+                      <CalendarIcon className="h-5 w-5 text-info" />
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{fieldDays || 0}</p>
-                      <p className="text-xs text-muted-foreground">Dias em campo</p>
+                      <p className="text-xs text-muted-foreground">Dias em Campo</p>
                     </div>
                   </div>
                 </CardContent>
@@ -724,7 +1035,7 @@ export default function MonthlyReport() {
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{totalKm || 0}</p>
-                      <p className="text-xs text-muted-foreground">Km rodados</p>
+                      <p className="text-xs text-muted-foreground">Km ({transportMode})</p>
                     </div>
                   </div>
                 </CardContent>
@@ -737,15 +1048,14 @@ export default function MonthlyReport() {
                       <Clock className="h-5 w-5 text-warning" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">{dutyDays || 0}</p>
-                      <p className="text-xs text-muted-foreground">Dias plantão</p>
+                      <p className="text-2xl font-bold">{pfeDays || 0}</p>
+                      <p className="text-xs text-muted-foreground">Dias PFE</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Document Breakdown */}
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">Peças Fiscais Emitidas</CardTitle>
@@ -761,9 +1071,10 @@ export default function MonthlyReport() {
                   );
                 })}
                 {totalDocuments === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    Nenhum documento gerado neste período
-                  </p>
+                  <div className="flex flex-col items-center py-6 text-muted-foreground">
+                    <AlertCircle className="h-8 w-8 mb-2" />
+                    <p className="text-sm">Nenhuma peça fiscal neste período</p>
+                  </div>
                 )}
                 {totalDocuments > 0 && (
                   <div className="flex items-center justify-between py-2 border-t mt-2">
@@ -775,135 +1086,22 @@ export default function MonthlyReport() {
             </Card>
           </TabsContent>
           
-          <TabsContent value="dados" className="space-y-4">
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Escala de Trabalho</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="fieldDays">Fiscalização em Área</Label>
-                    <Input
-                      id="fieldDays"
-                      type="number"
-                      value={fieldDays}
-                      onChange={(e) => setFieldDays(e.target.value)}
-                      disabled={isLocked}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="internalDays">Ação Interna</Label>
-                    <Input
-                      id="internalDays"
-                      type="number"
-                      value={internalDays}
-                      onChange={(e) => setInternalDays(e.target.value)}
-                      disabled={isLocked}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="dutyDays">Plantão Fiscal</Label>
-                    <Input
-                      id="dutyDays"
-                      type="number"
-                      value={dutyDays}
-                      onChange={(e) => setDutyDays(e.target.value)}
-                      disabled={isLocked}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="specialDutyDays">Plantão Especial</Label>
-                    <Input
-                      id="specialDutyDays"
-                      type="number"
-                      value={specialDutyDays}
-                      onChange={(e) => setSpecialDutyDays(e.target.value)}
-                      disabled={isLocked}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">POS e Locomoção</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="posProgrammed">POS Programadas</Label>
-                    <Input
-                      id="posProgrammed"
-                      type="number"
-                      value={posProgrammed}
-                      onChange={(e) => setPosProgrammed(e.target.value)}
-                      disabled={isLocked}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="posExecuted">POS Executadas</Label>
-                    <Input
-                      id="posExecuted"
-                      type="number"
-                      value={posExecuted}
-                      disabled
-                      className="mt-1 bg-muted"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="transport">Locomoção</Label>
-                    <select
-                      id="transport"
-                      value={transportMode}
-                      onChange={(e) => setTransportMode(e.target.value)}
-                      disabled={isLocked}
-                      className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    >
-                      <option value="CP">Carro Próprio</option>
-                      <option value="CO">Carro Oficial</option>
-                      <option value="MPL">Moto Própria</option>
-                      <option value="TP">Transporte Público</option>
-                    </select>
-                  </div>
-                  <div>
-                    <Label htmlFor="totalKm">Km Rodados</Label>
-                    <Input
-                      id="totalKm"
-                      type="number"
-                      value={totalKm}
-                      onChange={(e) => setTotalKm(e.target.value)}
-                      disabled={isLocked}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
+          {/* Ações Diárias */}
           <TabsContent value="acoes" className="space-y-4">
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
                   <Building2 className="h-4 w-4" />
-                  Ações Diárias - {months[selectedMonth - 1]}/{selectedYear}
+                  Ações - {months[selectedMonth - 1]}/{selectedYear}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {dailyActions.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    Nenhuma ação registrada neste período
-                  </p>
+                  <div className="flex flex-col items-center py-8 text-muted-foreground">
+                    <FileText className="h-10 w-10 mb-3 opacity-40" />
+                    <p className="text-sm">Nenhuma ação registrada</p>
+                    <p className="text-xs mt-1">Crie peças fiscais para popular este relatório</p>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     {dailyActions.map((action, idx) => (
@@ -913,10 +1111,12 @@ export default function MonthlyReport() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{action.establishment}</p>
-                          <p className="text-xs text-muted-foreground">{action.actionType} • {action.document}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {documentTypeLabels[action.documentType] || action.documentType}
+                          </p>
                         </div>
-                        <Badge variant="outline" className="shrink-0">
-                          {action.level}{action.grade}
+                        <Badge variant="outline" className="text-xs">
+                          {transportMode}
                         </Badge>
                       </div>
                     ))}
@@ -925,63 +1125,41 @@ export default function MonthlyReport() {
               </CardContent>
             </Card>
           </TabsContent>
-          
-          <TabsContent value="documentos" className="space-y-4">
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Documentos - {months[selectedMonth - 1]}/{selectedYear}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {Object.entries(documentSummary).map(([key, value]) => (
-                  <div key={key} className="flex items-center justify-between py-2 border-b last:border-0">
-                    <span className="text-sm">
-                      {documentTypeLabels[key] || key.replace(/_/g, ' ')}
-                    </span>
-                    <span className={cn(
-                      'font-semibold',
-                      value > 0 ? 'text-primary' : 'text-muted-foreground'
-                    )}>{value}</span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
 
         {/* Action Buttons */}
-        <div className="space-y-3">
+        <div className="flex gap-3 pt-2">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={handleGeneratePDF}
+            disabled={loading}
+          >
+            <FileDown className="h-4 w-4 mr-2" />
+            PDF
+          </Button>
+          
           {!isLocked && (
-            <div className="flex gap-3">
-              <Button 
-                variant="outline" 
+            <>
+              <Button
+                variant="outline"
                 className="flex-1"
                 onClick={handleSave}
                 disabled={saving}
               >
-                <Edit3 className="mr-2 h-4 w-4" />
-                {saving ? 'Salvando...' : 'Salvar Rascunho'}
+                {saving ? 'Salvando...' : 'Salvar'}
               </Button>
-              <Button 
+              
+              <Button
                 className="flex-1"
                 onClick={handleSendReport}
-                disabled={saving}
+                disabled={!report?.id || saving}
               >
-                <Send className="mr-2 h-4 w-4" />
+                <Send className="h-4 w-4 mr-2" />
                 Enviar
               </Button>
-            </div>
+            </>
           )}
-          
-          <Button 
-            variant="secondary" 
-            className="w-full"
-            onClick={handleGeneratePDF}
-          >
-            <FileDown className="mr-2 h-4 w-4" />
-            Gerar PDF - {months[selectedMonth - 1]} v{reportVersion}
-          </Button>
         </div>
       </div>
     </AppLayout>
