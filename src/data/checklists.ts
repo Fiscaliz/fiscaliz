@@ -583,6 +583,316 @@ export const checklistTemplates: ChecklistTemplate[] = [
     ]
   },
   {
+    id: 'hipermercado',
+    name: 'Hipermercado / Grande Varejo',
+    description: 'Hipermercados, atacarejos e grandes redes varejistas de alimentos',
+    icon: 'ShoppingCart',
+    legislationBase: 'RDC 216/2004, Lei Municipal nº 8.741/08',
+    items: [
+      // GERAL (OBSERVAR EM TODO ESTABELECIMENTO)
+      { id: 'hip1', text: 'Providenciar fluxo linear e sem cruzamentos em todas as etapas (recepção, depósito, manipulação e entrega)', category: 'Geral', legislation: 'RDC 216/2004' },
+      { id: 'hip2', text: 'Impedir que áreas não afins sirvam de circulação entre elas (ex: entrada de sanitários passando pela manipulação)', category: 'Geral', legislation: 'RDC 216/2004' },
+      { id: 'hip3', text: 'Adequar capacidade e tamanho das áreas ao volume de produção e armazenamento', category: 'Geral', legislation: 'RDC 216/2004' },
+      { id: 'hip4', text: 'Identificar todas as áreas e salas do estabelecimento (exceto segurança)', category: 'Geral', legislation: 'RDC 216/2004' },
+      { id: 'hip5', text: 'Retirar todo material, objetos e equipamentos em desuso de todas as áreas', category: 'Geral', legislation: 'RDC 216/2004' },
+      { id: 'hip6', text: 'Suspender atividades quando o abastecimento de água for interrompido', category: 'Geral', legislation: 'RDC 216/2004' },
+      { id: 'hip7', text: 'Utilizar gás apenas por meio de central de gás com aprovação do corpo de bombeiros', category: 'Geral', legislation: 'Lei Estadual 20.498/2019' },
+      
+      // EDIFICAÇÕES E INSTALAÇÕES
+      { id: 'hip8', text: 'Reparar estrutura física (teto, piso e parede) com material liso, lavável, resistente e cor clara, sem buracos, descascamentos ou infiltrações', category: 'Edificações e Instalações', legislation: 'RDC 216/2004; LM 8741/08' },
+      { id: 'hip9', text: 'Embutir ou proteger toda instalação elétrica; não utilizar T ou extensões', category: 'Edificações e Instalações', legislation: 'RDC 216/2004; LM 8741/08' },
+      { id: 'hip10', text: 'Repor espelhos das tomadas faltando ou quebrados', category: 'Edificações e Instalações', legislation: 'RDC 216/2004' },
+      { id: 'hip11', text: 'Adequar sistema de ventilação de todos os ambientes; não permitir exaustão para ambientes fechados', category: 'Edificações e Instalações', legislation: 'RDC 216/2004' },
+      { id: 'hip12', text: 'Garantir conforto térmico com ventilação/exaustão/climatização adequados', category: 'Edificações e Instalações', legislation: 'RDC 216/2004' },
+      { id: 'hip13', text: 'Vedar caixas de gordura e esgoto; revisar sistema de esgoto (sifões, ralos com fechamento, canos)', category: 'Edificações e Instalações', legislation: 'RDC 216/2004' },
+      { id: 'hip14', text: 'Providenciar ralos com sistema de fechamento em todo o estabelecimento', category: 'Edificações e Instalações', legislation: 'RDC 216/2004' },
+      { id: 'hip15', text: 'Providenciar vestiário para funcionários com armário específico para objetos pessoais', category: 'Edificações e Instalações', legislation: 'RDC 216/2004' },
+      { id: 'hip16', text: 'Adequar iluminação em todos os ambientes; nas salas de manipulação simular luz do dia', category: 'Edificações e Instalações', legislation: 'RDC 216/2004' },
+      { id: 'hip17', text: 'Providenciar DML Geral com tanque, armários e prateleiras para guarda de materiais de limpeza setorizados', category: 'Edificações e Instalações', legislation: 'RDC 216/2004' },
+      
+      // EQUIPAMENTOS, MÓVEIS E UTENSÍLIOS
+      { id: 'hip18', text: 'Manter equipamentos, móveis e utensílios em perfeito estado de conservação (sem ferrugem, quebrados, borrachas com mofo)', category: 'Equipamentos, Móveis e Utensílios', legislation: 'RDC 216/2004' },
+      { id: 'hip19', text: 'Não utilizar caixas ou apoios inadequados; usar bancadas, estrados e prateleiras de material liso, lavável e impermeável', category: 'Equipamentos, Móveis e Utensílios', legislation: 'RDC 216/2004' },
+      { id: 'hip20', text: 'Providenciar local próprio para armazenar alimentos com prateleiras, armários e estrados, afastados de piso, paredes e fontes de calor', category: 'Equipamentos, Móveis e Utensílios', legislation: 'RDC 216/2004' },
+      { id: 'hip21', text: 'Providenciar local e suporte para utensílios (incluindo facas) e embalagens na sala de manipulação', category: 'Equipamentos, Móveis e Utensílios', legislation: 'RDC 216/2004' },
+      { id: 'hip22', text: 'Instalar lavatórios de mãos abastecidos com sabonete líquido e papel-toalha', category: 'Equipamentos, Móveis e Utensílios', legislation: 'RDC 216/2004' },
+      { id: 'hip23', text: 'Em áreas de manipulação, providenciar mínimo cuba para apoio e lavatório exclusivo para mãos com sabonete e papel toalha', category: 'Equipamentos, Móveis e Utensílios', legislation: 'RDC 216/2004' },
+      { id: 'hip24', text: 'Providenciar lixeiras com tampa acionada a pedal em quantidade adequada', category: 'Equipamentos, Móveis e Utensílios', legislation: 'RDC 216/2004' },
+      { id: 'hip25', text: 'Providenciar dispositivo frio para manter alimentos sob refrigeração', category: 'Equipamentos, Móveis e Utensílios', legislation: 'RDC 216/2004' },
+      { id: 'hip26', text: 'Providenciar bancadas de apoio em número suficiente', category: 'Equipamentos, Móveis e Utensílios', legislation: 'RDC 216/2004' },
+      { id: 'hip27', text: 'Instalar coifa e exaustor sobre chapa e fritadeira', category: 'Equipamentos, Móveis e Utensílios', legislation: 'RDC 216/2004' },
+      { id: 'hip28', text: 'Providenciar filtro de água que atenda a demanda', category: 'Equipamentos, Móveis e Utensílios', legislation: 'RDC 216/2004' },
+      { id: 'hip29', text: 'Utilizar equipamentos lisos, impermeáveis, laváveis e sem imperfeições que impossibilitem higienização', category: 'Equipamentos, Móveis e Utensílios', legislation: 'RDC 216/2004' },
+      { id: 'hip30', text: 'Não utilizar equipamentos e utensílios de madeira, porosos, esmaltados ou susceptíveis à oxidação', category: 'Equipamentos, Móveis e Utensílios', legislation: 'RDC 216/2004' },
+      { id: 'hip31', text: 'Organizar e identificar todos os ambientes estabelecendo suas funções', category: 'Equipamentos, Móveis e Utensílios', legislation: 'RDC 216/2004' },
+      { id: 'hip32', text: 'Realizar degelo e limpeza periódica em todos os equipamentos de refrigeração', category: 'Equipamentos, Móveis e Utensílios', legislation: 'RDC 216/2004' },
+      { id: 'hip33', text: 'Manter utensílios e materiais de limpeza dentro do DML, retirar apenas durante operações de limpeza', category: 'Equipamentos, Móveis e Utensílios', legislation: 'RDC 216/2004' },
+      { id: 'hip34', text: 'Providenciar portas de acesso à manipulação, depósitos e sanitários bem ajustadas com fechamento automático', category: 'Equipamentos, Móveis e Utensílios', legislation: 'RDC 216/2004' },
+      { id: 'hip35', text: 'Instalar telas milimétricas em todas as aberturas (exaustores e janelas) de manipulação e depósito', category: 'Equipamentos, Móveis e Utensílios', legislation: 'RDC 216/2004' },
+      { id: 'hip36', text: 'Identificar bancadas, cubas e lavatórios com Instrução de trabalho (como lavar mãos, higienização de hortifruti)', category: 'Equipamentos, Móveis e Utensílios', legislation: 'RDC 216/2004' },
+      { id: 'hip37', text: 'Providenciar termômetro calibrado para aferição de temperatura', category: 'Equipamentos, Móveis e Utensílios', legislation: 'RDC 216/2004' },
+      { id: 'hip38', text: 'Providenciar área específica de higienização de hortifruti com Instrução de trabalho', category: 'Equipamentos, Móveis e Utensílios', legislation: 'RDC 216/2004' },
+      { id: 'hip39', text: 'Providenciar locais adequados para Instruções de Trabalhos e Planilhas nas áreas de manipulação e atendimento', category: 'Equipamentos, Móveis e Utensílios', legislation: 'RDC 216/2004' },
+      
+      // HIGIENIZAÇÃO DE INSTALAÇÕES, EQUIPAMENTOS, MÓVEIS E UTENSÍLIOS
+      { id: 'hip40', text: 'Realizar limpeza rigorosa de todos os utensílios, móveis, equipamentos e estrutura física', category: 'Higienização', legislation: 'RDC 216/2004' },
+      { id: 'hip41', text: 'Adequar periodicidade e métodos de higienização compatíveis com processos de produção', category: 'Higienização', legislation: 'RDC 216/2004' },
+      { id: 'hip42', text: 'Desincrustar fogão, panelas e formas', category: 'Higienização', legislation: 'RDC 216/2004' },
+      { id: 'hip43', text: 'Manter exaustores limpos periodicamente com tela milimétrica no acesso superior', category: 'Higienização', legislation: 'RDC 216/2004' },
+      { id: 'hip44', text: 'Identificar e armazenar produtos de limpeza em local específico, separados da produção e alimentos', category: 'Higienização', legislation: 'RDC 216/2004' },
+      { id: 'hip45', text: 'Utilizar produtos regularizados na ANVISA e adequados para superfícies em contato com alimentos', category: 'Higienização', legislation: 'RDC 216/2004' },
+      { id: 'hip46', text: 'Não varrer a seco', category: 'Higienização', legislation: 'RDC 216/2004' },
+      { id: 'hip47', text: 'Higienizar material de limpeza em local distinto da manipulação de alimentos', category: 'Higienização', legislation: 'RDC 216/2004' },
+      { id: 'hip48', text: 'Não utilizar panos não descartáveis na higienização e secagem de utensílios que tenham contato com alimentos', category: 'Higienização', legislation: 'RDC 216/2004' },
+      { id: 'hip49', text: 'Desmontar equipamentos sempre que possível para facilitar limpeza', category: 'Higienização', legislation: 'RDC 216/2004' },
+      
+      // RECEBIMENTO
+      { id: 'hip50', text: 'Receber/descarregar alimentos em área protegida de chuva, sol, limpa, iluminada e livre de pragas', category: 'Recebimento', legislation: 'RDC 216/2004' },
+      { id: 'hip51', text: 'Observar uniforme limpo do entregador', category: 'Recebimento', legislation: 'RDC 216/2004' },
+      { id: 'hip52', text: 'Utilizar estrados de material lavável para suporte na chegada dos alimentos', category: 'Recebimento', legislation: 'RDC 216/2004' },
+      { id: 'hip53', text: 'Verificar temperatura do alimento conforme recomendado no rótulo', category: 'Recebimento', legislation: 'RDC 216/2004' },
+      { id: 'hip54', text: 'Rejeitar alimento com prazo de validade vencido, sinais de dano ou deterioração', category: 'Recebimento', legislation: 'RDC 216/2004; LM 8741/08' },
+      { id: 'hip55', text: 'Exigir matérias-primas e ingredientes regularizados, com embalagem íntegra e sem sinais de deterioração', category: 'Recebimento', legislation: 'RDC 216/2004' },
+      
+      // ARMAZENAGEM - ESTOQUE SECO
+      { id: 'hip56', text: 'Manter estoque seco arejado, sem umidade ou calor excessivo', category: 'Armazenagem - Estoque Seco', legislation: 'RDC 216/2004' },
+      { id: 'hip57', text: 'Manter estoque limpo, livre de entulhos e materiais em desuso', category: 'Armazenagem - Estoque Seco', legislation: 'RDC 216/2004' },
+      { id: 'hip58', text: 'Colocar alimentos nas prateleiras de forma organizada, separados por grupos, respeitando empilhamento máximo', category: 'Armazenagem - Estoque Seco', legislation: 'RDC 216/2004' },
+      { id: 'hip59', text: 'Dispor alimentos sobre estrados afastados do piso e paredes', category: 'Armazenagem - Estoque Seco', legislation: 'RDC 216/2004' },
+      { id: 'hip60', text: 'Utilizar prateleiras de material liso, resistente e de fácil limpeza', category: 'Armazenagem - Estoque Seco', legislation: 'RDC 216/2004' },
+      
+      // ARMAZENAGEM - REFRIGERAÇÃO/CONGELAMENTO
+      { id: 'hip61', text: 'Dispor alimentos no equipamento permitindo circulação do ar, distantes entre si e das paredes, sem superlotação', category: 'Armazenagem - Refrigeração', legislation: 'RDC 216/2004' },
+      { id: 'hip62', text: 'Utilizar plástico transparente de uso único para proteger alimentos; não utilizar sacola de supermercado ou material reciclado', category: 'Armazenagem - Refrigeração', legislation: 'RDC 216/2004' },
+      { id: 'hip63', text: 'Distribuir alimentos evitando contaminação cruzada (superior: carnes; intermediário: leite, frios; inferior: frutas, verduras)', category: 'Armazenagem - Refrigeração', legislation: 'RDC 216/2004' },
+      { id: 'hip64', text: 'Controlar periodicamente a temperatura dos alimentos armazenados, registrando em planilhas', category: 'Armazenagem - Refrigeração', legislation: 'RDC 216/2004' },
+      { id: 'hip65', text: 'Não armazenar perecíveis em cubas ou gavetas sem controle de temperatura', category: 'Armazenagem - Refrigeração', legislation: 'RDC 216/2004' },
+      
+      // ARMAZENAGEM - GERAL
+      { id: 'hip66', text: 'Separar e identificar produtos não conformes (vencidos, devolvidos, deteriorados) até destinação', category: 'Armazenagem - Geral', legislation: 'RDC 216/2004' },
+      { id: 'hip67', text: 'Ao transferir alimento para outro recipiente, identificar com nome, marca, lote, data de abertura e nova validade', category: 'Armazenagem - Geral', legislation: 'RDC 216/2004' },
+      { id: 'hip68', text: 'Identificar produtos após abertura com data e nova validade', category: 'Armazenagem - Geral', legislation: 'RDC 216/2004' },
+      { id: 'hip69', text: 'Conservar industrializados conforme recomendação do fabricante', category: 'Armazenagem - Geral', legislation: 'RDC 216/2004' },
+      { id: 'hip70', text: 'Fechar adequadamente alimentos não utilizados em sua totalidade, identificando após abertura', category: 'Armazenagem - Geral', legislation: 'RDC 216/2004' },
+      { id: 'hip71', text: 'Identificar alimentos produzidos no local com data de produção e validade', category: 'Armazenagem - Geral', legislation: 'RDC 216/2004' },
+      { id: 'hip72', text: 'Controlar validade dos produtos de acordo com legislação específica', category: 'Armazenagem - Geral', legislation: 'RDC 216/2004' },
+      { id: 'hip73', text: 'Organizar armários e freezers; não deixar alimento desprovido de proteção', category: 'Armazenagem - Geral', legislation: 'RDC 216/2004' },
+      { id: 'hip74', text: 'Manter rotulagem conforme legislação para alimentos produzidos e fracionados no local (RDC 727/2022)', category: 'Armazenagem - Geral', legislation: 'RDC 727/2022' },
+      
+      // PREPARAÇÃO
+      { id: 'hip75', text: 'Descongelar produtos em geladeira (inferior a 5°C) quando necessário', category: 'Preparação', legislation: 'RDC 216/2004' },
+      { id: 'hip76', text: 'Limpar embalagens impermeáveis antes de abrir, utilizando água corrente potável', category: 'Preparação', legislation: 'RDC 216/2004' },
+      { id: 'hip77', text: 'Lavar e higienizar frutas, verduras e hortaliças com solução clorada específica e dosada para alimentos', category: 'Preparação', legislation: 'RDC 216/2004' },
+      { id: 'hip78', text: 'Produzir suco com água e gelo potável', category: 'Preparação', legislation: 'RDC 216/2004' },
+      { id: 'hip79', text: 'Manter descrição do procedimento de higienização de frutas e verduras disponível para autoridade sanitária', category: 'Preparação', legislation: 'RDC 216/2004' },
+      { id: 'hip80', text: 'Seguir recomendações do fabricante para desinfecção de frutas, verduras e legumes', category: 'Preparação', legislation: 'RDC 216/2004' },
+      { id: 'hip81', text: 'Disponibilizar molhos e condimentos em porções individuais (sachês ou bisnagas de uso único)', category: 'Preparação', legislation: 'RDC 216/2004' },
+      { id: 'hip82', text: 'Identificar molhos produzidos no local com data de produção e validade em pequenos copos com tampa', category: 'Preparação', legislation: 'RDC 216/2004' },
+      { id: 'hip83', text: 'Conservar molhos em temperatura de refrigeração (até 5°C) após fracionamento ou produção', category: 'Preparação', legislation: 'RDC 216/2004' },
+      { id: 'hip84', text: 'Utilizar maionese com ovos liofilizados ou pasteurizados, nunca ovos crus', category: 'Preparação', legislation: 'RDC 216/2004' },
+      { id: 'hip85', text: 'Comprovar procedência de todo alimento', category: 'Preparação', legislation: 'RDC 216/2004' },
+      { id: 'hip86', text: 'Monitorar temperatura de perecíveis em todas as etapas de manipulação', category: 'Preparação', legislation: 'RDC 216/2004' },
+      
+      // OVOS
+      { id: 'hip87', text: 'Armazenar ovos preferencialmente sob refrigeração ou afastados de fontes de calor', category: 'Ovos', legislation: 'RDC 216/2004' },
+      { id: 'hip88', text: 'Etiquetar ovos retirados da embalagem original com data de produção, validade e procedência', category: 'Ovos', legislation: 'RDC 216/2004' },
+      { id: 'hip89', text: 'Não utilizar ovos com casca rachada ou suja', category: 'Ovos', legislation: 'RDC 216/2004' },
+      { id: 'hip90', text: 'Não lavar os ovos', category: 'Ovos', legislation: 'RDC 216/2004' },
+      { id: 'hip91', text: 'Manipular ovos de forma que o conteúdo não entre em contato com a superfície externa da casca', category: 'Ovos', legislation: 'RDC 216/2004' },
+      { id: 'hip92', text: 'Não utilizar ovos crus ou mal cozidos em preparações; usar ovos pasteurizados, desidratados ou cozidos', category: 'Ovos', legislation: 'RDC 216/2004' },
+      { id: 'hip93', text: 'Preparar ovos fritos com gema dura', category: 'Ovos', legislation: 'RDC 216/2004' },
+      { id: 'hip94', text: 'Verificar instrução de armazenamento para ovos líquidos e em pó industrializados', category: 'Ovos', legislation: 'RDC 216/2004' },
+      
+      // FINALIZAÇÃO
+      { id: 'hip95', text: 'Realizar finalização após solicitação do cliente, entregando imediatamente após término', category: 'Finalização', legislation: 'RDC 216/2004' },
+      { id: 'hip96', text: 'Cozinhar, assar, grelhar ou fritar todos os alimentos adequadamente (temperatura de cocção mínima 74°C)', category: 'Finalização', legislation: 'RDC 216/2004' },
+      { id: 'hip97', text: 'Manter alimentos quentes acima de 60°C', category: 'Finalização', legislation: 'RDC 216/2004' },
+      { id: 'hip98', text: 'Reutilizar óleo apenas quando não apresentar escurecimento, alteração de cheiro, espuma ou fumaça; não aquecer acima de 180°C', category: 'Finalização', legislation: 'RDC 216/2004' },
+      
+      // PESSOAL: HIGIENE, CONTROLE DE SAÚDE E CAPACITAÇÃO
+      { id: 'hip99', text: 'Manter manipuladores com asseio pessoal (banho diário, unhas curtas, limpas, sem esmalte) e uniformizados', category: 'Pessoal', legislation: 'RDC 216/2004' },
+      { id: 'hip100', text: 'Proibir uso de adornos pessoais durante manipulação (colares, pulseiras, brincos, piercing, relógio, anéis, alianças)', category: 'Pessoal', legislation: 'RDC 216/2004' },
+      { id: 'hip101', text: 'Exigir lavagem frequente das mãos, especialmente antes do trabalho, após uso do sanitário e manipulação de material contaminado', category: 'Pessoal', legislation: 'RDC 216/2004' },
+      { id: 'hip102', text: 'Proibir atos que originem contaminação nas áreas de manipulação (comer, fumar, tossir, uso de celular)', category: 'Pessoal', legislation: 'RDC 216/2004' },
+      { id: 'hip103', text: 'Fornecer uniformes limpos, trocados diariamente (calça, camisa, avental sem bolsos acima da cintura, touca/rede, sapato fechado)', category: 'Pessoal', legislation: 'RDC 216/2004' },
+      { id: 'hip104', text: 'Não utilizar avental plástico próximo a fontes de calor; não carregar objetos pessoais no uniforme', category: 'Pessoal', legislation: 'RDC 216/2004' },
+      { id: 'hip105', text: 'Afastar funcionários com diarreia, infecções pulmonares ou faringites da manipulação de alimentos', category: 'Pessoal', legislation: 'RDC 216/2004' },
+      { id: 'hip106', text: 'Impedir manipulador com cortes ou lesões de manipular alimentos, exceto se protegidos com curativo impermeável', category: 'Pessoal', legislation: 'RDC 216/2004' },
+      { id: 'hip107', text: 'Adequar sanitários com tampa nos vasos, lixeiras com tampa e pedal, ventilação adequada', category: 'Pessoal', legislation: 'RDC 216/2004' },
+      
+      // LIXO E ÁREA EXTERNA
+      { id: 'hip108', text: 'Providenciar containers com tampa em quantidade adequada, limpos, com lixo em sacos plásticos fechados', category: 'Lixo', legislation: 'RDC 216/2004' },
+      { id: 'hip109', text: 'Armazenar lixo reciclado adequadamente', category: 'Lixo', legislation: 'RDC 216/2004' },
+      { id: 'hip110', text: 'Manter área externa limpa, sem mato', category: 'Área Externa', legislation: 'RDC 216/2004' },
+    ]
+  },
+  {
+    id: 'restaurante_analise_risco',
+    name: 'Restaurante por Análise de Risco',
+    description: 'Restaurantes e similares com classificação por análise de risco (I-Imprescindível, N-Necessário, R-Recomendável)',
+    icon: 'ClipboardCheck',
+    legislationBase: 'Portaria SMS-G n°2619/11 (SP) adaptada à legislação municipal',
+    items: [
+      // RECEBIMENTO/COMPRA
+      { id: 'rar1', text: '[R] Exigir matérias-primas e produtos industrializados de empresas licenciadas pelos órgãos de vigilância sanitária', category: 'Recebimento/Compra', legislation: 'Portaria SMS-G 2619/11 Subitem 5.7 IV' },
+      { id: 'rar2', text: '[N] Verificar nos produtos adquiridos: validade, denominação de venda, lista de ingredientes, conteúdo líquido, lote, registro, características sensoriais e integridade das embalagens', category: 'Recebimento/Compra', legislation: 'Portaria SMS-G 2619/11 Subitem 5.7 I a IV, VIII e IX' },
+      { id: 'rar3', text: '[N] Exigir que entregadores usem uniformes limpos', category: 'Recebimento/Compra', legislation: 'Portaria SMS-G 2619/11 Subitem 5.6' },
+      { id: 'rar4', text: '[N] Exigir que carnes/pescados sejam transportados em veículos limpos, fechados e refrigerados', category: 'Recebimento/Compra', legislation: 'Portaria SMS-G 2619/11 Sub-itens 5.6, 10.5, 10.8' },
+      { id: 'rar5', text: '[N] Exigir que demais alimentos sejam transportados em veículos limpos, fechados e/ou refrigerados quando necessário', category: 'Recebimento/Compra', legislation: 'Portaria SMS-G 2619/11 Subitem 5.6, 10.5, 10.8' },
+      { id: 'rar6', text: '[I] Verificar temperaturas no recebimento: pescado +3ºC; carnes +7°C; refrigerados +10°C; congelados –12ºC', category: 'Recebimento/Compra', legislation: 'Portaria SMS-G 2619/11 Subitem 5.7 VI' },
+      
+      // ARMAZENAMENTO
+      { id: 'rar7', text: '[N] Armazenar produtos sobre estrados/paletes, em local exclusivo, limpo, arejado, protegido de pragas e organizado (PEPS/PVPS)', category: 'Armazenamento', legislation: 'Portaria SMS-G 2619/11 Subitem 6.1 VII, IX' },
+      { id: 'rar8', text: '[N] Manter embalagens de industrializados íntegras e com identificação/rótulo visível', category: 'Armazenamento', legislation: 'Portaria SMS-G 2619/11 Subitem 6.1 VIII' },
+      { id: 'rar9', text: '[N] Armazenar produtos de limpeza separados dos alimentos', category: 'Armazenamento', legislation: 'Portaria SMS-G 2619/11 Subitem 6.1 III' },
+      { id: 'rar10', text: '[I] Armazenar perecíveis em equipamento refrigerado (carnes: 4°C; pescados: 2°C; hortifruti: 10°C; congelados: -18°C ou conforme fabricante)', category: 'Armazenamento', legislation: 'Portaria SMS-G 2619/11 Subitem 6.29, 6.30' },
+      
+      // GELADEIRA/FREEZER
+      { id: 'rar11', text: '[N] Instalar geladeira e freezer longe de fontes de calor (forno, fogão)', category: 'Geladeira/Freezer', legislation: 'Portaria SMS-G 2619/11 Subitem 3.18' },
+      { id: 'rar12', text: '[N] Manter geladeira e freezer em bom estado de conservação', category: 'Geladeira/Freezer', legislation: 'Portaria SMS-G 2619/11 Subitens 3.1' },
+      { id: 'rar13', text: '[N] Manter espessura do gelo inferior a 1 cm', category: 'Geladeira/Freezer', legislation: 'Portaria SMS-G 2619/11 Subitem 6.32' },
+      { id: 'rar14', text: '[N] Manter geladeira e freezer limpos e organizados, com produtos separados por categorias', category: 'Geladeira/Freezer', legislation: 'Portaria SMS-G 2619/11 Subitens 6.14' },
+      { id: 'rar15', text: '[I] Regular freezer para manter congelados a -18°C ou conforme fabricante', category: 'Geladeira/Freezer', legislation: 'Portaria SMS-G 2619/11 Subitem 6.29' },
+      
+      // CÂMARA FRIA
+      { id: 'rar16', text: '[N] Revestir câmara fria com material liso, resistente e impermeável, livre de ralos, grelhas, gotejamento', category: 'Câmara Fria', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar17', text: '[N] Vedar porta da câmara fria e providenciar dispositivo de segurança para abertura interna', category: 'Câmara Fria', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar18', text: '[N] Instalar termômetro no lado externo indicando temperatura interna da câmara', category: 'Câmara Fria', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar19', text: '[I] Armazenar carnes/pescado em câmara fria adequadamente (carnes: +4°C; pescado: +2°C ou congelados a -18°C)', category: 'Câmara Fria', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar20', text: '[I] Armazenar hortifruti e outros produtos em temperatura adequada (até +10°C ou conforme fabricante), registrando em planilhas', category: 'Câmara Fria', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar21', text: '[N] Providenciar estrado de material de fácil limpeza, liso, resistente e impermeável', category: 'Câmara Fria', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar22', text: '[N] Adequar periodicidade e procedimentos de higienização', category: 'Câmara Fria', legislation: 'Portaria SMS-G 2619/11' },
+      
+      // CONTROLE DE QUALIDADE
+      { id: 'rar23', text: '[N] Monitorar e registrar diariamente temperatura de equipamentos de frio e térmicos', category: 'Controle de Qualidade', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar24', text: '[N] Não utilizar alimentos com prazo de validade vencido', category: 'Controle de Qualidade', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar25', text: '[N] Identificar e separar produtos para devolução', category: 'Controle de Qualidade', legislation: 'Portaria SMS-G 2619/11' },
+      
+      // EQUIPAMENTOS
+      { id: 'rar26', text: '[N] Providenciar número de equipamentos e mobiliário compatível com o volume de produção', category: 'Equipamentos', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar27', text: '[N] Limpar e desinfetar equipamentos/utensílios em contato com alimentos contaminados antes de contato com prontos para consumo', category: 'Equipamentos', legislation: 'Portaria SMS-G 2619/11 Subitem 4.9, 7.7, 7.8' },
+      { id: 'rar28', text: '[N] Calibrar equipamentos de medição (balanças, termômetros) por empresa qualificada, mantendo registros', category: 'Equipamentos', legislation: 'Portaria SMS-G 2619/11 Subitem 3.4' },
+      { id: 'rar29', text: '[N] Revestir equipamentos com material sanitário atóxico, mantendo conservados, limpos e desinfetados', category: 'Equipamentos', legislation: 'Portaria SMS-G 2619/11 Subitens 3.7 e 3.20' },
+      { id: 'rar30', text: '[N] Manter mesas, bancadas, armários, pias, cubas e tanques revestidos de material sanitário, conservados e limpos', category: 'Equipamentos', legislation: 'Portaria SMS-G 2619/11 Subitem 3.5' },
+      
+      // LIMPEZA E DESINFECÇÃO
+      { id: 'rar31', text: '[N] Adequar periodicidade e procedimentos de higienização', category: 'Limpeza e Desinfecção', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar32', text: '[N] Manter ambiente interno e externo, equipamentos e utensílios organizados, limpos e desinfetados', category: 'Limpeza e Desinfecção', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar33', text: '[N] Utilizar produtos de higienização registrados no Ministério da Saúde', category: 'Limpeza e Desinfecção', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar34', text: '[N] Realizar etapa de higienização em área própria ou de forma a evitar contaminação cruzada', category: 'Limpeza e Desinfecção', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar35', text: '[N] Manter utensílios limpos, sem pontos escuros ou amassamentos', category: 'Limpeza e Desinfecção', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar36', text: '[N] Limpar e desinfetar utensílios a cada uso', category: 'Limpeza e Desinfecção', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar37', text: '[N] Remover caixas de madeira ou papelão da área de manipulação', category: 'Limpeza e Desinfecção', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar38', text: '[N] Manter embalagens dos ingredientes fechadas, limpas e adequadamente armazenadas', category: 'Limpeza e Desinfecção', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar39', text: '[N] Não utilizar panos convencionais ou de prato para secagem de mãos e utensílios', category: 'Limpeza e Desinfecção', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar40', text: '[N] Não utilizar escovas de metal, lã de aço ou materiais abrasivos na limpeza de equipamentos', category: 'Limpeza e Desinfecção', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar41', text: '[N] Lavar uniformes e panos de limpeza fora da área de produção', category: 'Limpeza e Desinfecção', legislation: 'Portaria SMS-G 2619/11' },
+      
+      // MANIPULAÇÃO
+      { id: 'rar42', text: '[N] Realizar manipulação sem cruzamento de atividades; separar área suja da área limpa por barreira física ou técnica', category: 'Manipulação', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar43', text: '[I] Manipular perecíveis em temperatura ambiente respeitando prazo máximo de 30 minutos', category: 'Manipulação', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar44', text: '[I] Atingir temperatura mínima de 70ºC no centro geométrico durante cocção', category: 'Manipulação', legislation: 'Portaria SMS-G 2619/11 Subitem 7.15, 7.16' },
+      { id: 'rar45', text: '[N] Efetuar descongelamento em temperatura inferior a 5°C ou em micro-ondas quando for submetido imediatamente a cocção', category: 'Manipulação', legislation: 'Portaria SMS-G 2619/11 Subitem 7.17' },
+      { id: 'rar46', text: '[N] Não recongelar alimentos descongelados', category: 'Manipulação', legislation: 'Portaria SMS-G 2619/11 Subitem 7.19' },
+      { id: 'rar47', text: '[I] Manter óleo de fritura sem alteração de cor, odor ou espuma (160°C a 180°C, tolerância até 190°C); armazenar adequadamente', category: 'Manipulação', legislation: 'Portaria SMS-G 2619/11 Subitem 7.24' },
+      { id: 'rar48', text: '[N] Acondicionar resíduos de óleo em recipientes rígidos, fechados, fora da produção', category: 'Manipulação', legislation: 'Portaria SMS-G 2619/11 Subitens 13.8, 13.9' },
+      { id: 'rar49', text: '[N] Lavar e desinfetar frutas, legumes e verduras com produtos registrados no MS', category: 'Manipulação', legislation: 'Portaria SMS-G 2619/11 Subitem 7.11' },
+      { id: 'rar50', text: '[N] Fechar adequadamente embalagens após uso e armazenar conforme fabricante', category: 'Manipulação', legislation: 'Portaria SMS-G 2619/11 Subitens 6.8, 6.9' },
+      { id: 'rar51', text: '[N] Utilizar ovos pasteurizados, desidratados ou cozidos em preparações que necessitem de ovos', category: 'Manipulação', legislation: 'Portaria SMS-G 2619/11 Subitem 7.27 III' },
+      { id: 'rar52', text: '[N] Descartar ou separar e identificar produtos vencidos para troca', category: 'Manipulação', legislation: 'Portaria SMS-G 2619/11 Subitens 6.1.2' },
+      { id: 'rar53', text: '[I] Manter preparações quentes em distribuição à temperatura mínima de 60ºC por até 6 horas ou abaixo de 60ºC por até 1 hora', category: 'Manipulação', legislation: 'Portaria SMS-G 2619/11 Subitem 9.24 I' },
+      { id: 'rar54', text: '[I] Manter alimentos frios no máximo a 10°C por 4 horas ou entre 10°C e 21°C por 2 horas', category: 'Manipulação', legislation: 'Portaria SMS-G 2619/11 Subitem 9.24 II' },
+      { id: 'rar55', text: '[N] Reaquecer sobras aproveitadas à temperatura mínima de 70°C', category: 'Manipulação', legislation: 'Portaria SMS-G 2619/11 Subitem 7.28' },
+      { id: 'rar56', text: '[N] Identificar produtos preparados/fracionados na presença do consumidor com nome, quantidade, ingredientes, preço e validade', category: 'Manipulação', legislation: 'Portaria SMS-G 2619/11 Subitem 8.2.2' },
+      { id: 'rar57', text: '[N] Guardar amostras das preparações confeccionadas por 96 horas', category: 'Manipulação', legislation: 'Portaria SMS-G 2619/11 Subitem 14.5.2' },
+      
+      // ÁREA DE VENDA
+      { id: 'rar58', text: '[N] Proteger alimentos expostos à venda contra poeira, pragas e contaminações externas', category: 'Área de Venda', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar59', text: '[N] Retirar diariamente produtos vencidos da área de venda', category: 'Área de Venda', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar60', text: '[N] Acondicionar sobras de produtos fracionados em embalagens adequadas com informações do rótulo original', category: 'Área de Venda', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar61', text: '[I] Manter balcão térmico limpo com água tratada, trocada diariamente, à temperatura de 80 a 90ºC', category: 'Área de Venda', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar62', text: '[N] Providenciar lacre ou selo nas embalagens de produtos para delivery garantindo inviolabilidade', category: 'Área de Venda', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar63', text: '[N] Afixar cartaz sobre proibição de venda de bebida alcoólica para menores de 18 anos', category: 'Área de Venda', legislation: 'Portaria SMS-G 2619/11' },
+      
+      // ÁGUA
+      { id: 'rar64', text: '[N] Manter reservatório com superfície lisa, sem rachaduras, com tampa íntegra impedindo acesso de animais', category: 'Água', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar65', text: '[I] Lavar e desinfetar reservatórios no mínimo a cada 6 meses', category: 'Água', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar66', text: '[N] Providenciar licença de outorga para exploração de água de poço', category: 'Água', legislation: 'Portaria SMS-G 2619/11' },
+      { id: 'rar67', text: '[N] Tratar água de fonte alternativa e apresentar laudo de análise laboratorial', category: 'Água', legislation: 'Portaria SMS-G 2619/11 Subitem 11.8.1' },
+      { id: 'rar68', text: '[N] Apresentar cópia da análise de cloro residual livre de cada carga de água transportada por caminhão pipa e nota fiscal', category: 'Água', legislation: 'Portaria SMS-G 2619/11 Subitem 11.12' },
+      { id: 'rar69', text: '[I] Produzir gelo com água potável ou utilizar gelo industrializado embalado e rotulado', category: 'Água', legislation: 'Portaria SMS-G 2619/11 Subitem 11.3, 11.4' },
+      
+      // RESÍDUOS
+      { id: 'rar70', text: '[N] Acondicionar lixo em sacos plásticos separados (seco e orgânico) em recipientes com tampa acionada por pedal', category: 'Resíduos', legislation: 'Portaria SMS-G 2619/11 Subitem 13.2' },
+      { id: 'rar71', text: '[N] Manter recipientes de fácil limpeza e lavá-los quando necessário', category: 'Resíduos', legislation: 'Portaria SMS-G 2619/11 Subitens 2.2.2' },
+      { id: 'rar72', text: '[N] Retirar lixo da área de manipulação pelo menos 1 vez ao dia', category: 'Resíduos', legislation: 'Portaria SMS-G 2619/11 Subitem 13.2' },
+      { id: 'rar73', text: '[N] Providenciar local próprio e adequado para armazenamento externo do lixo, protegido de chuva, sol, animais e pragas', category: 'Resíduos', legislation: 'Portaria SMS-G 2619/11 Subitem 2.2.1' },
+      { id: 'rar74', text: '[N] Acondicionar lixo na via pública impedindo vazamentos e odores', category: 'Resíduos', legislation: 'Portaria SMS-G 2619/11 Subitem 13.1' },
+      
+      // CONTROLE INTEGRADO DE PRAGAS
+      { id: 'rar75', text: '[N] Proteger janelas, portas e aberturas com telas milimétricas de 2mm', category: 'Controle de Pragas', legislation: 'Portaria SMS-G 2619/11 Subitem 24.9, 2.4.8' },
+      { id: 'rar76', text: '[N] Sifonar e fechar ralos e grelhas', category: 'Controle de Pragas', legislation: 'Portaria SMS-G 2619/11 Subitem 2.3.3' },
+      { id: 'rar77', text: '[N] Ajustar portas aos batentes com proteção inferior contra insetos e roedores e mola', category: 'Controle de Pragas', legislation: 'Portaria SMS-G 2619/11 Subitem 2.4.8' },
+      { id: 'rar78', text: '[N] Contratar empresa credenciada para aplicação de desinfestantes', category: 'Controle de Pragas', legislation: 'Portaria SMS-G 2619/11 Subitem 12.4.2' },
+      { id: 'rar79', text: '[N] Apresentar proposta da empresa contratada com medidas preventivas e relatório técnico', category: 'Controle de Pragas', legislation: 'Portaria SMS-G 2619/11 Subitem 12.4.1' },
+      { id: 'rar80', text: '[N] Apresentar certificado de execução do serviço com produtos utilizados, métodos, registro MS e responsável técnico', category: 'Controle de Pragas', legislation: 'Portaria SMS-G 2619/11 Subitem 17.3 XXIII' },
+      
+      // INSTALAÇÕES/EDIFICAÇÃO
+      { id: 'rar81', text: '[N] Manter acesso livre, independente e sem comunicação direta com dependências residenciais', category: 'Instalações/Edificação', legislation: 'Portaria SMS-G 2619/11 Subitem 2.3.2' },
+      { id: 'rar82', text: '[N] Manter arredores livres de sucatas, lixo, animais e agentes contaminantes', category: 'Instalações/Edificação', legislation: 'Portaria SMS-G 2619/11 Subitem 2.1' },
+      { id: 'rar83', text: '[N] Revestir paredes, tetos e pisos com material de fácil limpeza', category: 'Instalações/Edificação', legislation: 'Portaria SMS-G 2619/11' },
+      
+      // SANITÁRIOS E VESTIÁRIOS FUNCIONÁRIOS
+      { id: 'rar84', text: '[N] Adequar sanitários com piso/paredes/teto lisos, ventilação, telas 2mm, porta com mola, em bom estado e higiene', category: 'Sanitários Funcionários', legislation: 'Portaria SMS-G 2619/11 Subitem 2.4.5-2.4.9' },
+      { id: 'rar85', text: '[N] Providenciar vasos sanitários com assento e tampa', category: 'Sanitários Funcionários', legislation: 'Portaria SMS-G 2619/11 Subitem 2.4.20 II' },
+      { id: 'rar86', text: '[N] Descartar papel higiênico em lixeira com pedal e tampa (mulheres) ou vaso sanitário se ligado à rede de esgoto', category: 'Sanitários Funcionários', legislation: 'Portaria SMS-G 2619/11 Subitem 2.4.20 IV' },
+      { id: 'rar87', text: '[N] Providenciar pia, sabonete líquido antisséptico e toalha descartável para higienização das mãos', category: 'Sanitários Funcionários', legislation: 'Portaria SMS-G 2619/11 Subitem 15.21' },
+      { id: 'rar88', text: '[N] Providenciar 1 chuveiro para cada 20 funcionários', category: 'Sanitários Funcionários', legislation: 'Portaria SMS-G 2619/11 Subitem 2.4.20' },
+      { id: 'rar89', text: '[N] Providenciar armários em número suficiente e bom estado nos vestiários', category: 'Sanitários Funcionários', legislation: 'Portaria SMS-G 2619/11 Subitem 2.4.21' },
+      
+      // SANITÁRIOS PARA O PÚBLICO
+      { id: 'rar90', text: '[N] Adequar sanitários públicos com material liso, ventilação, telas, porta com mola e proteção no rodapé', category: 'Sanitários Público', legislation: 'Portaria SMS-G 2619/11 Subitem 2.4.5-2.4.9' },
+      { id: 'rar91', text: '[N] Providenciar pia, sabão líquido e toalha de papel ou outro método de secagem', category: 'Sanitários Público', legislation: 'Portaria SMS-G 2619/11 Subitem 15.23' },
+      { id: 'rar92', text: '[N] Providenciar cestos de lixo com pedal e tampa para descarte de papéis', category: 'Sanitários Público', legislation: 'Portaria SMS-G 2619/11 Subitem 2.4.22 IV' },
+      
+      // HIGIENE DAS INSTALAÇÕES
+      { id: 'rar93', text: '[N] Manter piso, rodapé, maçanetas, ralos, pias, mesas, equipamentos e sanitários em condições de higiene adequadas', category: 'Higiene das Instalações', legislation: 'Portaria SMS-G 2619/11 Subitem 2.3, 2.4.3.2' },
+      { id: 'rar94', text: '[N] Manter luminárias, forros e caixa de gordura em condições de higiene adequadas', category: 'Higiene das Instalações', legislation: 'Portaria SMS-G 2619/11 Subitem 2.4.7, 2.4.27' },
+      { id: 'rar95', text: '[N] Utilizar produtos desinfetantes registrados no Ministério da Saúde', category: 'Higiene das Instalações', legislation: 'Portaria SMS-G 2619/11 Subitem 4.7' },
+      { id: 'rar96', text: '[N] Observar instruções de modo de uso que constam no rótulo do produto', category: 'Higiene das Instalações', legislation: 'Portaria SMS-G 2619/11 Subitem 4.7' },
+      { id: 'rar97', text: '[N] Manter paredes, portas, prateleiras e janelas em condições de higiene adequadas, lavando e desinfetando quando necessário', category: 'Higiene das Instalações', legislation: 'Portaria SMS-G 2619/11 Subitens 2.4.6, 2.4.8, 2.4.9, 3.1' },
+      
+      // DOCUMENTAÇÃO
+      { id: 'rar98', text: '[N] Elaborar e cumprir Manual de Boas Práticas específico para a empresa', category: 'Documentação', legislation: 'Portaria SMS-G 2619/11 Subitem 15.37, 17.2 VIII' },
+      { id: 'rar99', text: '[N] Elaborar e cumprir procedimentos operacionais padronizados (POPs)', category: 'Documentação', legislation: 'Portaria SMS-G 2619/11 Subitem 17.2 VI' },
+      { id: 'rar100', text: '[N] Apresentar comprovante de execução de treinamento de funcionários', category: 'Documentação', legislation: 'Portaria SMS-G 2619/11 Subitens 17.2 VII' },
+      { id: 'rar101', text: '[N] Apresentar Programa de Saúde: PPRA, PCMSO, ASO', category: 'Documentação', legislation: 'Portaria SMS-G 2619/11 Subitens 17.2 II, III, IV' },
+      { id: 'rar102', text: '[N] Apresentar comprovante de higienização do reservatório de água semestral', category: 'Documentação', legislation: 'Portaria SMS-G 2619/11 Subitem 17.2 V' },
+      { id: 'rar103', text: '[N] Apresentar comprovante de controle integrado de vetores e pragas urbanas', category: 'Documentação', legislation: 'Portaria SMS-G 2619/11 Subitem 17.3 XXIII' },
+      { id: 'rar104', text: '[N] Manter planilhas de controle de temperatura de câmaras, balcões, congeladores e equipamentos térmicos', category: 'Documentação', legislation: 'Portaria SMS-G 2619/11 Subitem 17.3 IV' },
+      { id: 'rar105', text: '[N] Apresentar registros comprovando calibração dos instrumentos e equipamentos de medição', category: 'Documentação', legislation: 'Portaria SMS-G 2619/11 Subitem 17.3 XXIV' },
+      { id: 'rar106', text: '[N] Apresentar registros que comprovem manutenção preventiva de equipamentos e maquinários', category: 'Documentação', legislation: 'Portaria SMS-G 2619/11 Subitem 17.3 XXV' },
+      { id: 'rar107', text: '[N] Utilizar produtos de higienização de alimentos, equipamentos e antissépticos regularizados no MS', category: 'Documentação', legislation: 'Portaria SMS-G 2619/11 Subitens 4.7, 7.11' },
+      
+      // MANIPULADORES
+      { id: 'rar108', text: '[N] Exercer responsabilidade técnica por profissional legalmente habilitado', category: 'Manipuladores', legislation: 'Portaria SMS-G 2619/11 Subitem 16.1' },
+      { id: 'rar109', text: '[N] Para EPP ou ME: proprietário ou pessoa designada com certificado de curso de Boas Práticas', category: 'Manipuladores', legislation: 'Portaria SMS-G 2619/11 Subitem 16.1.2' },
+      { id: 'rar110', text: '[N] Treinar manipuladores pelo proprietário ou pessoa que participou do Curso de Boas Práticas', category: 'Manipuladores', legislation: 'Portaria SMS-G 2619/11 Subitem 16.1.4' },
+      { id: 'rar111', text: '[N] Manter cópias dos atestados ASO com exames clínicos semestrais disponíveis para fiscalização', category: 'Manipuladores', legislation: 'Portaria SMS-G 2619/11 Subitem 17.2 III' },
+      { id: 'rar112', text: '[N] Elaborar e cumprir PPRA', category: 'Manipuladores', legislation: 'Portaria SMS-G 2619/11 Subitem 17.2 IV' },
+      { id: 'rar113', text: '[N] Manter funcionários asseados, sem adornos, unhas curtas e limpas, sem esmalte, maquiagem ou piercing', category: 'Manipuladores', legislation: 'Portaria SMS-G 2619/11 Subitens 15.1, 15.2' },
+      { id: 'rar114', text: '[I] Manter mãos limpas e livres de ferimentos; se existirem, proteger com cobertura impermeável', category: 'Manipuladores', legislation: 'Portaria SMS-G 2619/11 Subitem 15.33' },
+      { id: 'rar115', text: '[R] Utilizar luvas descartáveis na manipulação de produtos prontos para consumo', category: 'Manipuladores', legislation: 'Portaria SMS-G 2619/11 Subitem 15.12' },
+      { id: 'rar116', text: '[N] Exigir uniformes fechados, cor clara, limpos e bem conservados', category: 'Manipuladores', legislation: 'Portaria SMS-G 2619/11 Subitem 15.3' },
+      { id: 'rar117', text: '[N] Exigir sapatos limpos, fechados, antiderrapantes ou botas de borracha de uso exclusivo', category: 'Manipuladores', legislation: 'Portaria SMS-G 2619/11 Subitem 15.3' },
+      { id: 'rar118', text: '[N] Exigir cabelos protegidos por toucas ou redes', category: 'Manipuladores', legislation: 'Portaria SMS-G 2619/11 Subitem 15.1 II' },
+      { id: 'rar119', text: '[N] Exigir barba feita e bigode aparado', category: 'Manipuladores', legislation: 'Portaria SMS-G 2619/11 Subitem 15.1 III' },
+      { id: 'rar120', text: '[N] Providenciar pia exclusiva para lavagem das mãos com sabonete líquido antisséptico e papel toalha não reciclado', category: 'Manipuladores', legislation: 'Portaria SMS-G 2619/11 Subitem 15.21' },
+      { id: 'rar121', text: '[R] Afixar cartazes orientando a lavagem e desinfecção das mãos', category: 'Manipuladores', legislation: 'Portaria SMS-G 2619/11 Subitem 15.24' },
+      { id: 'rar122', text: '[N] Exigir uso de EPIs: uniforme, avental, botas, luvas, capas', category: 'Manipuladores', legislation: 'Portaria SMS-G 2619/11 Subitens 15.13-15.19' },
+    ]
+  },
+  {
     id: 'dengue_arboviroses',
     name: 'Dengue e Arboviroses',
     description: 'Controle e combate ao Aedes aegypti',
