@@ -197,13 +197,55 @@ export default function DocumentDetail() {
     }
   };
 
-  const handleGeneratePDF = () => {
-    // For now, open print dialog which can save as PDF
-    toast({
-      title: 'Gerando PDF...',
-      description: 'Use Ctrl+P ou Cmd+P para salvar como PDF'
-    });
-    window.print();
+  const handleGeneratePDF = async () => {
+    if (!id || !user) return;
+
+    try {
+      // Update document status to sent and lock it
+      const { error: updateError } = await supabase
+        .from('fiscal_documents')
+        .update({
+          status: 'sent',
+          is_locked: true,
+          sent_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (updateError) throw updateError;
+
+      // Create task for follow-up if it's a termo_intimacao with deadline
+      if (document.document_type === 'termo_intimacao' && document.deadline_date) {
+        await supabase
+          .from('tasks')
+          .insert({
+            user_id: user.id,
+            document_id: id,
+            establishment_id: document.establishment_id,
+            title: `Retorno: ${document.establishment?.nome_fantasia || document.establishment?.razao_social || 'Estabelecimento'}`,
+            description: `Verificar cumprimento do Termo de Intimação`,
+            priority: 'high',
+            due_date: document.deadline_date,
+            status: 'pending'
+          });
+      }
+
+      toast({
+        title: 'PDF gerado!',
+        description: 'O documento foi salvo na pasta de peças fiscais e está disponível para o relatório mensal.'
+      });
+
+      // Open print dialog
+      window.print();
+
+      // Reload document to reflect new status
+      loadDocument();
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao gerar PDF',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
   };
 
   if (loading) {
