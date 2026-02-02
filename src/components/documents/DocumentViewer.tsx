@@ -24,7 +24,8 @@ import {
   ArrowLeft,
   Printer,
   Clock,
-  Trash2
+  Trash2,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,6 +36,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BRASAO_GOIANIA_SVG, SUS_LOGO_SVG, FISCALIZ_LOGO } from '@/lib/logos';
 import { SignatureCanvas } from './SignatureCanvas';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 interface AttachmentPhoto {
   id?: string;
@@ -125,6 +128,8 @@ export function DocumentViewer({
   const [deadlineDays, setDeadlineDays] = useState<number | undefined>(document.deadline_days);
   const [deadlineDate, setDeadlineDate] = useState<string | undefined>(document.deadline_date);
   const [isUploading, setIsUploading] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const pdfContentRef = useRef<HTMLDivElement>(null);
   const [contributorSignatureUrl, setContributorSignatureUrl] = useState<string | null>(document.content?.contributor_signature || null);
   const [documentDate, setDocumentDate] = useState(document.content?.document_date || new Date(document.created_at).toISOString().split('T')[0]);
   const [documentTime, setDocumentTime] = useState(document.content?.document_time || new Date(document.created_at).toTimeString().slice(0, 5));
@@ -188,80 +193,130 @@ export function DocumentViewer({
     setShowSendModal(true);
   };
 
-  const handleSendViaWhatsApp = () => {
+  const handleSendViaWhatsApp = async () => {
     if (!whatsapp) return;
     
-    // Limpar número de telefone
-    const cleanPhone = whatsapp.replace(/\D/g, '');
-    const phoneWithCountry = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+    setIsGeneratingPDF(true);
     
-    // Montar mensagem COMPLETA com todo o conteúdo do documento
-    const docType = documentTypeLabels[document.document_type] || document.document_type;
-    const establishment = document.establishment?.nome_fantasia || document.establishment?.razao_social || 'Estabelecimento';
-    const razaoSocial = document.establishment?.razao_social || '';
-    const cnpj = document.establishment?.cnpj || '';
-    const endereco = document.establishment?.endereco || '';
-    const bairro = document.establishment?.bairro || '';
-    const responsavel = document.establishment?.responsavel_nome || '';
-    const fiscalName = document.profile?.full_name || 'Auditor Fiscal';
-    const matricula = document.profile?.registration_number || '';
-    const documentNumber = document.document_number || '';
-    
-    // Conteúdo completo do documento
-    const documentText = content || document.content?.text || '';
-    
-    // Irregularidades formatadas
-    let irregularidadesText = '';
-    if (document.irregularities && document.irregularities.length > 0) {
-      irregularidadesText = '\n\n📋 *IRREGULARIDADES:*\n' + 
-        document.irregularities.map((irr: any, idx: number) => 
-          `${idx + 1}. ${irr.descricao || irr.text || irr}${irr.dispositivo ? ` (${irr.dispositivo})` : ''}`
-        ).join('\n');
-    }
-    
-    // Prazo se houver
-    let prazoText = '';
-    if (deadlineDays && deadlineDate) {
-      prazoText = `\n\n⏰ *PRAZO:* ${deadlineDays} dias (até ${formatDate(deadlineDate)})`;
-    }
-    
-    // Observações
-    let obsText = '';
-    if (observations) {
-      obsText = `\n\n📝 *OBSERVAÇÕES:*\n${observations}`;
-    }
-    
-    // Montar mensagem completa
-    const message = `━━━━━━━━━━━━━━━━━━━━
+    try {
+      // Limpar número de telefone
+      const cleanPhone = whatsapp.replace(/\D/g, '');
+      const phoneWithCountry = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+      
+      const docType = documentTypeLabels[document.document_type] || document.document_type;
+      const establishment = document.establishment?.nome_fantasia || document.establishment?.razao_social || 'Estabelecimento';
+      const documentNumber = document.document_number || '';
+      const fiscalName = document.profile?.full_name || 'Auditor Fiscal';
+      
+      // Gerar PDF do documento
+      let pdfUrl: string | null = null;
+      
+      // Usar o conteúdo do PDF preview para gerar o PDF
+      const pdfElement = pdfContentRef.current || documentRef.current;
+      if (pdfElement) {
+        toast({
+          title: "Gerando PDF...",
+          description: "Aguarde enquanto o documento é preparado."
+        });
+        
+        // Temporariamente mostrar a preview para captura
+        setShowPDFPreview(true);
+        await new Promise(resolve => setTimeout(resolve, 500)); // Esperar renderização
+        
+        const previewElement = window.document.querySelector('.pdf-preview-container') as HTMLElement;
+        if (previewElement) {
+          const canvas = await html2canvas(previewElement, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            logging: false,
+          });
+          
+          const imgData = canvas.toDataURL('image/jpeg', 0.95);
+          const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+          });
+          
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = pdf.internal.pageSize.getHeight();
+          const imgWidth = canvas.width;
+          const imgHeight = canvas.height;
+          const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+          const imgX = (pdfWidth - imgWidth * ratio) / 2;
+          
+          pdf.addImage(imgData, 'JPEG', imgX, 0, imgWidth * ratio, imgHeight * ratio);
+          
+          // Converter PDF para blob
+          const pdfBlob = pdf.output('blob');
+          
+          // Fazer upload para o Storage
+          const fileName = `documents/${document.id}_${Date.now()}.pdf`;
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('fiscal-photos')
+            .upload(fileName, pdfBlob, { 
+              contentType: 'application/pdf',
+              upsert: true 
+            });
+          
+          if (!uploadError && uploadData) {
+            const { data: urlData } = supabase.storage
+              .from('fiscal-photos')
+              .getPublicUrl(fileName);
+            pdfUrl = urlData.publicUrl;
+          }
+        }
+        
+        setShowPDFPreview(false);
+      }
+      
+      // Montar mensagem com link do PDF
+      let message = `━━━━━━━━━━━━━━━━━━━━
 📋 *${docType}*${documentNumber ? ` Nº ${documentNumber}` : ''}
 ━━━━━━━━━━━━━━━━━━━━
 
-📅 *Data:* ${formatDate(documentDate)}${documentTime ? ` às ${documentTime}` : ''}
+📅 *Data:* ${formatDate(documentDate)}
+🏢 *Estabelecimento:* ${establishment}
 
-🏢 *IDENTIFICAÇÃO DO ESTABELECIMENTO*
-${razaoSocial ? `• Razão Social: ${razaoSocial}\n` : ''}${establishment !== razaoSocial ? `• Nome Fantasia: ${establishment}\n` : ''}${cnpj ? `• CNPJ: ${cnpj}\n` : ''}${endereco ? `• Endereço: ${endereco}${bairro ? `, ${bairro}` : ''}\n` : ''}${responsavel ? `• Responsável: ${responsavel}` : ''}
-
-📄 *CONTEÚDO:*
-${documentText}${irregularidadesText}${prazoText}${obsText}
-
-━━━━━━━━━━━━━━━━━━━━
-👤 *Fiscal Responsável:* ${fiscalName}${matricula ? `\n🔢 *Matrícula:* ${matricula}` : ''}
-━━━━━━━━━━━━━━━━━━━━
+👤 *Fiscal:* ${fiscalName}
 
 ⚠️ *DOCUMENTO OFICIAL*
-Vigilância Sanitária de Goiânia
-Diretoria de Vigilância Sanitária e Ambiental
+Vigilância Sanitária de Goiânia`;
+
+      if (pdfUrl) {
+        message += `
+
+📎 *Acesse o documento completo:*
+${pdfUrl}`;
+      }
+
+      message += `
 
 _Enviado via FISCALIZ®_`;
-    
-    // Abrir WhatsApp
-    const whatsappUrl = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
-    
-    toast({
-      title: "WhatsApp aberto",
-      description: "Documento completo copiado para o WhatsApp. Envie e confirme aqui."
-    });
+      
+      // Abrir WhatsApp
+      const whatsappUrl = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+      
+      toast({
+        title: pdfUrl ? "PDF gerado e link enviado!" : "WhatsApp aberto",
+        description: pdfUrl 
+          ? "O documento PDF foi anexado ao link. Envie a mensagem no WhatsApp."
+          : "Documento enviado como mensagem. Confirme o envio."
+      });
+      
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      toast({
+        title: "Erro ao gerar PDF",
+        description: "Tente novamente ou envie como mensagem de texto.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   const handleSendViaEmail = async () => {
@@ -1182,14 +1237,23 @@ _Enviado via FISCALIZ®_`;
                           value={deadlineDate || ''}
                           onChange={(e) => {
                             const dateStr = e.target.value;
-                            setDeadlineDate(dateStr);
                             if (dateStr) {
                               const today = new Date();
                               const target = new Date(dateStr);
                               const diffTime = target.getTime() - today.getTime();
-                              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                              setDeadlineDays(diffDays > 0 ? diffDays : undefined);
+                              let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                              // Limitar entre 1 e 45 dias
+                              if (diffDays > 45) {
+                                diffDays = 45;
+                                const maxDate = new Date();
+                                maxDate.setDate(maxDate.getDate() + 45);
+                                setDeadlineDate(maxDate.toISOString().split('T')[0]);
+                              } else {
+                                setDeadlineDate(dateStr);
+                              }
+                              setDeadlineDays(diffDays > 0 ? Math.min(45, diffDays) : undefined);
                             } else {
+                              setDeadlineDate(undefined);
                               setDeadlineDays(undefined);
                             }
                           }}
