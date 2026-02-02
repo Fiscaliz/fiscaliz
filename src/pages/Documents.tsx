@@ -42,7 +42,7 @@ const documentTypeLabels: Record<string, string> = {
   coleta_amostra: 'Coleta de Amostra',
 };
 
-const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline'; icon: React.ReactNode }> = {
+const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive'; icon: React.ReactNode }> = {
   draft: { 
     label: 'Rascunho', 
     variant: 'secondary',
@@ -54,7 +54,7 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
     icon: <Send className="h-3 w-3" />
   },
   archived: { 
-    label: 'Arquivado', 
+    label: 'Concluído', 
     variant: 'outline',
     icon: <Archive className="h-3 w-3" />
   },
@@ -136,7 +136,7 @@ export default function Documents() {
               Enviado ({counts.sent})
             </TabsTrigger>
             <TabsTrigger value="archived" className="text-xs">
-              Arquivado ({counts.archived})
+              Concluídas ({counts.archived})
             </TabsTrigger>
           </TabsList>
         </Tabs>
