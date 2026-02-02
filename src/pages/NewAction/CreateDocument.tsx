@@ -1077,7 +1077,7 @@ export default function CreateDocument() {
                     <div className="flex items-center gap-2">
                       <ImageIcon className="h-4 w-4 text-primary" />
                       <span className="text-sm font-medium">Registro Fotográfico</span>
-                      <Badge variant="outline" className="text-xs">Obrigatório</Badge>
+                      <Badge variant="outline" className="text-xs">Opcional</Badge>
                     </div>
                     <span className="text-xs text-muted-foreground">{uploadedImages.length}/10</span>
                   </div>
@@ -1141,11 +1141,6 @@ export default function CreateDocument() {
                     </div>
                   )}
 
-                  {uploadedImages.length === 0 && (
-                    <p className="text-xs text-destructive flex items-center gap-1">
-                      ⚠️ É obrigatório anexar pelo menos uma foto
-                    </p>
-                  )}
                 </CardContent>
               </Card>
             )}
@@ -1178,8 +1173,7 @@ export default function CreateDocument() {
                 disabled={
                   !manualContent.trim() || 
                   saving || 
-                  (tipo === 'termo_intimacao' && !dengueInspection) ||
-                  ((tipo === 'inutilizacao' || tipo === 'apreensao' || tipo === 'interdicao') && uploadedImages.length === 0)
+                  (tipo === 'termo_intimacao' && !dengueInspection)
                 }
               >
                 {saving ? 'Salvando...' : 'Salvar Documento'}
