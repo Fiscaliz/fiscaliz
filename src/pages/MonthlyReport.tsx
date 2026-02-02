@@ -22,7 +22,9 @@ import {
   Briefcase,
   Upload,
   AlertCircle,
-  Edit2
+  Edit2,
+  Star,
+  Target
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -47,7 +49,9 @@ interface DocumentSummary {
   coleta_amostra: number;
 }
 
-interface DailyAction {
+// Interface para ações editáveis na tabela
+interface EditableDailyAction {
+  id: string;
   day: number;
   transport: 'MPL' | 'CO';
   actionType: string;
@@ -56,7 +60,27 @@ interface DailyAction {
   documentId: string;
   documentType: string;
   isInternal: boolean;
+  riskLevel: 'I' | 'II' | 'III' | null;
+  difficultyFactors: string[];
+  riskPoints: number;
+  difficultyPoints: number;
 }
+
+// Tabela de pontos por risco sanitário (peças fiscais)
+const RISK_POINTS: Record<string, number> = {
+  'I': 1,    // Baixo risco
+  'II': 2,   // Médio risco
+  'III': 3,  // Alto risco
+};
+
+// Fatores de dificuldade da ação fiscal
+const DIFFICULTY_FACTORS = [
+  { id: 'local_distante', label: 'Local distante', points: 1 },
+  { id: 'muito_tempo', label: 'Muito tempo na ação', points: 1 },
+  { id: 'varios_documentos', label: 'Vários documentos gerados', points: 1 },
+  { id: 'acao_complexa', label: 'Ação complexa/muitas irregularidades', points: 2 },
+  { id: 'analise_documental', label: 'Análise documental extensa', points: 1 },
+];
 
 const months = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -65,7 +89,7 @@ const months = [
 
 const documentTypeLabels: Record<string, string> = {
   termo_intimacao: 'Termo de Intimação',
-  visita_fiscal: 'Termo de Reinspeção',
+  visita_fiscal: 'Visita Fiscal',
   auto_infracao: 'Auto de Infração',
   advertencia: 'Advertência',
   inutilizacao: 'Inutilização',
@@ -81,7 +105,7 @@ const documentTypeLabels: Record<string, string> = {
 
 const documentTypeAbbreviation: Record<string, string> = {
   termo_intimacao: 'TI',
-  visita_fiscal: 'TR',
+  visita_fiscal: 'VF',
   auto_infracao: 'AI',
   advertencia: 'ADV',
   inutilizacao: 'INUT',
@@ -117,7 +141,7 @@ export default function MonthlyReport() {
   const [saving, setSaving] = useState(false);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
   const [editingPreview, setEditingPreview] = useState(false);
-  const [dailyActions, setDailyActions] = useState<DailyAction[]>([]);
+  const [dailyActions, setDailyActions] = useState<EditableDailyAction[]>([]);
   
   // Período - Licenças
   const [selectedLicenseType, setSelectedLicenseType] = useState<string | null>(null);
@@ -194,6 +218,19 @@ export default function MonthlyReport() {
     return { mplDays, coDays, fieldDays, internalDays };
   }, [dailyActions]);
 
+  // Calcular pontos totais
+  const totalPoints = useMemo(() => {
+    let riskPoints = 0;
+    let difficultyPoints = 0;
+    
+    dailyActions.forEach(action => {
+      riskPoints += action.riskPoints;
+      difficultyPoints += action.difficultyPoints;
+    });
+    
+    return { riskPoints, difficultyPoints, total: riskPoints + difficultyPoints };
+  }, [dailyActions]);
+
   // Valores finais (editados ou calculados)
   const finalMplDays = editedMplDays ?? calculatedStats.mplDays;
   const finalCoDays = editedCoDays ?? calculatedStats.coDays;
@@ -265,10 +302,6 @@ export default function MonthlyReport() {
       setLicenseStartDate(data.license_start_date ? new Date(data.license_start_date) : undefined);
       setLicenseEndDate(data.license_end_date ? new Date(data.license_end_date) : undefined);
       setLicenseAttachment(data.license_attachment_url || null);
-      
-      // Não carregar valores editados automaticamente do banco
-      // Os valores serão sempre recalculados a partir dos documentos
-      // O usuário pode editá-los manualmente na prévia se necessário
       
       if (data.documents_summary) {
         setDocumentSummary(data.documents_summary as unknown as DocumentSummary);
@@ -373,7 +406,7 @@ export default function MonthlyReport() {
       // Store full documents for PDF attachment
       setFullDocuments(data);
       
-      const actions: DailyAction[] = data.map((doc: any) => {
+      const actions: EditableDailyAction[] = data.map((doc: any) => {
         const content = doc.content || {};
         // Usar action_date para determinar o dia, com fallback para created_at
         // Parse action_date como data local (YYYY-MM-DD) para evitar problemas de timezone
@@ -389,19 +422,69 @@ export default function MonthlyReport() {
         // Determinar transporte baseado no conteúdo do documento
         const transport: 'MPL' | 'CO' = content.transport_mode || 'MPL';
         
+        // Obter nível de risco do estabelecimento
+        const riskLevel = doc.establishments?.risk_level as 'I' | 'II' | 'III' | null;
+        const riskPoints = riskLevel ? RISK_POINTS[riskLevel] : 0;
+        
+        // Usar razão social como nome principal
+        const establishmentName = doc.establishments?.razao_social || 
+          content.atividade_descricao || 
+          'Atividade Interna';
+        
         return {
+          id: doc.id,
           day: dayNumber,
           transport,
           actionType: content.action_type || 'Inspeção',
-          establishment: doc.establishments?.nome_fantasia || content.atividade_descricao || 'Atividade Interna',
+          establishment: establishmentName,
           document: doc.document_number || `${documentTypeAbbreviation[doc.document_type] || 'DOC'}`,
           documentId: doc.id,
           documentType: doc.document_type,
           isInternal,
+          riskLevel,
+          difficultyFactors: content.difficulty_factors || [],
+          riskPoints,
+          difficultyPoints: (content.difficulty_factors || []).reduce((acc: number, factor: string) => {
+            const found = DIFFICULTY_FACTORS.find(f => f.id === factor);
+            return acc + (found?.points || 0);
+          }, 0),
         };
       });
       setDailyActions(actions);
     }
+  };
+
+  // Função para atualizar uma ação na tabela
+  const updateDailyAction = (id: string, field: keyof EditableDailyAction, value: any) => {
+    setDailyActions(prev => prev.map(action => {
+      if (action.id !== id) return action;
+      
+      const updated = { ...action, [field]: value };
+      
+      // Recalcular pontos se necessário
+      if (field === 'riskLevel') {
+        updated.riskPoints = value ? RISK_POINTS[value as 'I' | 'II' | 'III'] : 0;
+      }
+      if (field === 'difficultyFactors') {
+        updated.difficultyPoints = (value as string[]).reduce((acc: number, factor: string) => {
+          const found = DIFFICULTY_FACTORS.find(f => f.id === factor);
+          return acc + (found?.points || 0);
+        }, 0);
+      }
+      
+      return updated;
+    }));
+  };
+
+  const toggleDifficultyFactor = (actionId: string, factorId: string) => {
+    const action = dailyActions.find(a => a.id === actionId);
+    if (!action) return;
+    
+    const newFactors = action.difficultyFactors.includes(factorId)
+      ? action.difficultyFactors.filter(f => f !== factorId)
+      : [...action.difficultyFactors, factorId];
+    
+    updateDailyAction(actionId, 'difficultyFactors', newFactors);
   };
 
   const handleSave = async () => {
@@ -418,7 +501,7 @@ export default function MonthlyReport() {
         pfe_days: parseInt(pfeDays) || 0,
         field_days: finalFieldDays,
         internal_days: finalInternalDays,
-        duty_days: 0, // Será calculado se necessário
+        duty_days: 0,
         transportation_mode: finalMplDays > 0 ? 'MPL' : 'CO',
         license_type: selectedLicenseType,
         license_start_date: licenseStartDate?.toISOString().split('T')[0] || null,
@@ -555,6 +638,7 @@ export default function MonthlyReport() {
           th, td { border: 1px solid #333; padding: 6px; text-align: left; font-size: 10pt; }
           th { background: #f0f0f0; font-weight: bold; }
           .editable-field { background: #fffbeb; }
+          .editable-input { background: #fffbeb; border: 1px solid #f59e0b; padding: 2px 4px; font-size: 10pt; }
         `}</style>
 
         <div className="p-8 max-w-4xl mx-auto">
@@ -578,8 +662,8 @@ export default function MonthlyReport() {
               <Edit2 className="h-4 w-4 text-amber-600" />
               <span className="text-sm text-amber-700">
                 {editingPreview 
-                  ? 'Clique nos campos amarelos para editar os valores calculados'
-                  : 'Você pode revisar e editar os dados antes de enviar'}
+                  ? 'Editando - Clique nos campos amarelos para modificar os valores'
+                  : 'Todos os campos são editáveis antes de enviar'}
               </span>
               <Button 
                 variant="outline" 
@@ -654,7 +738,7 @@ export default function MonthlyReport() {
                         type="number"
                         value={finalFieldDays}
                         onChange={(e) => setEditedFieldDays(parseInt(e.target.value) || 0)}
-                        className="w-16 px-1 border rounded"
+                        className="editable-input w-16"
                       />
                     ) : finalFieldDays}
                   </td>
@@ -667,7 +751,7 @@ export default function MonthlyReport() {
                         type="number"
                         value={finalInternalDays}
                         onChange={(e) => setEditedInternalDays(parseInt(e.target.value) || 0)}
-                        className="w-16 px-1 border rounded"
+                        className="editable-input w-16"
                       />
                     ) : finalInternalDays}
                   </td>
@@ -693,7 +777,7 @@ export default function MonthlyReport() {
                         type="number"
                         value={editedMplDays ?? calculatedStats.mplDays}
                         onChange={(e) => setEditedMplDays(parseInt(e.target.value) || 0)}
-                        className="w-16 px-1 border rounded"
+                        className="editable-input w-16"
                       />
                     ) : finalMplDays}
                   </td>
@@ -706,7 +790,7 @@ export default function MonthlyReport() {
                         type="number"
                         value={editedCoDays ?? calculatedStats.coDays}
                         onChange={(e) => setEditedCoDays(parseInt(e.target.value) || 0)}
-                        className="w-16 px-1 border rounded"
+                        className="editable-input w-16"
                       />
                     ) : finalCoDays}
                   </td>
@@ -718,27 +802,169 @@ export default function MonthlyReport() {
           {/* Page Break */}
           <div className="page-break" />
 
-          {/* Ações */}
+          {/* Ações - Tabela Editável */}
           <div className="mb-6">
             <div className="section-title">DESCRIÇÃO DAS AÇÕES DIÁRIAS</div>
             <table>
               <thead>
                 <tr>
-                  <th>Dia</th>
-                  <th>ML</th>
-                  <th>Descrição</th>
-                  <th>Doc.</th>
+                  <th style={{ width: '50px' }}>Dia</th>
+                  <th style={{ width: '50px' }}>ML</th>
+                  <th>Estabelecimento (Razão Social)</th>
+                  <th style={{ width: '80px' }}>Doc.</th>
                 </tr>
               </thead>
               <tbody>
-                {dailyActions.map((action, idx) => (
-                  <tr key={idx}>
-                    <td>{action.day}</td>
-                    <td>{action.transport}</td>
-                    <td>{action.establishment}</td>
-                    <td>{action.document}</td>
+                {dailyActions.map((action) => (
+                  <tr key={action.id}>
+                    <td className={editingPreview ? 'editable-field' : ''}>
+                      {editingPreview ? (
+                        <input
+                          type="number"
+                          min="1"
+                          max="31"
+                          value={action.day}
+                          onChange={(e) => updateDailyAction(action.id, 'day', parseInt(e.target.value) || 1)}
+                          className="editable-input w-12"
+                        />
+                      ) : action.day}
+                    </td>
+                    <td className={editingPreview ? 'editable-field' : ''}>
+                      {editingPreview ? (
+                        <select
+                          value={action.transport}
+                          onChange={(e) => updateDailyAction(action.id, 'transport', e.target.value)}
+                          className="editable-input"
+                        >
+                          <option value="MPL">MPL</option>
+                          <option value="CO">CO</option>
+                        </select>
+                      ) : action.transport}
+                    </td>
+                    <td className={editingPreview ? 'editable-field' : ''}>
+                      {editingPreview ? (
+                        <input
+                          type="text"
+                          value={action.establishment}
+                          onChange={(e) => updateDailyAction(action.id, 'establishment', e.target.value)}
+                          className="editable-input w-full"
+                        />
+                      ) : action.establishment}
+                    </td>
+                    <td className={editingPreview ? 'editable-field' : ''}>
+                      {editingPreview ? (
+                        <input
+                          type="text"
+                          value={action.document}
+                          onChange={(e) => updateDailyAction(action.id, 'document', e.target.value)}
+                          className="editable-input w-full"
+                        />
+                      ) : (
+                        <>
+                          {documentTypeAbbreviation[action.documentType] === 'VF' ? 'VF' : action.document}
+                        </>
+                      )}
+                    </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Page Break */}
+          <div className="page-break" />
+
+          {/* TABELA DE PONTOS - NOVA SEÇÃO */}
+          <div className="mb-6">
+            <div className="section-title">TABELA DE PONTOS - CUMPRIMENTO DA OS MENSAL</div>
+            
+            {/* Legenda de Risco Sanitário */}
+            <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded text-xs">
+              <p className="font-bold mb-2">Pontuação por Nível de Risco Sanitário (Peças Fiscais):</p>
+              <div className="flex gap-4">
+                <span><strong>Risco I (Baixo):</strong> 1 ponto</span>
+                <span><strong>Risco II (Médio):</strong> 2 pontos</span>
+                <span><strong>Risco III (Alto):</strong> 3 pontos</span>
+              </div>
+            </div>
+
+            {/* Legenda de Dificuldade */}
+            <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded text-xs">
+              <p className="font-bold mb-2">Fatores de Dificuldade da Ação Fiscal:</p>
+              <div className="grid grid-cols-2 gap-2">
+                {DIFFICULTY_FACTORS.map(factor => (
+                  <span key={factor.id}>• {factor.label}: +{factor.points} pt{factor.points > 1 ? 's' : ''}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* Tabela de Pontos */}
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: '50px' }}>Dia</th>
+                  <th>Estabelecimento</th>
+                  <th style={{ width: '60px' }}>Risco</th>
+                  <th style={{ width: '200px' }}>Fatores de Dificuldade</th>
+                  <th style={{ width: '50px' }}>Pts Risco</th>
+                  <th style={{ width: '50px' }}>Pts Dific.</th>
+                  <th style={{ width: '50px' }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dailyActions.map((action) => (
+                  <tr key={`points-${action.id}`}>
+                    <td>{action.day}</td>
+                    <td>{action.establishment}</td>
+                    <td className={editingPreview ? 'editable-field' : ''}>
+                      {editingPreview ? (
+                        <select
+                          value={action.riskLevel || ''}
+                          onChange={(e) => updateDailyAction(action.id, 'riskLevel', e.target.value || null)}
+                          className="editable-input w-full"
+                        >
+                          <option value="">-</option>
+                          <option value="I">I</option>
+                          <option value="II">II</option>
+                          <option value="III">III</option>
+                        </select>
+                      ) : (action.riskLevel || '-')}
+                    </td>
+                    <td className={editingPreview ? 'editable-field text-xs' : 'text-xs'}>
+                      {editingPreview ? (
+                        <div className="space-y-1">
+                          {DIFFICULTY_FACTORS.map(factor => (
+                            <label key={factor.id} className="flex items-center gap-1 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={action.difficultyFactors.includes(factor.id)}
+                                onChange={() => toggleDifficultyFactor(action.id, factor.id)}
+                                className="w-3 h-3"
+                              />
+                              <span className="text-[9px]">{factor.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      ) : (
+                        action.difficultyFactors.length > 0 
+                          ? action.difficultyFactors.map(f => {
+                              const factor = DIFFICULTY_FACTORS.find(df => df.id === f);
+                              return factor?.label;
+                            }).join(', ')
+                          : '-'
+                      )}
+                    </td>
+                    <td className="text-center font-medium">{action.riskPoints}</td>
+                    <td className="text-center font-medium">{action.difficultyPoints}</td>
+                    <td className="text-center font-bold bg-gray-100">{action.riskPoints + action.difficultyPoints}</td>
+                  </tr>
+                ))}
+                <tr style={{ fontWeight: 'bold', backgroundColor: '#003366', color: 'white' }}>
+                  <td colSpan={4} className="text-right">TOTAL DE PONTOS:</td>
+                  <td className="text-center">{totalPoints.riskPoints}</td>
+                  <td className="text-center">{totalPoints.difficultyPoints}</td>
+                  <td className="text-center">{totalPoints.total}</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -830,6 +1056,9 @@ export default function MonthlyReport() {
                         )}
                         <p><strong>CNPJ:</strong> {doc.establishments.cnpj}</p>
                         <p><strong>Endereço:</strong> {doc.establishments.endereco}{doc.establishments.bairro ? ` - ${doc.establishments.bairro}` : ''}</p>
+                        {doc.establishments.risk_level && (
+                          <p><strong>Nível de Risco:</strong> {doc.establishments.risk_level}</p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -888,53 +1117,25 @@ export default function MonthlyReport() {
                   {/* Data e hora do documento */}
                   <div className="text-xs text-gray-600 text-right mt-2">
                     <p>
-                      Data: {doc.content?.document_date ? format(new Date(doc.content.document_date), 'dd/MM/yyyy') : format(new Date(doc.created_at), 'dd/MM/yyyy')}
+                      Data: {doc.action_date ? format(new Date(doc.action_date + 'T12:00:00'), 'dd/MM/yyyy') : format(new Date(doc.created_at), 'dd/MM/yyyy')}
                       {doc.content?.document_time && ` às ${doc.content.document_time}`}
                     </p>
-                  </div>
-
-                  {/* Assinatura do documento */}
-                  <div className="mt-6 pt-4 border-t">
-                    <div className="flex justify-between">
-                      <div className="text-center w-40">
-                        {profile?.signature_url && (
-                          <img src={profile.signature_url} alt="Assinatura" className="h-10 mx-auto mb-1 object-contain" />
-                        )}
-                        <div className="border-t border-black w-full mb-1" />
-                        <p className="text-xs font-bold">{profile?.full_name}</p>
-                        <p className="text-[9px]">Auditor Fiscal</p>
-                      </div>
-                      <div className="text-center w-40">
-                        <div className="h-10" />
-                        <div className="border-t border-black w-full mb-1" />
-                        <p className="text-xs font-bold">Ciência do Contribuinte</p>
-                      </div>
-                    </div>
                   </div>
                 </div>
               ))}
             </>
           )}
-        </div>
 
-        <div className="no-print fixed bottom-4 right-4 flex gap-2">
-          <Button variant="outline" onClick={() => { setShowPDFPreview(false); setEditingPreview(false); }}>
-            Voltar
-          </Button>
-          {!isLocked && (
-            <Button variant="outline" onClick={handleSave}>
-              Salvar Alterações
+          {/* Botões de ação */}
+          <div className="no-print mt-6 flex gap-3">
+            <Button variant="outline" onClick={() => setShowPDFPreview(false)}>
+              Voltar
             </Button>
-          )}
-          <Button onClick={() => window.print()}>
-            Imprimir PDF
-          </Button>
-          {!isLocked && (
-            <Button onClick={handleSendReport}>
-              <Send className="h-4 w-4 mr-2" />
-              Enviar Relatório
+            <Button onClick={() => window.print()}>
+              <FileDown className="h-4 w-4 mr-2" />
+              Imprimir PDF
             </Button>
-          )}
+          </div>
         </div>
       </div>
     );
@@ -942,60 +1143,78 @@ export default function MonthlyReport() {
 
   return (
     <AppLayout>
-      <Header 
-        title="Relatório Mensal" 
-        subtitle="Produtividade fiscal"
-        showBack
-      />
+      <Header title="Relatório Mensal" showBack />
       
-      <div className="p-4 space-y-4">
-        {/* Month/Year Selection */}
-        <Card className="border-0 shadow-sm">
+      <div className="p-4 pb-32 max-w-lg mx-auto">
+        {/* Seletor de Mês/Ano */}
+        <Card className="mb-4 border-0 shadow-sm">
           <CardContent className="p-4">
-            <div className="flex gap-3">
+            <div className="flex items-center gap-3">
+              <CalendarIcon className="h-5 w-5 text-primary" />
               <div className="flex-1">
-                <Label>Mês de Referência</Label>
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                  className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  disabled={isLocked}
-                >
-                  {months.map((month, idx) => (
-                    <option key={month} value={idx + 1}>{month}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="w-24">
-                <Label>Ano</Label>
-                <Input
-                  type="number"
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                  disabled={isLocked}
-                  className="mt-1"
-                />
+                <Label className="text-xs text-muted-foreground">Período</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                    className="flex-1 border rounded-md px-3 py-2 text-sm bg-background"
+                    disabled={isLocked}
+                  >
+                    {months.map((month, idx) => (
+                      <option key={idx} value={idx + 1}>{month}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                    className="w-24 border rounded-md px-3 py-2 text-sm bg-background"
+                    disabled={isLocked}
+                  >
+                    {[2024, 2025, 2026].map((year) => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {isLocked && (
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 text-warning">
-            <Lock className="h-4 w-4" />
-            <span className="text-sm font-medium">Relatório enviado e bloqueado</span>
+        {/* Status */}
+        {report && (
+          <div className={cn(
+            'flex items-center gap-2 p-3 rounded-lg mb-4',
+            isLocked ? 'bg-success/10' : 'bg-muted'
+          )}>
+            {isLocked ? (
+              <>
+                <Lock className="h-4 w-4 text-success" />
+                <span className="text-sm text-success font-medium">
+                  Relatório enviado em {report.sent_at ? format(new Date(report.sent_at), 'dd/MM/yyyy') : '-'}
+                </span>
+              </>
+            ) : (
+              <>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  Rascunho - não enviado
+                </span>
+              </>
+            )}
           </div>
         )}
 
-        <Tabs defaultValue="periodo" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="periodo" className="text-xs">Período</TabsTrigger>
-            <TabsTrigger value="os" className="text-xs">OS</TabsTrigger>
+        {/* Abas */}
+        <Tabs defaultValue="resumo" className="w-full">
+          <TabsList className="grid w-full grid-cols-5 mb-4">
             <TabsTrigger value="resumo" className="text-xs">Resumo</TabsTrigger>
             <TabsTrigger value="acoes" className="text-xs">Ações</TabsTrigger>
+            <TabsTrigger value="pontos" className="text-xs">Pontos</TabsTrigger>
+            <TabsTrigger value="periodo" className="text-xs">Período</TabsTrigger>
+            <TabsTrigger value="os" className="text-xs">OS</TabsTrigger>
           </TabsList>
-          
-          {/* PERÍODO - Licenças e Afastamentos */}
+
+          {/* Período */}
           <TabsContent value="periodo" className="space-y-4">
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-2">
@@ -1301,11 +1520,11 @@ export default function MonthlyReport() {
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <div className="rounded-lg p-2 bg-warning/10">
-                      <Clock className="h-5 w-5 text-warning" />
+                      <Star className="h-5 w-5 text-warning" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">{parseInt(pfeDays) || 0}</p>
-                      <p className="text-xs text-muted-foreground">Dias PFE</p>
+                      <p className="text-2xl font-bold">{totalPoints.total}</p>
+                      <p className="text-xs text-muted-foreground">Pontos Total</p>
                     </div>
                   </div>
                 </CardContent>
@@ -1357,24 +1576,32 @@ export default function MonthlyReport() {
                   <div className="flex flex-col items-center py-8 text-muted-foreground">
                     <FileText className="h-10 w-10 mb-3 opacity-40" />
                     <p className="text-sm">Nenhuma ação registrada</p>
-                    <p className="text-xs mt-1">Envie peças fiscais para popular este relatório</p>
+                    <p className="text-xs mt-1">As ações aparecem ao criar documentos fiscais</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {dailyActions.map((action, idx) => (
-                      <div key={idx} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold">
-                          {action.day}
+                    {dailyActions.map((action) => (
+                      <div 
+                        key={action.id}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-xs font-bold text-primary">{action.day}</span>
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{action.establishment}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {documentTypeLabels[action.documentType] || action.documentType}
-                          </p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Badge variant="outline" className="text-[10px]">
+                              {documentTypeLabels[action.documentType] || action.documentType}
+                            </Badge>
+                            <span>{action.transport}</span>
+                            {action.riskLevel && (
+                              <Badge variant="secondary" className="text-[10px]">
+                                Risco {action.riskLevel}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                        <Badge variant="outline" className="text-xs">
-                          {action.transport}
-                        </Badge>
                       </div>
                     ))}
                   </div>
@@ -1382,30 +1609,99 @@ export default function MonthlyReport() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Pontos */}
+          <TabsContent value="pontos" className="space-y-4">
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  Tabela de Pontos
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Resumo de Pontos */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="p-3 rounded-lg bg-blue-50 text-center">
+                    <p className="text-2xl font-bold text-blue-600">{totalPoints.riskPoints}</p>
+                    <p className="text-[10px] text-blue-600">Pts Risco</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-purple-50 text-center">
+                    <p className="text-2xl font-bold text-purple-600">{totalPoints.difficultyPoints}</p>
+                    <p className="text-[10px] text-purple-600">Pts Dificuldade</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-green-50 text-center">
+                    <p className="text-2xl font-bold text-green-600">{totalPoints.total}</p>
+                    <p className="text-[10px] text-green-600">Total</p>
+                  </div>
+                </div>
+
+                {/* Legenda */}
+                <div className="p-3 rounded-lg bg-muted/50 text-xs space-y-2">
+                  <p className="font-medium">Nível de Risco Sanitário:</p>
+                  <div className="flex gap-4">
+                    <span>I: 1pt</span>
+                    <span>II: 2pts</span>
+                    <span>III: 3pts</span>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-muted/50 text-xs space-y-2">
+                  <p className="font-medium">Fatores de Dificuldade:</p>
+                  <div className="space-y-1">
+                    {DIFFICULTY_FACTORS.map(f => (
+                      <p key={f.id}>• {f.label}: +{f.points}pt{f.points > 1 ? 's' : ''}</p>
+                    ))}
+                  </div>
+                </div>
+
+                <p className="text-xs text-muted-foreground text-center">
+                  Edite os pontos na prévia do PDF clicando em "Editar Valores"
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
 
-        {/* Action Buttons */}
-        <div className="flex gap-3 pt-2">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={handleGeneratePDF}
-            disabled={loading}
-          >
-            <FileDown className="h-4 w-4 mr-2" />
-            Prévia / PDF
-          </Button>
-          
-          {!isLocked && (
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={handleSave}
-              disabled={saving}
-            >
-              {saving ? 'Salvando...' : 'Salvar'}
-            </Button>
-          )}
+        {/* Botões de Ação */}
+        <div className="fixed bottom-20 left-0 right-0 p-4 bg-background border-t">
+          <div className="max-w-lg mx-auto flex gap-3">
+            {!isLocked && (
+              <>
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={handleSave}
+                  disabled={saving}
+                >
+                  {saving ? 'Salvando...' : 'Salvar Rascunho'}
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={handleGeneratePDF}
+                >
+                  <FileDown className="h-4 w-4" />
+                </Button>
+                <Button 
+                  className="flex-1"
+                  onClick={handleSendReport}
+                  disabled={!report}
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Enviar
+                </Button>
+              </>
+            )}
+            {isLocked && (
+              <Button 
+                className="w-full"
+                onClick={handleGeneratePDF}
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                Visualizar PDF
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </AppLayout>
