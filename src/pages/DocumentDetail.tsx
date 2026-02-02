@@ -7,6 +7,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const documentTypeLabels: Record<string, string> = {
   termo_intimacao: 'Termo de Intimação',
@@ -31,6 +41,7 @@ export default function DocumentDetail() {
   
   const [document, setDocument] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
     if (id && user) {
@@ -268,6 +279,32 @@ export default function DocumentDetail() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!id || !user) return;
+
+    try {
+      const { error } = await supabase
+        .from('fiscal_documents')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Documento apagado',
+        description: 'O documento foi removido com sucesso.'
+      });
+
+      navigate('/documentos');
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao apagar',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  };
+
   if (loading) {
     return (
       <AppLayout>
@@ -306,9 +343,27 @@ export default function DocumentDetail() {
           onSend={handleSend}
           onSendDocument={handleSendDocument}
           onGeneratePDF={handleGeneratePDF}
+          onDelete={() => setShowDeleteDialog(true)}
           editable={!document.is_locked}
         />
       </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apagar documento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O documento será permanentemente removido.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Apagar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

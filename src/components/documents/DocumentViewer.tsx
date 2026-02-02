@@ -23,7 +23,8 @@ import {
   X,
   ArrowLeft,
   Printer,
-  Clock
+  Clock,
+  Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -75,6 +76,7 @@ interface DocumentViewerProps {
   onSend?: (data: { email?: string; whatsapp?: string }) => void;
   onSendDocument?: (method: 'sefiz' | 'email' | 'whatsapp', destination?: string) => void;
   onGeneratePDF?: () => void;
+  onDelete?: () => void;
   editable?: boolean;
 }
 
@@ -99,6 +101,7 @@ export function DocumentViewer({
   onSend,
   onSendDocument,
   onGeneratePDF,
+  onDelete,
   editable = true 
 }: DocumentViewerProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -1541,6 +1544,19 @@ export function DocumentViewer({
                   </Button>
                 </div>
               </div>
+
+              {/* Apagar documento - Só para rascunhos */}
+              {canEdit && onDelete && (
+                <Button 
+                  variant="destructive"
+                  onClick={onDelete}
+                  className="w-full gap-2"
+                  size="sm"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Apagar Documento
+                </Button>
+              )}
             </div>
           )}
         </div>
