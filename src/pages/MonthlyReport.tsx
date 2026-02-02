@@ -53,7 +53,8 @@ interface DocumentSummary {
 interface EditableDailyAction {
   id: string;
   day: number;
-  actionDate: string; // Data completa formatada
+  actionDate: string; // Data formatada para exibição (dd/MM)
+  actionDateFull: string; // Data completa (YYYY-MM-DD) para ordenação cronológica
   transport: 'MPL' | 'CO' | '';
   actionType: string;
   establishment: string;
@@ -423,18 +424,21 @@ export default function MonthlyReport() {
       
       const actions: EditableDailyAction[] = data.map((doc: any) => {
         const content = doc.content || {};
-        // Usar action_date para determinar o dia, com fallback para created_at
+        // Usar action_date para determinar o dia - esta é a data da ação fiscal descrita na peça
         // Parse action_date como data local (YYYY-MM-DD) para evitar problemas de timezone
         let dayNumber: number;
         let actionDateFormatted: string;
+        let actionDateFull: string; // Para ordenação cronológica
         if (doc.action_date) {
           const parts = doc.action_date.split('-');
           dayNumber = parseInt(parts[2], 10);
           actionDateFormatted = `${parts[2]}/${parts[1]}`;
+          actionDateFull = doc.action_date; // YYYY-MM-DD para ordenação
         } else {
           const createdDate = new Date(doc.created_at);
           dayNumber = createdDate.getDate();
           actionDateFormatted = format(createdDate, 'dd/MM');
+          actionDateFull = format(createdDate, 'yyyy-MM-dd');
         }
         const isInternal = doc.document_type === 'relatorio_atividade' || !doc.establishment_id;
         
@@ -482,6 +486,7 @@ export default function MonthlyReport() {
           id: doc.id,
           day: dayNumber,
           actionDate: actionDateFormatted,
+          actionDateFull, // Nova propriedade para ordenação
           transport,
           actionType,
           establishment: establishmentName,
@@ -870,7 +875,8 @@ export default function MonthlyReport() {
               </thead>
               <tbody>
                 {dailyActions
-                  .sort((a, b) => a.day - b.day)
+                  .slice() // Criar cópia para não mutar original
+                  .sort((a, b) => a.actionDateFull.localeCompare(b.actionDateFull)) // Ordenação cronológica pela data da ação fiscal
                   .map((action) => (
                   <tr key={action.id}>
                     <td style={{ textAlign: 'center' }} className={editingPreview ? 'editable-field' : ''}>
@@ -1025,7 +1031,7 @@ export default function MonthlyReport() {
                 </tr>
               </thead>
               <tbody>
-                {dailyActions.map((action) => (
+                {dailyActions.slice().sort((a, b) => a.actionDateFull.localeCompare(b.actionDateFull)).map((action) => (
                   <tr key={`points-${action.id}`}>
                     <td>{action.day}</td>
                     <td>{action.establishment}</td>
@@ -1712,7 +1718,7 @@ export default function MonthlyReport() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {dailyActions.map((action) => (
+                    {dailyActions.slice().sort((a, b) => a.actionDateFull.localeCompare(b.actionDateFull)).map((action) => (
                       <div 
                         key={action.id}
                         className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
