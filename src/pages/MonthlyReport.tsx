@@ -96,9 +96,11 @@ const documentTypeAbbreviation: Record<string, string> = {
 };
 
 const licenseTypes = [
-  { id: 'licenca_premio', label: 'Licença Prêmio', needsAttachment: false },
-  { id: 'licenca_medica', label: 'Licença Médica', needsAttachment: false },
-  { id: 'atestado_medico', label: 'Atestado Médico', needsAttachment: true },
+  { id: 'ferias', label: 'Férias', needsAttachment: false, needsCompensation: false },
+  { id: 'licenca_premio', label: 'Licença Prêmio', needsAttachment: false, needsCompensation: false },
+  { id: 'licenca_medica', label: 'Licença Médica', needsAttachment: false, needsCompensation: false },
+  { id: 'atestado_medico', label: 'Atestado Médico', needsAttachment: true, needsCompensation: false },
+  { id: 'compensacao_horas', label: 'Compensação de Horas', needsAttachment: false, needsCompensation: true },
 ];
 
 export default function MonthlyReport() {
@@ -122,6 +124,10 @@ export default function MonthlyReport() {
   const [licenseStartDate, setLicenseStartDate] = useState<Date | undefined>();
   const [licenseEndDate, setLicenseEndDate] = useState<Date | undefined>();
   const [licenseAttachment, setLicenseAttachment] = useState<string | null>(null);
+  
+  // Compensação de horas
+  const [compensationOriginDate, setCompensationOriginDate] = useState<Date | undefined>();
+  const [compensationEnjoyDate, setCompensationEnjoyDate] = useState<Date | undefined>();
   
   // OS (campos manuais que ainda são necessários)
   const [osNumber, setOsNumber] = useState('');
@@ -283,6 +289,8 @@ export default function MonthlyReport() {
     setLicenseStartDate(undefined);
     setLicenseEndDate(undefined);
     setLicenseAttachment(null);
+    setCompensationOriginDate(undefined);
+    setCompensationEnjoyDate(undefined);
     setEditedMplDays(null);
     setEditedCoDays(null);
     setEditedFieldDays(null);
@@ -583,12 +591,29 @@ export default function MonthlyReport() {
                 <span className="info-label">Tipo:</span>
                 <span className="info-value">{licenseTypes.find(l => l.id === selectedLicenseType)?.label}</span>
               </div>
-              <div className="info-row">
-                <span className="info-label">Período de Gozo:</span>
-                <span className="info-value">
-                  {licenseStartDate ? format(licenseStartDate, 'dd/MM/yyyy') : '-'} a {licenseEndDate ? format(licenseEndDate, 'dd/MM/yyyy') : '-'}
-                </span>
-              </div>
+              {selectedLicenseType === 'compensacao_horas' ? (
+                <>
+                  <div className="info-row">
+                    <span className="info-label">Data que Gerou Banco:</span>
+                    <span className="info-value">
+                      {compensationOriginDate ? format(compensationOriginDate, 'dd/MM/yyyy') : '-'}
+                    </span>
+                  </div>
+                  <div className="info-row">
+                    <span className="info-label">Data de Gozo:</span>
+                    <span className="info-value">
+                      {compensationEnjoyDate ? format(compensationEnjoyDate, 'dd/MM/yyyy') : '-'}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="info-row">
+                  <span className="info-label">Período de Gozo:</span>
+                  <span className="info-value">
+                    {licenseStartDate ? format(licenseStartDate, 'dd/MM/yyyy') : '-'} a {licenseEndDate ? format(licenseEndDate, 'dd/MM/yyyy') : '-'}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
@@ -911,6 +936,65 @@ export default function MonthlyReport() {
                             </Popover>
                           </div>
                         </div>
+                        
+                        {license.needsCompensation && (
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label className="text-xs">Data que Gerou Banco</Label>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    className={cn(
+                                      'w-full justify-start text-left font-normal mt-1',
+                                      !compensationOriginDate && 'text-muted-foreground'
+                                    )}
+                                    disabled={isLocked}
+                                  >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {compensationOriginDate ? format(compensationOriginDate, 'dd/MM/yyyy') : 'Selecionar'}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                  <Calendar
+                                    mode="single"
+                                    selected={compensationOriginDate}
+                                    onSelect={setCompensationOriginDate}
+                                    locale={ptBR}
+                                    className={cn("p-3 pointer-events-auto")}
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                            </div>
+                            <div>
+                              <Label className="text-xs">Data de Gozo</Label>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    className={cn(
+                                      'w-full justify-start text-left font-normal mt-1',
+                                      !compensationEnjoyDate && 'text-muted-foreground'
+                                    )}
+                                    disabled={isLocked}
+                                  >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {compensationEnjoyDate ? format(compensationEnjoyDate, 'dd/MM/yyyy') : 'Selecionar'}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                  <Calendar
+                                    mode="single"
+                                    selected={compensationEnjoyDate}
+                                    onSelect={setCompensationEnjoyDate}
+                                    locale={ptBR}
+                                    className={cn("p-3 pointer-events-auto")}
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                            </div>
+                          </div>
+                        )}
                         
                         {license.needsAttachment && (
                           <div>
