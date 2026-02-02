@@ -881,7 +881,7 @@ export default function MonthlyReport() {
                     </div>
                     
                     {selectedLicenseType === license.id && (
-                      <div className="mt-4 space-y-4 pl-7">
+                      <div className="mt-4 space-y-4 pl-7" onClick={(e) => e.stopPropagation()}>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <Label className="text-xs">Data Início</Label>
@@ -899,12 +899,14 @@ export default function MonthlyReport() {
                                   {licenseStartDate ? format(licenseStartDate, 'dd/MM/yyyy') : 'Selecionar'}
                                 </Button>
                               </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0">
+                              <PopoverContent className="w-auto p-0" align="start">
                                 <Calendar
                                   mode="single"
                                   selected={licenseStartDate}
                                   onSelect={setLicenseStartDate}
                                   locale={ptBR}
+                                  className="pointer-events-auto"
+                                  initialFocus
                                 />
                               </PopoverContent>
                             </Popover>
@@ -925,12 +927,14 @@ export default function MonthlyReport() {
                                   {licenseEndDate ? format(licenseEndDate, 'dd/MM/yyyy') : 'Selecionar'}
                                 </Button>
                               </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0">
+                              <PopoverContent className="w-auto p-0" align="start">
                                 <Calendar
                                   mode="single"
                                   selected={licenseEndDate}
                                   onSelect={setLicenseEndDate}
                                   locale={ptBR}
+                                  className="pointer-events-auto"
+                                  initialFocus
                                 />
                               </PopoverContent>
                             </Popover>
