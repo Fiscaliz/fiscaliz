@@ -354,13 +354,12 @@ export default function MonthlyReport() {
     const startDate = format(new Date(selectedYear, selectedMonth - 1, 1), 'yyyy-MM-dd');
     const endDate = format(new Date(selectedYear, selectedMonth, 0), 'yyyy-MM-dd');
     
+    // Buscar todos os documentos e filtrar localmente pela data do documento (content.document_date)
     const { data } = await supabase
       .from('fiscal_documents')
-      .select('document_type, status, action_date')
+      .select('document_type, status, content')
       .eq('user_id', user.id)
-      .in('status', ['sent', 'draft'])
-      .gte('action_date', startDate)
-      .lte('action_date', endDate);
+      .in('status', ['sent', 'draft']);
 
     if (data) {
       const summary: DocumentSummary = {
@@ -378,7 +377,15 @@ export default function MonthlyReport() {
         coleta_amostra: 0,
       };
       
-      data.forEach(doc => {
+      // Filtrar pela data real da fiscalização (content.document_date)
+      const filteredDocs = data.filter(doc => {
+        const content = doc.content as any || {};
+        const docDate = content.document_date;
+        if (!docDate) return false;
+        return docDate >= startDate && docDate <= endDate;
+      });
+      
+      filteredDocs.forEach(doc => {
         const type = doc.document_type as keyof DocumentSummary;
         if (type in summary) {
           summary[type]++;
@@ -397,6 +404,7 @@ export default function MonthlyReport() {
     const startDate = format(new Date(selectedYear, selectedMonth - 1, 1), 'yyyy-MM-dd');
     const endDate = format(new Date(selectedYear, selectedMonth, 0), 'yyyy-MM-dd');
     
+    // Buscar todos os documentos e filtrar localmente pela data do documento (content.document_date)
     const { data } = await supabase
       .from('fiscal_documents')
       .select(`
@@ -415,27 +423,37 @@ export default function MonthlyReport() {
         establishments(*)
       `)
       .eq('user_id', user.id)
-      .in('status', ['sent', 'draft'])
-      .gte('action_date', startDate)
-      .lte('action_date', endDate)
-      .order('action_date', { ascending: true });
+      .in('status', ['sent', 'draft']);
 
     if (data) {
-      // Store full documents for PDF attachment
-      setFullDocuments(data);
-      
-      const actions: EditableDailyAction[] = data.map((doc: any) => {
+      // Filtrar pela data real da fiscalização (content.document_date)
+      const filteredData = data.filter((doc: any) => {
         const content = doc.content || {};
-        // Usar action_date para determinar o dia - esta é a data da ação fiscal descrita na peça
-        // Parse action_date como data local (YYYY-MM-DD) para evitar problemas de timezone
+        const docDate = content.document_date;
+        if (!docDate) return false;
+        return docDate >= startDate && docDate <= endDate;
+      });
+      
+      // Store full documents for PDF attachment
+      setFullDocuments(filteredData);
+      
+      const actions: EditableDailyAction[] = filteredData.map((doc: any) => {
+        const content = doc.content || {};
+        // Usar content.document_date como a data real da fiscalização
         let dayNumber: number;
         let actionDateFormatted: string;
         let actionDateFull: string; // Para ordenação cronológica
-        if (doc.action_date) {
+        const docDate = content.document_date;
+        if (docDate) {
+          const parts = docDate.split('-');
+          dayNumber = parseInt(parts[2], 10);
+          actionDateFormatted = `${parts[2]}/${parts[1]}`;
+          actionDateFull = docDate; // YYYY-MM-DD para ordenação
+        } else if (doc.action_date) {
           const parts = doc.action_date.split('-');
           dayNumber = parseInt(parts[2], 10);
           actionDateFormatted = `${parts[2]}/${parts[1]}`;
-          actionDateFull = doc.action_date; // YYYY-MM-DD para ordenação
+          actionDateFull = doc.action_date;
         } else {
           const createdDate = new Date(doc.created_at);
           dayNumber = createdDate.getDate();
