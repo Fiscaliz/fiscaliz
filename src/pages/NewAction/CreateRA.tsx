@@ -5,13 +5,13 @@ import { Header } from '@/components/layout/Header';
 import { FiscalizWatermark } from '@/components/layout/FiscalizWatermark';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, Clock, Save, FileText, ChevronLeft } from 'lucide-react';
+import { Save, FileText, ChevronLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { MobilePhotoUpload, UploadedPhoto } from '@/components/documents/MobilePhotoUpload';
 
 export default function CreateRA() {
   const [searchParams] = useSearchParams();
@@ -24,13 +24,8 @@ export default function CreateRA() {
   const atividadeDescricao = decodeURIComponent(searchParams.get('atividade_descricao') || '');
 
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({
-    documentDate: new Date().toISOString().split('T')[0],
-    documentTime: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-    duration: '',
-    description: '',
-    observations: '',
-  });
+  const [observations, setObservations] = useState('');
+  const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
   const [profile, setProfile] = useState<{ full_name: string; registration_number: string | null } | null>(null);
 
   useEffect(() => {
@@ -46,14 +41,40 @@ export default function CreateRA() {
     fetchProfile();
   }, [user]);
 
+  const uploadPhotos = async (docId: string): Promise<string[]> => {
+    if (!user || photos.length === 0) return [];
+    
+    const uploadedUrls: string[] = [];
+    
+    for (const photo of photos) {
+      try {
+        const fileExt = photo.file.name.split('.').pop() || 'jpg';
+        const fileName = `${user.id}/${docId}_ra_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('fiscal-photos')
+          .upload(fileName, photo.file, { upsert: true });
+        
+        if (uploadError) throw uploadError;
+        
+        const { data: urlData } = supabase.storage
+          .from('fiscal-photos')
+          .getPublicUrl(fileName);
+        
+        if (urlData?.publicUrl) {
+          uploadedUrls.push(urlData.publicUrl);
+        }
+      } catch (error) {
+        console.error('Error uploading photo:', error);
+      }
+    }
+    
+    return uploadedUrls;
+  };
+
   const handleSave = async () => {
     if (!user) {
       toast({ title: 'Erro', description: 'Usuário não autenticado', variant: 'destructive' });
-      return;
-    }
-
-    if (!formData.description.trim()) {
-      toast({ title: 'Atenção', description: 'Preencha a descrição da atividade', variant: 'destructive' });
       return;
     }
 
@@ -65,7 +86,7 @@ export default function CreateRA() {
         .from('fiscal_actions')
         .insert({
           user_id: user.id,
-          establishment_id: null, // RA não tem estabelecimento
+          establishment_id: null,
           reason: 'demanda_interna' as any,
           reason_details: `${atividadeId} - ${atividadeDescricao}`,
         })
@@ -78,11 +99,7 @@ export default function CreateRA() {
       const contentObj = {
         atividade_id: atividadeId,
         atividade_descricao: atividadeDescricao,
-        document_date: formData.documentDate,
-        document_time: formData.documentTime,
-        duration: formData.duration,
-        description: formData.description,
-        observations: formData.observations,
+        observations: observations,
         auditor: profile?.full_name || '',
         matricula: profile?.registration_number || '',
       };
@@ -102,6 +119,15 @@ export default function CreateRA() {
         .single();
 
       if (docError) throw docError;
+
+      // Upload das fotos e atualizar documento
+      const photoUrls = await uploadPhotos(newDoc.id);
+      if (photoUrls.length > 0) {
+        await supabase
+          .from('fiscal_documents')
+          .update({ attachments: photoUrls })
+          .eq('id', newDoc.id);
+      }
 
       toast({
         title: 'RA salvo!',
@@ -163,66 +189,6 @@ export default function CreateRA() {
           </CardContent>
         </Card>
 
-        {/* Data e Hora */}
-        <Card className="mb-4 border-0 shadow-sm">
-          <CardContent className="p-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-sm">
-                  <Calendar className="h-4 w-4" />
-                  Data
-                </Label>
-                <Input
-                  type="date"
-                  value={formData.documentDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, documentDate: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-sm">
-                  <Clock className="h-4 w-4" />
-                  Horário
-                </Label>
-                <Input
-                  type="time"
-                  value={formData.documentTime}
-                  onChange={(e) => setFormData(prev => ({ ...prev, documentTime: e.target.value }))}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Duração */}
-        <Card className="mb-4 border-0 shadow-sm">
-          <CardContent className="p-4">
-            <div className="space-y-2">
-              <Label className="text-sm">Duração (horas)</Label>
-              <Input
-                type="text"
-                placeholder="Ex: 2h, 4h30min"
-                value={formData.duration}
-                onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Descrição */}
-        <Card className="mb-4 border-0 shadow-sm">
-          <CardContent className="p-4">
-            <div className="space-y-2">
-              <Label className="text-sm">Descrição da Atividade *</Label>
-              <Textarea
-                placeholder="Descreva detalhadamente a atividade realizada..."
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                rows={5}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Observações */}
         <Card className="mb-4 border-0 shadow-sm">
           <CardContent className="p-4">
@@ -230,13 +196,25 @@ export default function CreateRA() {
               <Label className="text-sm">Observações</Label>
               <Textarea
                 placeholder="Observações adicionais (opcional)"
-                value={formData.observations}
-                onChange={(e) => setFormData(prev => ({ ...prev, observations: e.target.value }))}
-                rows={3}
+                value={observations}
+                onChange={(e) => setObservations(e.target.value)}
+                rows={4}
               />
             </div>
           </CardContent>
         </Card>
+
+        {/* Upload de Fotos/Documentos */}
+        <div className="mb-4">
+          <MobilePhotoUpload
+            photos={photos}
+            onChange={setPhotos}
+            maxPhotos={10}
+            required={false}
+            label="Anexos"
+            description="Certificados de cursos, listas de frequência, comprovantes, etc."
+          />
+        </div>
 
         {/* Botão Salvar */}
         <Button
