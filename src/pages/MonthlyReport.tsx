@@ -605,7 +605,7 @@ export default function MonthlyReport() {
             day: 27,
             actionDate: '27/01',
             actionDateFull: '2026-01-27',
-            transport: 'CO',
+            transport: 'MPL',
             actionType: 'Insp.Investigativa',
             establishment: 'LACPRIOS LTDA',
             document: 'VF',
