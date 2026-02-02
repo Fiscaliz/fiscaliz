@@ -1042,15 +1042,19 @@ export function DocumentViewer({
                   <div className="space-y-3 print:hidden">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="deadlineDays" className="text-xs">Prazo (dias)</Label>
+                        <Label htmlFor="deadlineDays" className="text-xs">Prazo (1-45 dias)</Label>
                         <Input
                           id="deadlineDays"
                           type="number"
                           min="1"
-                          max="365"
+                          max="45"
                           value={deadlineDays || ''}
                           onChange={(e) => {
-                            const days = parseInt(e.target.value) || undefined;
+                            let days = parseInt(e.target.value) || undefined;
+                            // Limitar entre 1 e 45 dias
+                            if (days !== undefined) {
+                              days = Math.max(1, Math.min(45, days));
+                            }
                             setDeadlineDays(days);
                             if (days) {
                               const date = new Date();

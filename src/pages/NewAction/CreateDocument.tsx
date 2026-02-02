@@ -4,6 +4,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
 import { FiscalizWatermark } from '@/components/layout/FiscalizWatermark';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
@@ -1068,6 +1069,87 @@ export default function CreateDocument() {
               </CardContent>
             </Card>
 
+            {/* Photo Upload for inutilização, apreensão, interdicao */}
+            {(tipo === 'inutilizacao' || tipo === 'apreensao' || tipo === 'interdicao') && (
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">Registro Fotográfico</span>
+                      <Badge variant="outline" className="text-xs">Obrigatório</Badge>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{uploadedImages.length}/10</span>
+                  </div>
+                  
+                  <input
+                    ref={attachmentInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => handleImageUpload(e, false)}
+                  />
+                  <input
+                    ref={attachmentCameraRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={(e) => handleImageUpload(e, false)}
+                  />
+
+                  {uploadedImages.length > 0 && (
+                    <div className="grid grid-cols-4 gap-2">
+                      {uploadedImages.map((img, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-lg overflow-hidden">
+                          <img src={img.previewUrl} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(idx)}
+                            className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {uploadedImages.length < 10 && (
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => attachmentCameraRef.current?.click()}
+                        className="flex-1 h-12"
+                      >
+                        <Camera className="h-5 w-5 mr-2" />
+                        Capturar
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => attachmentInputRef.current?.click()}
+                        className="flex-1 h-12"
+                      >
+                        <FolderOpen className="h-5 w-5 mr-2" />
+                        Galeria
+                      </Button>
+                    </div>
+                  )}
+
+                  {uploadedImages.length === 0 && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      ⚠️ É obrigatório anexar pelo menos uma foto
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             <DocumentCommonFields
               documentType={tipo}
               documentDate={documentDate}
@@ -1093,7 +1175,12 @@ export default function CreateDocument() {
               <Button 
                 className="flex-1" 
                 onClick={handleSave}
-                disabled={!manualContent.trim() || saving || (tipo === 'termo_intimacao' && !dengueInspection)}
+                disabled={
+                  !manualContent.trim() || 
+                  saving || 
+                  (tipo === 'termo_intimacao' && !dengueInspection) ||
+                  ((tipo === 'inutilizacao' || tipo === 'apreensao' || tipo === 'interdicao') && uploadedImages.length === 0)
+                }
               >
                 {saving ? 'Salvando...' : 'Salvar Documento'}
               </Button>

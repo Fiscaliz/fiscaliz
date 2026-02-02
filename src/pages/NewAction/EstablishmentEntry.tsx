@@ -503,11 +503,54 @@ export default function EstablishmentEntry() {
     }
   };
 
-  const handleSelectPreviousDocument = (doc: any) => {
+  const handleSelectPreviousDocument = async (doc: any) => {
     const est = doc.establishment;
+    
+    // Se não tem CNPJ mas tem razão social, tentar buscar o CNPJ na base local
+    if (!est.cnpj && est.razao_social) {
+      toast({
+        title: 'Buscando dados completos...',
+        description: 'Procurando CNPJ pelo nome do estabelecimento',
+      });
+      
+      // Buscar por razão social similar na base local
+      const { data: foundEst } = await supabase
+        .from('establishments')
+        .select('*')
+        .or(`razao_social.ilike.%${est.razao_social}%,nome_fantasia.ilike.%${est.razao_social}%`)
+        .not('cnpj', 'is', null)
+        .limit(1)
+        .maybeSingle();
+      
+      if (foundEst && foundEst.cnpj) {
+        setEstablishment({
+          id: foundEst.id,
+          cnpj: foundEst.cnpj,
+          razao_social: foundEst.razao_social,
+          nome_fantasia: foundEst.nome_fantasia,
+          endereco: foundEst.endereco || est.endereco,
+          bairro: foundEst.bairro || est.bairro,
+          cep: foundEst.cep || est.cep,
+          responsavel_nome: foundEst.responsavel_nome || est.responsavel_nome,
+          responsavel_telefone: foundEst.responsavel_telefone || est.responsavel_telefone,
+          cnae_principal: foundEst.cnae_principal || est.cnae_principal,
+          alvara_numero: foundEst.alvara_numero || est.alvara_numero,
+          latitude: foundEst.latitude || est.latitude,
+          longitude: foundEst.longitude || est.longitude,
+        });
+        
+        toast({
+          title: 'CNPJ encontrado!',
+          description: `Dados completos carregados para ${foundEst.nome_fantasia || foundEst.razao_social}`,
+        });
+        return;
+      }
+    }
+    
+    // Usar dados originais se não encontrou CNPJ
     setEstablishment({
       id: est.id,
-      cnpj: est.cnpj,
+      cnpj: est.cnpj || '',
       razao_social: est.razao_social,
       nome_fantasia: est.nome_fantasia,
       endereco: est.endereco,
