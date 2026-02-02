@@ -1388,7 +1388,11 @@ export default function CreateDocument() {
                           min="1"
                           max="45"
                           value={deadlineDays}
-                          onChange={(e) => setDeadlineDays(e.target.value)}
+                          onChange={(e) => {
+                            let days = parseInt(e.target.value) || 15;
+                            days = Math.max(1, Math.min(45, days));
+                            setDeadlineDays(days.toString());
+                          }}
                           className="w-20"
                         />
                         <span className="text-sm text-muted-foreground">dias</span>
@@ -1485,7 +1489,11 @@ export default function CreateDocument() {
                           min="1"
                           max="45"
                           value={deadlineDays}
-                          onChange={(e) => setDeadlineDays(e.target.value)}
+                          onChange={(e) => {
+                            let days = parseInt(e.target.value) || 15;
+                            days = Math.max(1, Math.min(45, days));
+                            setDeadlineDays(days.toString());
+                          }}
                           className="w-20"
                         />
                         <span className="text-sm text-muted-foreground">dias</span>
