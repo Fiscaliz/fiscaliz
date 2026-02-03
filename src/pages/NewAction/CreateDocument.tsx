@@ -90,7 +90,7 @@ export default function CreateDocument() {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [manualContent, setManualContent] = useState('');
-  const [deadlineDays, setDeadlineDays] = useState('15');
+  const [deadlineDays, setDeadlineDays] = useState('');
   const [saving, setSaving] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [otrosContent, setOtrosContent] = useState('');
@@ -289,9 +289,32 @@ export default function CreateDocument() {
 
       if (actionError) throw actionError;
 
-      // Calculate deadline date
+      // Deadline (apenas para Termo de Intimação)
+      const parsedDeadlineDays = deadlineDays ? parseInt(deadlineDays, 10) : NaN;
+      if (tipo === 'termo_intimacao') {
+        if (!deadlineDays || Number.isNaN(parsedDeadlineDays)) {
+          toast({
+            title: 'Prazo obrigatório',
+            description: 'Informe o prazo para adequação (1 a 45 dias) antes de salvar o Termo de Intimação.',
+            variant: 'destructive',
+          });
+          return;
+        }
+        if (parsedDeadlineDays < 1 || parsedDeadlineDays > 45) {
+          toast({
+            title: 'Prazo inválido',
+            description: 'O prazo deve estar entre 1 e 45 dias.',
+            variant: 'destructive',
+          });
+          return;
+        }
+      }
+
+      // Calculate deadline date (quando houver)
       const deadlineDate = new Date();
-      deadlineDate.setDate(deadlineDate.getDate() + parseInt(deadlineDays));
+      if (!Number.isNaN(parsedDeadlineDays)) {
+        deadlineDate.setDate(deadlineDate.getDate() + parsedDeadlineDays);
+      }
 
       // Upload photos (if any) to storage, and keep only URLs in DB
       const plannedDocId = crypto.randomUUID();
@@ -434,7 +457,7 @@ export default function CreateDocument() {
         content: contentObj,
         irregularities: finalIrregularities,
         attachments,
-        deadline_days: tipo === 'termo_intimacao' ? parseInt(deadlineDays) : null,
+        deadline_days: tipo === 'termo_intimacao' ? parsedDeadlineDays : null,
         deadline_date: tipo === 'termo_intimacao' ? deadlineDate.toISOString().split('T')[0] : null,
         priority: motivo === 'denuncia' || motivo === 'surto' || isAutoInfracao ? 'high' : 'medium',
         action_date: documentDate || new Date().toISOString().split('T')[0],
