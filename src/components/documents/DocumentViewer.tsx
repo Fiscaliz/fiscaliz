@@ -839,22 +839,29 @@ _Enviado via FISCALIZ®_`;
               {isRelatorioTecnico ? '2. ESPECIFICAÇÃO DAS IRREGULARIDADES' : 'ESPECIFICAÇÃO DAS IRREGULARIDADES / OBSERVAÇÕES'}
             </h3>
             <div className="text-sm leading-relaxed whitespace-pre-wrap min-h-[150px]">
-              {/* Se tiver legendas de fotos (IA), gerar texto automaticamente */}
+              {/* Se tiver legendas de fotos (IA), gerar texto automaticamente com referência cruzada */}
               {hasPhotoLegends && photoLegends.length > 0 ? (
                 <div className="space-y-3">
                   <p className="mb-2">Durante a inspeção sanitária foram constatadas as seguintes irregularidades:</p>
-                  <ol className="list-decimal list-inside space-y-2">
+                  <div className="space-y-3">
                     {photoLegends
                       .filter(legend => legend.legenda && legend.legenda.trim())
-                      .map((legend, idx) => (
-                        <li key={idx} className="text-justify">
-                          {legend.legenda}
-                          {legend.item_rdc && (
-                            <span className="font-semibold"> (Conforme Item {legend.item_rdc} da RDC 216/2004)</span>
-                          )}
-                        </li>
-                      ))}
-                  </ol>
+                      .map((legend, idx) => {
+                        const itemNumber = idx + 1;
+                        return (
+                          <div key={idx} className="flex gap-2">
+                            <span className="font-bold text-gray-700 shrink-0">{itemNumber}.</span>
+                            <div className="text-justify">
+                              <span>{legend.legenda}</span>
+                              {legend.item_rdc && (
+                                <span className="font-semibold"> (Item {legend.item_rdc} - RDC 216/2004)</span>
+                              )}
+                              <span className="text-gray-500 italic text-xs ml-1">[ver Foto {itemNumber}]</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
                   {content && content.trim() && (
                     <div className="mt-4 pt-3 border-t border-gray-200">
                       <p className="font-medium mb-1">Observações adicionais:</p>
@@ -898,30 +905,39 @@ _Enviado via FISCALIZ®_`;
                 {isRelatorioTecnico ? '3. ANEXOS - REGISTRO FOTOGRÁFICO' : 'ANEXOS - REGISTRO FOTOGRÁFICO'}
               </h3>
               <p className="text-xs text-gray-600 mb-4">
-                As irregularidades descritas acima são comprovadas pelas evidências fotográficas a seguir:
+                As irregularidades descritas acima são comprovadas pelas evidências fotográficas a seguir, numeradas conforme o texto:
               </p>
               <div className="grid grid-cols-2 gap-4">
-                {attachedPhotos.map((photoUrl, idx) => {
-                  const legend = photoLegends.find(l => l.photoIndex === idx);
-                  return (
-                    <div key={idx} className="flex flex-col">
-                      <div className="aspect-[4/3] border border-gray-300 rounded overflow-hidden mb-2">
-                        <img 
-                          src={photoUrl} 
-                          alt={`Foto ${idx + 1}`} 
-                          className="w-full h-full object-cover"
-                        />
+                {/* Filtrar apenas fotos com legendas e numerar na mesma ordem do texto */}
+                {photoLegends
+                  .filter(legend => legend.legenda && legend.legenda.trim())
+                  .map((legend, idx) => {
+                    const photoUrl = attachedPhotos[legend.photoIndex];
+                    if (!photoUrl) return null;
+                    const itemNumber = idx + 1;
+                    return (
+                      <div key={idx} className="flex flex-col">
+                        <div className="relative aspect-[4/3] border border-gray-300 rounded overflow-hidden mb-2">
+                          {/* Número da foto no canto */}
+                          <div className="absolute top-1 left-1 bg-gray-800 text-white text-xs font-bold px-2 py-0.5 rounded">
+                            {itemNumber}
+                          </div>
+                          <img 
+                            src={photoUrl} 
+                            alt={`Foto ${itemNumber}`} 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <p className="text-[9pt] text-gray-700 leading-tight">
+                          <span className="font-bold">Foto {itemNumber}:</span>{' '}
+                          {legend.legenda}
+                          {legend.item_rdc && (
+                            <span className="font-semibold text-gray-900"> (Item {legend.item_rdc})</span>
+                          )}
+                        </p>
                       </div>
-                      <p className="text-[9pt] text-gray-700 leading-tight">
-                        <span className="font-semibold">Foto {idx + 1}:</span>{' '}
-                        {legend?.legenda || 'Registro fotográfico da inspeção'}
-                        {legend?.item_rdc && (
-                          <span className="font-semibold text-gray-900"> (Item {legend.item_rdc} - RDC 216/2004)</span>
-                        )}
-                      </p>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             </div>
           )}
@@ -1275,23 +1291,30 @@ _Enviado via FISCALIZ®_`;
                 )}
               </div>
               
-              {/* Se tem legendas de fotos (IA), exibir texto formatado */}
+              {/* Se tem legendas de fotos (IA), exibir texto formatado com referência cruzada */}
               {hasPhotoLegends && photoLegends.length > 0 ? (
                 <div className="bg-muted/20 rounded-lg p-4 min-h-[200px] print:bg-transparent print:border print:border-gray-200">
                   <div className="text-sm leading-relaxed space-y-3">
                     <p className="mb-2">Durante a inspeção sanitária foram constatadas as seguintes irregularidades:</p>
-                    <ol className="list-decimal list-inside space-y-2">
+                    <div className="space-y-3">
                       {photoLegends
                         .filter(legend => legend.legenda && legend.legenda.trim())
-                        .map((legend, idx) => (
-                          <li key={idx} className="text-justify">
-                            {legend.legenda}
-                            {legend.item_rdc && (
-                              <span className="font-semibold text-primary"> (Conforme Item {legend.item_rdc} da RDC 216/2004)</span>
-                            )}
-                          </li>
-                        ))}
-                    </ol>
+                        .map((legend, idx) => {
+                          const itemNumber = idx + 1;
+                          return (
+                            <div key={idx} className="flex gap-2">
+                              <span className="font-bold text-muted-foreground shrink-0">{itemNumber}.</span>
+                              <div className="text-justify">
+                                <span>{legend.legenda}</span>
+                                {legend.item_rdc && (
+                                  <span className="font-semibold text-primary"> (Item {legend.item_rdc} - RDC 216/2004)</span>
+                                )}
+                                <span className="text-muted-foreground italic text-xs ml-1">[ver Foto {itemNumber}]</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
                     {content && content.trim() && (
                       <div className="mt-4 pt-3 border-t border-muted">
                         <p className="font-medium mb-1">Observações adicionais:</p>
@@ -1330,28 +1353,40 @@ _Enviado via FISCALIZ®_`;
               {hasPhotoLegends && attachedPhotos.length > 0 && (
                 <div className="mt-6 pt-4 border-t">
                   <Label className="text-sm font-semibold mb-3 block">Anexos - Registro Fotográfico:</Label>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Fotos numeradas conforme as irregularidades acima:
+                  </p>
                   <div className="grid grid-cols-2 gap-3">
-                    {attachedPhotos.map((photoUrl, idx) => {
-                      const legend = photoLegends.find(l => l.photoIndex === idx);
-                      return (
-                        <div key={idx} className="flex flex-col rounded-lg border overflow-hidden">
-                          <div className="aspect-[4/3] overflow-hidden">
-                            <img 
-                              src={photoUrl} 
-                              alt={`Foto ${idx + 1}`} 
-                              className="w-full h-full object-cover"
-                            />
+                    {/* Filtrar apenas fotos com legendas e numerar na mesma ordem do texto */}
+                    {photoLegends
+                      .filter(legend => legend.legenda && legend.legenda.trim())
+                      .map((legend, idx) => {
+                        const photoUrl = attachedPhotos[legend.photoIndex];
+                        if (!photoUrl) return null;
+                        const itemNumber = idx + 1;
+                        return (
+                          <div key={idx} className="flex flex-col rounded-lg border overflow-hidden">
+                            <div className="relative aspect-[4/3] overflow-hidden">
+                              {/* Badge com número da foto */}
+                              <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5 rounded z-10">
+                                {itemNumber}
+                              </div>
+                              <img 
+                                src={photoUrl} 
+                                alt={`Foto ${itemNumber}`} 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div className="p-2 bg-muted/30 text-xs">
+                              <span className="font-bold">Foto {itemNumber}:</span>{' '}
+                              {legend.legenda}
+                              {legend.item_rdc && (
+                                <span className="font-semibold text-primary ml-1">(Item {legend.item_rdc})</span>
+                              )}
+                            </div>
                           </div>
-                          <div className="p-2 bg-muted/30 text-xs">
-                            <span className="font-semibold">Foto {idx + 1}:</span>{' '}
-                            {legend?.legenda || 'Registro fotográfico da inspeção'}
-                            {legend?.item_rdc && (
-                              <span className="font-semibold text-primary ml-1">(Item {legend.item_rdc})</span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
                   </div>
                 </div>
               )}
