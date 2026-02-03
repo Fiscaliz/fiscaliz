@@ -339,6 +339,9 @@ export default function CreateDocument() {
       let content = generateDocumentContent();
 
       // If AI method, call backend to analyze uploaded photos
+      // Store photo legends for displaying in DocumentViewer
+      let aiPhotoLegends: Array<{ photoIndex: number; legenda: string; item_rdc: string; }> = [];
+      
       if (method === 'ai') {
         if (uploadedUrls.length === 0) {
           throw new Error('Adicione pelo menos 1 foto para análise.');
@@ -357,6 +360,24 @@ export default function CreateDocument() {
           throw new Error('A IA não retornou texto. Tente novamente com fotos mais nítidas.');
         }
         content = aiText;
+        
+        // Extract photo legends from AI analysis
+        const photoAnalysis = (aiData as any)?.photoAnalysis as Array<{
+          foto: number;
+          legenda: string;
+          item_rdc: string;
+          severity?: string;
+          recommendation?: string;
+          deadline?: string;
+        }> | undefined;
+        
+        if (photoAnalysis && photoAnalysis.length > 0) {
+          aiPhotoLegends = photoAnalysis.map(pa => ({
+            photoIndex: pa.foto - 1, // API returns 1-indexed
+            legenda: pa.legenda,
+            item_rdc: pa.item_rdc,
+          }));
+        }
       }
       const irregularities = method === 'checklist' && currentChecklist
         ? currentChecklist.items.filter(item => selectedItems.includes(item.id)).map(item => ({
@@ -417,6 +438,10 @@ export default function CreateDocument() {
           document_date: documentDate,
           document_time: documentTime,
           transport_mode: transportMode,
+          // Store AI photo legends for termo_intimacao when using AI method
+          ...(method === 'ai' && aiPhotoLegends.length > 0 && {
+            photoLegends: aiPhotoLegends,
+          }),
         };
       }
 

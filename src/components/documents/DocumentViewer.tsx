@@ -150,12 +150,26 @@ export function DocumentViewer({
   // Check if this is a Relatório Técnico with photo legends
   const isRelatorioTecnico = document.document_type === 'relatorio_tecnico';
   const relatorioTecnicoData = document.content?.relatorio_tecnico_data;
+  
+  // Check if this is a Termo de Intimação with AI-generated photo legends
+  const isTermoIntimacaoWithAI = document.document_type === 'termo_intimacao' && 
+    document.content?.method === 'ai' && 
+    Array.isArray(document.content?.photoLegends);
+  
   const photoLegends: PhotoLegend[] = useMemo(() => {
-    if (!isRelatorioTecnico || !relatorioTecnicoData?.photoLegends) return [];
-    // Importante: manter o array completo para preservar o mapeamento por índice (fotoIndex)
-    // mesmo quando algumas fotos não têm irregularidades/legenda.
-    return relatorioTecnicoData.photoLegends;
-  }, [isRelatorioTecnico, relatorioTecnicoData]);
+    // For Relatório Técnico
+    if (isRelatorioTecnico && relatorioTecnicoData?.photoLegends) {
+      return relatorioTecnicoData.photoLegends;
+    }
+    // For Termo de Intimação with AI analysis
+    if (isTermoIntimacaoWithAI && document.content?.photoLegends) {
+      return document.content.photoLegends;
+    }
+    return [];
+  }, [isRelatorioTecnico, relatorioTecnicoData, isTermoIntimacaoWithAI, document.content?.photoLegends]);
+  
+  // Flag to show photo analysis section
+  const hasPhotoLegends = photoLegends.length > 0;
 
   const isLocked = document.is_locked || document.status === 'sent';
   const canEdit = editable && !isLocked;
@@ -850,10 +864,12 @@ _Enviado via FISCALIZ®_`;
             </div>
           )}
 
-          {/* ANÁLISE FOTOGRÁFICA DAS IRREGULARIDADES - Para Relatório Técnico com legendas */}
-          {isRelatorioTecnico && photoLegends.length > 0 && attachedPhotos.length > 0 && (
+          {/* ANÁLISE FOTOGRÁFICA DAS IRREGULARIDADES - Para documentos com legendas (Relatório Técnico ou Termo de Intimação com IA) */}
+          {hasPhotoLegends && attachedPhotos.length > 0 && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
-              <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">2. ANÁLISE FOTOGRÁFICA DAS IRREGULARIDADES</h3>
+              <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">
+                {isRelatorioTecnico ? '2. ANÁLISE FOTOGRÁFICA DAS IRREGULARIDADES' : 'ANÁLISE FOTOGRÁFICA DAS IRREGULARIDADES'}
+              </h3>
               <p className="text-xs text-gray-600 mb-4">
                 Foram constatadas as seguintes irregularidades, analisadas por IA e detalhadas nas imagens a seguir, com base na RDC 216/2004:
               </p>
@@ -884,8 +900,8 @@ _Enviado via FISCALIZ®_`;
             </div>
           )}
 
-          {/* REGISTRO FOTOGRÁFICO - Layout padrão para outros documentos */}
-          {(!isRelatorioTecnico || photoLegends.length === 0) && attachedPhotos.length > 0 && (
+          {/* REGISTRO FOTOGRÁFICO - Layout padrão para documentos sem legendas */}
+          {!hasPhotoLegends && attachedPhotos.length > 0 && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">REGISTRO FOTOGRÁFICO</h3>
               <div className="grid grid-cols-2 gap-3">
