@@ -45,6 +45,13 @@ type UploadedImage = {
   previewUrl: string;
 };
 
+type AIPhotoLegend = {
+  photoIndex: number;
+  legenda: string;
+  item_rdc: string;
+  previewUrl?: string;
+};
+
 // Métodos de criação para Certidão - simplificado
 const certidaoMethods = [
   { id: 'certidao', icon: FileText, label: 'Preenchimento Padrão', description: 'Formulário com opções de certidão' },
@@ -98,6 +105,12 @@ export default function CreateDocument() {
   const [dengueInspection, setDengueInspection] = useState(false);
   const [documentDate, setDocumentDate] = useState(new Date().toISOString().split('T')[0]);
   const [documentTime, setDocumentTime] = useState(new Date().toTimeString().slice(0, 5));
+  
+  // AI analysis state
+  const [aiPhotoLegends, setAiPhotoLegends] = useState<AIPhotoLegend[]>([]);
+  const [aiAnalysisComplete, setAiAnalysisComplete] = useState(false);
+  const [aiAnalyzing, setAiAnalyzing] = useState(false);
+  const [aiAnalysisText, setAiAnalysisText] = useState('');
   const [transportMode, setTransportMode] = useState<'MPL' | 'CO'>('MPL');
   const [certidaoData, setCertidaoData] = useState({
     selectedOptions: [] as string[],
@@ -248,6 +261,116 @@ export default function CreateDocument() {
     return manualContent;
   };
 
+  // Handle AI analysis - separate from save to allow editing legends
+  const handleAIAnalysis = async () => {
+    if (!user) return;
+    if (uploadedImages.length === 0) {
+      toast({
+        title: 'Fotos necessárias',
+        description: 'Adicione pelo menos 1 foto para análise por IA.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setAiAnalyzing(true);
+    
+    try {
+      // Upload photos first
+      const uploadedUrls: string[] = [];
+      const tempDocId = crypto.randomUUID();
+      
+      toast({
+        title: 'Enviando fotos...',
+        description: `Fazendo upload de ${uploadedImages.length} foto(s)`,
+      });
+
+      for (const img of uploadedImages) {
+        const fileExt = img.file.name.split('.').pop() || 'jpg';
+        const fileName = `${user.id}/temp_${tempDocId}_${img.id}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('fiscal-photos')
+          .upload(fileName, img.file, { upsert: true });
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage.from('fiscal-photos').getPublicUrl(fileName);
+        if (urlData?.publicUrl) uploadedUrls.push(urlData.publicUrl);
+      }
+
+      toast({
+        title: 'Analisando com IA...',
+        description: 'Identificando irregularidades nas fotos',
+      });
+
+      const { data: aiData, error: aiError } = await supabase.functions.invoke('analyze-photos', {
+        body: {
+          documentType: tipo,
+          photos: uploadedUrls,
+        },
+      });
+
+      if (aiError) throw aiError;
+      
+      const aiText = (aiData as any)?.text as string | undefined;
+      if (!aiText?.trim()) {
+        throw new Error('A IA não retornou texto. Tente novamente com fotos mais nítidas.');
+      }
+      
+      setAiAnalysisText(aiText);
+
+      // Extract photo legends from AI analysis
+      const photoAnalysis = (aiData as any)?.photoAnalysis as Array<{
+        foto: number;
+        legenda: string;
+        item_rdc: string;
+        severity?: string;
+        recommendation?: string;
+        deadline?: string;
+      }> | undefined;
+
+      const legends: AIPhotoLegend[] = [];
+      
+      // Create legends for all photos, with AI data where available
+      for (let i = 0; i < uploadedImages.length; i++) {
+        const aiLegend = photoAnalysis?.find(pa => pa.foto - 1 === i);
+        legends.push({
+          photoIndex: i,
+          legenda: aiLegend?.legenda || '',
+          item_rdc: aiLegend?.item_rdc || '',
+          previewUrl: uploadedImages[i].previewUrl,
+        });
+      }
+      
+      setAiPhotoLegends(legends);
+      setAiAnalysisComplete(true);
+
+      toast({
+        title: 'Análise concluída!',
+        description: `${photoAnalysis?.length || 0} irregularidade(s) detectada(s). Revise e edite as legendas antes de salvar.`,
+      });
+
+    } catch (error: any) {
+      console.error('AI analysis error:', error);
+      toast({
+        title: 'Erro na análise',
+        description: error.message || 'Não foi possível analisar as fotos',
+        variant: 'destructive',
+      });
+    } finally {
+      setAiAnalyzing(false);
+    }
+  };
+
+  // Update a specific photo legend
+  const updatePhotoLegend = (photoIndex: number, field: 'legenda' | 'item_rdc', value: string) => {
+    setAiPhotoLegends(prev => prev.map(legend => 
+      legend.photoIndex === photoIndex 
+        ? { ...legend, [field]: value }
+        : legend
+    ));
+  };
+
   const handleSave = async () => {
     if (!user) return;
     
@@ -338,46 +461,30 @@ export default function CreateDocument() {
       // Create document
       let content = generateDocumentContent();
 
-      // If AI method, call backend to analyze uploaded photos
-      // Store photo legends for displaying in DocumentViewer
-      let aiPhotoLegends: Array<{ photoIndex: number; legenda: string; item_rdc: string; }> = [];
+      // For AI method, use the already analyzed and edited legends
+      // (analysis was done in handleAIAnalysis, user may have edited legends)
+      let finalAiPhotoLegends: Array<{ photoIndex: number; legenda: string; item_rdc: string; }> = [];
       
       if (method === 'ai') {
         if (uploadedUrls.length === 0) {
           throw new Error('Adicione pelo menos 1 foto para análise.');
         }
-
-        const { data: aiData, error: aiError } = await supabase.functions.invoke('analyze-photos', {
-          body: {
-            documentType: tipo,
-            photos: uploadedUrls,
-          },
-        });
-
-        if (aiError) throw aiError;
-        const aiText = (aiData as any)?.text as string | undefined;
-        if (!aiText?.trim()) {
-          throw new Error('A IA não retornou texto. Tente novamente com fotos mais nítidas.');
+        
+        // Use the pre-analyzed text and edited legends
+        if (!aiAnalysisComplete || !aiAnalysisText) {
+          throw new Error('Execute a análise por IA antes de salvar.');
         }
-        content = aiText;
         
-        // Extract photo legends from AI analysis
-        const photoAnalysis = (aiData as any)?.photoAnalysis as Array<{
-          foto: number;
-          legenda: string;
-          item_rdc: string;
-          severity?: string;
-          recommendation?: string;
-          deadline?: string;
-        }> | undefined;
+        content = aiAnalysisText;
         
-        if (photoAnalysis && photoAnalysis.length > 0) {
-          aiPhotoLegends = photoAnalysis.map(pa => ({
-            photoIndex: pa.foto - 1, // API returns 1-indexed
-            legenda: pa.legenda,
-            item_rdc: pa.item_rdc,
+        // Use edited legends (filter out empty ones)
+        finalAiPhotoLegends = aiPhotoLegends
+          .filter(l => l.legenda?.trim())
+          .map(l => ({
+            photoIndex: l.photoIndex,
+            legenda: l.legenda,
+            item_rdc: l.item_rdc,
           }));
-        }
       }
       const irregularities = method === 'checklist' && currentChecklist
         ? currentChecklist.items.filter(item => selectedItems.includes(item.id)).map(item => ({
@@ -439,8 +546,8 @@ export default function CreateDocument() {
           document_time: documentTime,
           transport_mode: transportMode,
           // Store AI photo legends for termo_intimacao when using AI method
-          ...(method === 'ai' && aiPhotoLegends.length > 0 && {
-            photoLegends: aiPhotoLegends,
+          ...(method === 'ai' && finalAiPhotoLegends.length > 0 && {
+            photoLegends: finalAiPhotoLegends,
           }),
         };
       }
@@ -1242,83 +1349,168 @@ export default function CreateDocument() {
           </>
         )}
 
-        {/* AI Method - Photo Upload */}
+        {/* AI Method - Photo Upload and Legend Editing */}
         {method === 'ai' && (
           <>
-            <Card className="border-0 shadow-sm">
-              <CardContent className="p-4 space-y-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                  <div>
-                    <h3 className="font-semibold">Fiscalização por IA</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Upload de até 50 fotos para análise automática
-                    </p>
+            {/* Step 1: Photo Upload (before analysis) */}
+            {!aiAnalysisComplete && (
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-4 space-y-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    <div>
+                      <h3 className="font-semibold">Fiscalização por IA</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Upload de até 50 fotos para análise automática
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                <input
-                  ref={aiCameraInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  className="hidden"
-                  onChange={(e) => handleImageUpload(e, true)}
-                />
-                <input
-                  ref={aiFileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => handleImageUpload(e, true)}
-                />
+                  <input
+                    ref={aiCameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={(e) => handleImageUpload(e, true)}
+                  />
+                  <input
+                    ref={aiFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => handleImageUpload(e, true)}
+                  />
 
-                {uploadedImages.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2">
-                    {uploadedImages.map((img, idx) => (
-                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden">
-                        <img src={img.previewUrl} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
-                        <button
-                          onClick={() => removeImage(idx)}
-                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
+                  {uploadedImages.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2">
+                      {uploadedImages.map((img, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-lg overflow-hidden">
+                          <img src={img.previewUrl} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                          <button
+                            onClick={() => removeImage(idx)}
+                            className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
+                            disabled={aiAnalyzing}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <p className="text-xs text-muted-foreground text-center">
+                    {uploadedImages.length}/50 fotos
+                  </p>
+
+                  {uploadedImages.length < 50 && !aiAnalyzing && (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => aiCameraInputRef.current?.click()}
+                        className="flex-1 h-12"
+                      >
+                        <Camera className="h-5 w-5 mr-2" />
+                        Capturar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => aiFileInputRef.current?.click()}
+                        className="flex-1 h-12"
+                      >
+                        <FolderOpen className="h-5 w-5 mr-2" />
+                        Galeria
+                      </Button>
+                    </div>
+                  )}
+
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Step 2: Legend Editing (after analysis) */}
+            {aiAnalysisComplete && (
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-4 space-y-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      <div>
+                        <h3 className="font-semibold text-primary">Análise Concluída</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Revise e edite as legendas antes de salvar
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => {
+                        setAiAnalysisComplete(false);
+                        setAiPhotoLegends([]);
+                        setAiAnalysisText('');
+                      }}
+                    >
+                      Refazer análise
+                    </Button>
+                  </div>
+
+                  <div className="space-y-4 max-h-[400px] overflow-y-auto">
+                    {aiPhotoLegends.map((legend, idx) => (
+                      <div key={idx} className="border rounded-lg p-3 space-y-2 bg-muted/30">
+                        <div className="flex gap-3">
+                          <div className="w-20 h-20 flex-shrink-0">
+                            <img 
+                              src={legend.previewUrl || uploadedImages[legend.photoIndex]?.previewUrl} 
+                              alt={`Foto ${legend.photoIndex + 1}`} 
+                              className="w-full h-full object-cover rounded"
+                            />
+                          </div>
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Badge variant={legend.legenda ? "default" : "secondary"} className="text-xs">
+                                Foto {legend.photoIndex + 1}
+                              </Badge>
+                              {legend.legenda && (
+                                <Badge variant="outline" className="text-xs text-destructive border-destructive/50">
+                                  Irregularidade
+                                </Badge>
+                              )}
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Descrição</Label>
+                              <Textarea
+                                value={legend.legenda}
+                                onChange={(e) => updatePhotoLegend(legend.photoIndex, 'legenda', e.target.value)}
+                                placeholder="Descrição da irregularidade (deixe vazio se não houver)"
+                                className="text-sm min-h-[60px]"
+                                maxLength={100}
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Item RDC 216/2004</Label>
+                              <Input
+                                value={legend.item_rdc}
+                                onChange={(e) => updatePhotoLegend(legend.photoIndex, 'item_rdc', e.target.value)}
+                                placeholder="Ex: 4.1.3"
+                                className="text-sm"
+                              />
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
-                )}
 
-                <p className="text-xs text-muted-foreground text-center">
-                  {uploadedImages.length}/50 fotos
-                </p>
-
-                {uploadedImages.length < 50 && (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => aiCameraInputRef.current?.click()}
-                      className="flex-1 h-12"
-                    >
-                      <Camera className="h-5 w-5 mr-2" />
-                      Capturar
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => aiFileInputRef.current?.click()}
-                      className="flex-1 h-12"
-                    >
-                      <FolderOpen className="h-5 w-5 mr-2" />
-                      Galeria
-                    </Button>
-                  </div>
-                )}
-
-              </CardContent>
-            </Card>
+                  <p className="text-xs text-muted-foreground text-center">
+                    {aiPhotoLegends.filter(l => l.legenda?.trim()).length} de {aiPhotoLegends.length} fotos com irregularidades
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             <DocumentCommonFields
               documentType={tipo}
@@ -1339,16 +1531,47 @@ export default function CreateDocument() {
             />
 
             <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => { setMethod(null); setUploadedImages([]); }}>
+              <Button 
+                variant="outline" 
+                className="flex-1" 
+                onClick={() => { 
+                  setMethod(null); 
+                  setUploadedImages([]); 
+                  setAiAnalysisComplete(false);
+                  setAiPhotoLegends([]);
+                  setAiAnalysisText('');
+                }}
+              >
                 Voltar
               </Button>
-              <Button 
-                className="flex-1" 
-                onClick={handleSave}
-                disabled={uploadedImages.length === 0 || saving || (tipo === 'termo_intimacao' && !dengueInspection)}
-              >
-                {saving ? 'Salvando...' : 'Analisar com IA'}
-              </Button>
+              
+              {!aiAnalysisComplete ? (
+                <Button 
+                  className="flex-1" 
+                  onClick={handleAIAnalysis}
+                  disabled={uploadedImages.length === 0 || aiAnalyzing || (tipo === 'termo_intimacao' && !dengueInspection)}
+                >
+                  {aiAnalyzing ? (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2 animate-pulse" />
+                      Analisando...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Analisar com IA
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <Button 
+                  className="flex-1" 
+                  onClick={handleSave}
+                  disabled={saving || (tipo === 'termo_intimacao' && !dengueInspection)}
+                >
+                  {saving ? 'Salvando...' : 'Salvar Documento'}
+                </Button>
+              )}
             </div>
           </>
         )}
