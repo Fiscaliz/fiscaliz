@@ -835,9 +835,36 @@ _Enviado via FISCALIZ®_`;
 
           {/* ESPECIFICAÇÃO DAS IRREGULARIDADES */}
           <div className="doc-section border border-gray-300 p-4 mb-6">
-            <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">ESPECIFICAÇÃO DAS IRREGULARIDADES / OBSERVAÇÕES</h3>
+            <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">
+              {isRelatorioTecnico ? '2. ESPECIFICAÇÃO DAS IRREGULARIDADES' : 'ESPECIFICAÇÃO DAS IRREGULARIDADES / OBSERVAÇÕES'}
+            </h3>
             <div className="text-sm leading-relaxed whitespace-pre-wrap min-h-[150px]">
-              {content || 'Sem irregularidades especificadas.'}
+              {/* Se tiver legendas de fotos (IA), gerar texto automaticamente */}
+              {hasPhotoLegends && photoLegends.length > 0 ? (
+                <div className="space-y-3">
+                  <p className="mb-2">Durante a inspeção sanitária foram constatadas as seguintes irregularidades:</p>
+                  <ol className="list-decimal list-inside space-y-2">
+                    {photoLegends
+                      .filter(legend => legend.legenda && legend.legenda.trim())
+                      .map((legend, idx) => (
+                        <li key={idx} className="text-justify">
+                          {legend.legenda}
+                          {legend.item_rdc && (
+                            <span className="font-semibold"> (Conforme Item {legend.item_rdc} da RDC 216/2004)</span>
+                          )}
+                        </li>
+                      ))}
+                  </ol>
+                  {content && content.trim() && (
+                    <div className="mt-4 pt-3 border-t border-gray-200">
+                      <p className="font-medium mb-1">Observações adicionais:</p>
+                      <p>{content}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                content || 'Sem irregularidades especificadas.'
+              )}
             </div>
           </div>
 
@@ -864,14 +891,14 @@ _Enviado via FISCALIZ®_`;
             </div>
           )}
 
-          {/* ANÁLISE FOTOGRÁFICA DAS IRREGULARIDADES - Para documentos com legendas (Relatório Técnico ou Termo de Intimação com IA) */}
+          {/* ANEXOS: ANÁLISE FOTOGRÁFICA DAS IRREGULARIDADES - Para documentos com legendas (Relatório Técnico ou Termo de Intimação com IA) */}
           {hasPhotoLegends && attachedPhotos.length > 0 && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">
-                {isRelatorioTecnico ? '2. ANÁLISE FOTOGRÁFICA DAS IRREGULARIDADES' : 'ANÁLISE FOTOGRÁFICA DAS IRREGULARIDADES'}
+                {isRelatorioTecnico ? '3. ANEXOS - REGISTRO FOTOGRÁFICO' : 'ANEXOS - REGISTRO FOTOGRÁFICO'}
               </h3>
               <p className="text-xs text-gray-600 mb-4">
-                Foram constatadas as seguintes irregularidades, analisadas por IA e detalhadas nas imagens a seguir, com base na RDC 216/2004:
+                As irregularidades descritas acima são comprovadas pelas evidências fotográficas a seguir:
               </p>
               <div className="grid grid-cols-2 gap-4">
                 {attachedPhotos.map((photoUrl, idx) => {
@@ -885,14 +912,13 @@ _Enviado via FISCALIZ®_`;
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      {legend && legend.legenda && (
-                        <p className="text-[9pt] text-gray-700 leading-tight">
-                          {legend.legenda}
-                          {legend.item_rdc && (
-                            <span className="font-semibold"> (Item RDC 216/2004: {legend.item_rdc})</span>
-                          )}
-                        </p>
-                      )}
+                      <p className="text-[9pt] text-gray-700 leading-tight">
+                        <span className="font-semibold">Foto {idx + 1}:</span>{' '}
+                        {legend?.legenda || 'Registro fotográfico da inspeção'}
+                        {legend?.item_rdc && (
+                          <span className="font-semibold text-gray-900"> (Item {legend.item_rdc} - RDC 216/2004)</span>
+                        )}
+                      </p>
                     </div>
                   );
                 })}
@@ -1241,7 +1267,7 @@ _Enviado via FISCALIZ®_`;
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-semibold">Especificação das Irregularidades:</Label>
-                {canEdit && !isEditing && (
+                {canEdit && !isEditing && !hasPhotoLegends && (
                   <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)} className="print:hidden">
                     <Edit3 className="h-4 w-4 mr-1" />
                     Editar
@@ -1249,7 +1275,32 @@ _Enviado via FISCALIZ®_`;
                 )}
               </div>
               
-              {isEditing ? (
+              {/* Se tem legendas de fotos (IA), exibir texto formatado */}
+              {hasPhotoLegends && photoLegends.length > 0 ? (
+                <div className="bg-muted/20 rounded-lg p-4 min-h-[200px] print:bg-transparent print:border print:border-gray-200">
+                  <div className="text-sm leading-relaxed space-y-3">
+                    <p className="mb-2">Durante a inspeção sanitária foram constatadas as seguintes irregularidades:</p>
+                    <ol className="list-decimal list-inside space-y-2">
+                      {photoLegends
+                        .filter(legend => legend.legenda && legend.legenda.trim())
+                        .map((legend, idx) => (
+                          <li key={idx} className="text-justify">
+                            {legend.legenda}
+                            {legend.item_rdc && (
+                              <span className="font-semibold text-primary"> (Conforme Item {legend.item_rdc} da RDC 216/2004)</span>
+                            )}
+                          </li>
+                        ))}
+                    </ol>
+                    {content && content.trim() && (
+                      <div className="mt-4 pt-3 border-t border-muted">
+                        <p className="font-medium mb-1">Observações adicionais:</p>
+                        <p>{content}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : isEditing ? (
                 <div className="space-y-2 print:hidden">
                   <Textarea
                     value={content}
@@ -1272,6 +1323,36 @@ _Enviado via FISCALIZ®_`;
                   <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed print:text-black">
                     {content || 'Sem conteúdo'}
                   </pre>
+                </div>
+              )}
+
+              {/* Anexos - Fotos legendadas no corpo do documento */}
+              {hasPhotoLegends && attachedPhotos.length > 0 && (
+                <div className="mt-6 pt-4 border-t">
+                  <Label className="text-sm font-semibold mb-3 block">Anexos - Registro Fotográfico:</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {attachedPhotos.map((photoUrl, idx) => {
+                      const legend = photoLegends.find(l => l.photoIndex === idx);
+                      return (
+                        <div key={idx} className="flex flex-col rounded-lg border overflow-hidden">
+                          <div className="aspect-[4/3] overflow-hidden">
+                            <img 
+                              src={photoUrl} 
+                              alt={`Foto ${idx + 1}`} 
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="p-2 bg-muted/30 text-xs">
+                            <span className="font-semibold">Foto {idx + 1}:</span>{' '}
+                            {legend?.legenda || 'Registro fotográfico da inspeção'}
+                            {legend?.item_rdc && (
+                              <span className="font-semibold text-primary ml-1">(Item {legend.item_rdc})</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
