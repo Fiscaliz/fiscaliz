@@ -211,29 +211,36 @@ export function DocumentViewer({
       // Gerar PDF do documento
       let pdfUrl: string | null = null;
       
-      // Usar o conteúdo do PDF preview para gerar o PDF
-      const pdfElement = pdfContentRef.current || documentRef.current;
-      if (pdfElement) {
-        toast({
-          title: "Gerando PDF...",
-          description: "Aguarde enquanto o documento é preparado."
-        });
+      toast({
+        title: "Gerando PDF profissional...",
+        description: "Aguarde enquanto o documento é preparado com template oficial."
+      });
+      
+      // Temporariamente mostrar a preview para captura
+      setShowPDFPreview(true);
+      
+      // Esperar renderização completa (incluindo imagens)
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      const previewElement = window.document.querySelector('.pdf-preview-container') as HTMLElement;
+      
+      if (previewElement) {
+        console.log('[PDF Generation] Found preview container, generating canvas...');
         
-        // Temporariamente mostrar a preview para captura
-        setShowPDFPreview(true);
-        await new Promise(resolve => setTimeout(resolve, 500)); // Esperar renderização
-        
-        const previewElement = window.document.querySelector('.pdf-preview-container') as HTMLElement;
-        if (previewElement) {
+        try {
           const canvas = await html2canvas(previewElement, {
             scale: 2,
             useCORS: true,
             allowTaint: true,
             backgroundColor: '#ffffff',
-            logging: false,
+            logging: true,
+            windowWidth: previewElement.scrollWidth,
+            windowHeight: previewElement.scrollHeight,
           });
           
-          const imgData = canvas.toDataURL('image/jpeg', 0.95);
+          console.log('[PDF Generation] Canvas created:', canvas.width, 'x', canvas.height);
+          
+          const imgData = canvas.toDataURL('image/jpeg', 0.92);
           const pdf = new jsPDF({
             orientation: 'portrait',
             unit: 'mm',
@@ -244,16 +251,63 @@ export function DocumentViewer({
           const pdfHeight = pdf.internal.pageSize.getHeight();
           const imgWidth = canvas.width;
           const imgHeight = canvas.height;
+          
+          // Calcular proporção para caber na página
           const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
           const imgX = (pdfWidth - imgWidth * ratio) / 2;
+          const imgY = 0;
           
-          pdf.addImage(imgData, 'JPEG', imgX, 0, imgWidth * ratio, imgHeight * ratio);
+          // Se o conteúdo for maior que uma página, adicionar múltiplas páginas
+          const scaledHeight = imgHeight * ratio;
+          
+          if (scaledHeight > pdfHeight) {
+            // Conteúdo precisa de múltiplas páginas
+            let remainingHeight = imgHeight;
+            let currentY = 0;
+            const pageHeightInPixels = pdfHeight / ratio;
+            
+            while (remainingHeight > 0) {
+              if (currentY > 0) {
+                pdf.addPage();
+              }
+              
+              // Criar canvas para esta página
+              const pageCanvas = window.document.createElement('canvas');
+              pageCanvas.width = canvas.width;
+              pageCanvas.height = Math.min(pageHeightInPixels, remainingHeight);
+              const ctx = pageCanvas.getContext('2d');
+              
+              if (ctx) {
+                ctx.drawImage(
+                  canvas,
+                  0, currentY,
+                  canvas.width, pageCanvas.height,
+                  0, 0,
+                  pageCanvas.width, pageCanvas.height
+                );
+                
+                const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.92);
+                pdf.addImage(pageImgData, 'JPEG', imgX, 0, imgWidth * ratio, pageCanvas.height * ratio);
+              }
+              
+              currentY += pageHeightInPixels;
+              remainingHeight -= pageHeightInPixels;
+            }
+          } else {
+            pdf.addImage(imgData, 'JPEG', imgX, imgY, imgWidth * ratio, scaledHeight);
+          }
+          
+          console.log('[PDF Generation] PDF created, uploading to storage...');
           
           // Converter PDF para blob
           const pdfBlob = pdf.output('blob');
           
-          // Fazer upload para o Storage
-          const fileName = `documents/${document.id}_${Date.now()}.pdf`;
+          // Fazer upload para o Storage - pasta pública
+          const { data: { user } } = await supabase.auth.getUser();
+          const fileName = user 
+            ? `${user.id}/documents/${document.id}_${Date.now()}.pdf`
+            : `public/documents/${document.id}_${Date.now()}.pdf`;
+          
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('fiscal-photos')
             .upload(fileName, pdfBlob, { 
@@ -261,16 +315,28 @@ export function DocumentViewer({
               upsert: true 
             });
           
-          if (!uploadError && uploadData) {
+          if (uploadError) {
+            console.error('[PDF Generation] Upload error:', uploadError);
+            throw new Error(`Erro no upload: ${uploadError.message}`);
+          }
+          
+          if (uploadData) {
             const { data: urlData } = supabase.storage
               .from('fiscal-photos')
               .getPublicUrl(fileName);
             pdfUrl = urlData.publicUrl;
+            console.log('[PDF Generation] PDF uploaded successfully:', pdfUrl);
           }
+        } catch (canvasError) {
+          console.error('[PDF Generation] Canvas/PDF error:', canvasError);
+          throw canvasError;
         }
-        
-        setShowPDFPreview(false);
+      } else {
+        console.error('[PDF Generation] Preview container not found');
+        throw new Error('Não foi possível encontrar o container de preview');
       }
+      
+      setShowPDFPreview(false);
       
       // Montar mensagem com link do PDF
       let message = `━━━━━━━━━━━━━━━━━━━━
@@ -288,7 +354,7 @@ Vigilância Sanitária de Goiânia`;
       if (pdfUrl) {
         message += `
 
-📎 *Acesse o documento completo:*
+📎 *Documento PDF completo:*
 ${pdfUrl}`;
       }
 
@@ -301,17 +367,18 @@ _Enviado via FISCALIZ®_`;
       window.open(whatsappUrl, '_blank');
       
       toast({
-        title: pdfUrl ? "PDF gerado e link enviado!" : "WhatsApp aberto",
+        title: pdfUrl ? "✅ PDF gerado com sucesso!" : "WhatsApp aberto",
         description: pdfUrl 
-          ? "O documento PDF foi anexado ao link. Envie a mensagem no WhatsApp."
-          : "Documento enviado como mensagem. Confirme o envio."
+          ? "O documento PDF profissional está pronto. Envie a mensagem no WhatsApp."
+          : "Documento preparado como mensagem. Confirme o envio."
       });
       
-    } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
+    } catch (error: any) {
+      console.error('[PDF Generation] Error:', error);
+      setShowPDFPreview(false);
       toast({
         title: "Erro ao gerar PDF",
-        description: "Tente novamente ou envie como mensagem de texto.",
+        description: error.message || "Tente novamente ou use a opção de impressão.",
         variant: "destructive"
       });
     } finally {
