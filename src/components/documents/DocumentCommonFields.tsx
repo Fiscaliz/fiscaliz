@@ -135,9 +135,18 @@ export function DocumentCommonFields({
                   type="number"
                   min="1"
                   max="45"
-                  value={deadlineDays || '15'}
+                  value={deadlineDays ?? ''}
                   onChange={(e) => {
-                    let days = parseInt(e.target.value) || 15;
+                    const raw = e.target.value;
+                    if (!raw) {
+                      onDeadlineChange?.('');
+                      return;
+                    }
+                    let days = parseInt(raw, 10);
+                    if (Number.isNaN(days)) {
+                      onDeadlineChange?.('');
+                      return;
+                    }
                     // Limitar entre 1 e 45 dias
                     days = Math.max(1, Math.min(45, days));
                     onDeadlineChange?.(days.toString());

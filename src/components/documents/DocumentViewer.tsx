@@ -152,7 +152,9 @@ export function DocumentViewer({
   const relatorioTecnicoData = document.content?.relatorio_tecnico_data;
   const photoLegends: PhotoLegend[] = useMemo(() => {
     if (!isRelatorioTecnico || !relatorioTecnicoData?.photoLegends) return [];
-    return relatorioTecnicoData.photoLegends.filter((l: PhotoLegend) => l.legenda?.trim());
+    // Importante: manter o array completo para preservar o mapeamento por índice (fotoIndex)
+    // mesmo quando algumas fotos não têm irregularidades/legenda.
+    return relatorioTecnicoData.photoLegends;
   }, [isRelatorioTecnico, relatorioTecnicoData]);
 
   const isLocked = document.is_locked || document.status === 'sent';
