@@ -1798,18 +1798,6 @@ export default function MonthlyReport() {
                     </div>
                   </div>
                 </div>
-                
-                <div>
-                  <Label htmlFor="pfeDays">Plantão Fiscal Especial (PFE)</Label>
-                  <Input
-                    id="pfeDays"
-                    type="number"
-                    value={pfeDays}
-                    onChange={(e) => setPfeDays(e.target.value)}
-                    disabled={isLocked}
-                    className="mt-1"
-                  />
-                </div>
               </CardContent>
             </Card>
 
