@@ -125,37 +125,42 @@ export function DocumentCommonFields({
 
         {/* Prazo (se aplicável) */}
         {showDeadline && (
-          <div className="flex items-center gap-3">
-            <Calendar className="h-5 w-5 text-primary" />
-            <div>
-              <Label htmlFor="prazo">Prazo para adequação</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <Input
-                  id="prazo"
-                  type="number"
-                  min="1"
-                  max="45"
-                  value={deadlineDays ?? ''}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    if (!raw) {
-                      onDeadlineChange?.('');
-                      return;
-                    }
-                    let days = parseInt(raw, 10);
-                    if (Number.isNaN(days)) {
-                      onDeadlineChange?.('');
-                      return;
-                    }
-                    // Limitar entre 1 e 45 dias
-                    days = Math.max(1, Math.min(45, days));
-                    onDeadlineChange?.(days.toString());
-                  }}
-                  className="w-20"
-                />
-                <span className="text-sm text-muted-foreground">dias</span>
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <Calendar className="h-5 w-5 text-primary" />
+              <div>
+                <Label htmlFor="prazo">Prazo para adequação</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input
+                    id="prazo"
+                    type="number"
+                    min="1"
+                    max="45"
+                    value={deadlineDays ?? ''}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (!raw) {
+                        onDeadlineChange?.('');
+                        return;
+                      }
+                      let days = parseInt(raw, 10);
+                      if (Number.isNaN(days)) {
+                        onDeadlineChange?.('');
+                        return;
+                      }
+                      // Limitar entre 1 e 45 dias
+                      days = Math.max(1, Math.min(45, days));
+                      onDeadlineChange?.(days.toString());
+                    }}
+                    className="w-20"
+                   />
+                  <span className="text-sm text-muted-foreground">dias</span>
+                </div>
               </div>
             </div>
+            <p className="text-xs text-muted-foreground italic pl-8">
+              Boas Práticas Sanitárias não comportam prazo
+            </p>
           </div>
         )}
 
