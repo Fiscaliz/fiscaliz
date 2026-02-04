@@ -60,6 +60,7 @@ interface EditableDailyAction {
   transport: 'MPL' | 'CO' | '';
   actionType: string;
   establishment: string;
+  establishmentId: string | null; // ID do estabelecimento para agrupamento
   document: string;
   documentNumber: string; // Número completo do documento (ex: TI-000001)
   documentId: string;
@@ -73,6 +74,23 @@ interface EditableDailyAction {
   economicActivity: string; // Atividade Econômica/CNAE
   cnaeCode: string; // Código CNAE (A33, SA41, etc)
   scale: string; // Escala (Plantão Fiscal1, Plantão Fiscal2, etc)
+}
+
+// Interface para OS agrupada (múltiplas peças no mesmo estabelecimento/dia = 1 OS)
+interface GroupedOS {
+  key: string; // Chave única: establishmentId_date ou internalActivity_date
+  day: number;
+  actionDateFull: string;
+  establishment: string;
+  establishmentId: string | null;
+  riskLevel: 'I' | 'II' | 'III' | null;
+  riskPoints: number;
+  difficultyGrade: 1 | 2;
+  difficultyJustifications: string[];
+  totalPoints: number;
+  documents: string[]; // Lista de documentos emitidos
+  isInternal: boolean;
+  isCertidao: boolean; // Certidão = 1 ponto fixo
 }
 
 // Tabela de pontos por risco sanitário (Tabela Anvisa)
@@ -181,6 +199,9 @@ export default function MonthlyReport() {
   const [editedFieldDays, setEditedFieldDays] = useState<number | null>(null);
   const [editedInternalDays, setEditedInternalDays] = useState<number | null>(null);
   
+  // Edições de grau de dificuldade por OS agrupada (chave: osKey, valor: {grade, justifications})
+  const [osGradeOverrides, setOsGradeOverrides] = useState<Map<string, { grade: 1 | 2; justifications: string[] }>>(new Map());
+  
   const [documentSummary, setDocumentSummary] = useState<DocumentSummary>({
     termo_intimacao: 0,
     visita_fiscal: 0,
@@ -240,27 +261,117 @@ export default function MonthlyReport() {
     return { mplDays, coDays, fieldDays, internalDays };
   }, [dailyActions]);
 
-  // Calcular pontos totais (pontos de risco * grau de dificuldade)
-  // Exceção: Certidão (certidao) vale apenas 1 ponto fixo
+  // Agrupar ações por estabelecimento+dia para calcular OS corretamente
+  // Múltiplas peças no mesmo estabelecimento no mesmo dia = 1 OS
+  const groupedOS = useMemo((): GroupedOS[] => {
+    const osMap = new Map<string, GroupedOS>();
+    
+    dailyActions.forEach(action => {
+      // Chave de agrupamento: estabelecimento_id + data ou establishment_name + data para atividades internas
+      const groupKey = action.isInternal 
+        ? `internal_${action.establishment}_${action.actionDateFull}`
+        : `${action.establishmentId || action.establishment}_${action.actionDateFull}`;
+      
+      const existing = osMap.get(groupKey);
+      
+      if (existing) {
+        // Adicionar documento à OS existente
+        existing.documents.push(action.documentNumber);
+        // Usar o maior grau de dificuldade do grupo (se não tiver override)
+        if (!osGradeOverrides.has(groupKey) && action.difficultyGrade > existing.difficultyGrade) {
+          existing.difficultyGrade = action.difficultyGrade;
+          existing.difficultyJustifications = action.difficultyJustifications;
+          existing.totalPoints = existing.riskPoints * action.difficultyGrade;
+        }
+        // Verificar se é certidão
+        if (action.documentType === 'certidao') {
+          existing.isCertidao = true;
+        }
+      } else {
+        // Criar nova OS
+        const isCertidao = action.documentType === 'certidao';
+        const riskPoints = isCertidao ? 1 : action.riskPoints;
+        
+        // Verificar se há override de grau
+        const override = osGradeOverrides.get(groupKey);
+        const grade = override?.grade ?? (isCertidao ? 1 : action.difficultyGrade);
+        const justifications = override?.justifications ?? (isCertidao ? [] : action.difficultyJustifications);
+        
+        osMap.set(groupKey, {
+          key: groupKey,
+          day: action.day,
+          actionDateFull: action.actionDateFull,
+          establishment: action.establishment,
+          establishmentId: action.establishmentId,
+          riskLevel: action.riskLevel,
+          riskPoints,
+          difficultyGrade: grade,
+          difficultyJustifications: justifications,
+          totalPoints: isCertidao ? 1 : riskPoints * grade,
+          documents: [action.documentNumber],
+          isInternal: action.isInternal,
+          isCertidao,
+        });
+      }
+    });
+    
+    // Aplicar overrides às OS já criadas
+    osGradeOverrides.forEach((override, key) => {
+      const os = osMap.get(key);
+      if (os && !os.isCertidao) {
+        os.difficultyGrade = override.grade;
+        os.difficultyJustifications = override.justifications;
+        os.totalPoints = os.riskPoints * override.grade;
+      }
+    });
+    
+    return Array.from(osMap.values()).sort((a, b) => 
+      a.actionDateFull.localeCompare(b.actionDateFull)
+    );
+  }, [dailyActions, osGradeOverrides]);
+
+  // Função para atualizar o grau de dificuldade de uma OS agrupada
+  const updateOsGrade = (osKey: string, grade: 1 | 2, justifications: string[] = []) => {
+    setOsGradeOverrides(prev => {
+      const newMap = new Map(prev);
+      newMap.set(osKey, { grade, justifications });
+      return newMap;
+    });
+  };
+
+  // Função para alternar justificativas de uma OS
+  const toggleOsJustification = (osKey: string, justificationId: string) => {
+    const current = osGradeOverrides.get(osKey);
+    const currentJustifications = current?.justifications || [];
+    const grade = current?.grade || 2;
+    
+    const newJustifications = currentJustifications.includes(justificationId)
+      ? currentJustifications.filter(j => j !== justificationId)
+      : [...currentJustifications, justificationId];
+    
+    updateOsGrade(osKey, grade, newJustifications);
+  };
+
+  // Calcular pontos totais baseado nas OS agrupadas (não nas peças individuais)
+  // Certidão vale apenas 1 ponto fixo
   const totalPoints = useMemo(() => {
     let basePoints = 0;
     let totalWithGrade = 0;
     
-    dailyActions.forEach(action => {
-      // Certidão vale apenas 1 ponto (não usa tabela de risco)
-      if (action.documentType === 'certidao') {
+    groupedOS.forEach(os => {
+      if (os.isCertidao) {
         basePoints += 1;
         totalWithGrade += 1;
       } else {
-        basePoints += action.riskPoints;
-        totalWithGrade += action.totalPoints;
+        basePoints += os.riskPoints;
+        totalWithGrade += os.totalPoints;
       }
     });
     
     return { basePoints, totalWithGrade };
-  }, [dailyActions]);
+  }, [groupedOS]);
 
-  // OS Cumprida é igual aos pontos gerados (totalWithGrade)
+  // OS Cumprida é igual aos pontos gerados (totalWithGrade) baseado nas OS agrupadas
   const osCumprida = totalPoints.totalWithGrade;
 
   // Valores finais (editados ou calculados)
@@ -525,6 +636,7 @@ export default function MonthlyReport() {
           transport,
           actionType,
           establishment: establishmentName,
+          establishmentId: doc.establishment_id || null, // ID para agrupamento de OS
           document: docAbbrev,
           documentNumber,
           documentId: doc.id,
@@ -1084,12 +1196,19 @@ export default function MonthlyReport() {
               </div>
             </div>
 
-            {/* Tabela de Pontos */}
+            {/* Tabela de OS Agrupadas (estabelecimento+dia = 1 OS) */}
+            <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+              <p className="text-blue-800">
+                <strong>Nota:</strong> Múltiplas peças fiscais no mesmo estabelecimento e mesmo dia contam como <strong>1 OS</strong>.
+                O grau de dificuldade pode ser alterado de 1 (normal) para 2 (com justificativa para chefia).
+              </p>
+            </div>
             <table>
               <thead>
                 <tr>
                   <th style={{ width: '50px' }}>Dia</th>
                   <th>Estabelecimento</th>
+                  <th style={{ width: '80px' }}>Documentos</th>
                   <th style={{ width: '60px' }}>Risco</th>
                   <th style={{ width: '50px' }}>Pts Base</th>
                   <th style={{ width: '60px' }}>Grau</th>
@@ -1098,51 +1217,45 @@ export default function MonthlyReport() {
                 </tr>
               </thead>
               <tbody>
-                {dailyActions.slice().sort((a, b) => a.actionDateFull.localeCompare(b.actionDateFull)).map((action) => (
-                  <tr key={`points-${action.id}`}>
-                    <td>{action.day}</td>
-                    <td>{action.establishment}</td>
-                    <td className={editingPreview ? 'editable-field' : ''}>
-                      {editingPreview ? (
-                        <select
-                          value={action.riskLevel || ''}
-                          onChange={(e) => updateDailyAction(action.id, 'riskLevel', e.target.value || null)}
-                          className="editable-input w-full"
-                        >
-                          <option value="">-</option>
-                          <option value="I">I (2pts)</option>
-                          <option value="II">II (3pts)</option>
-                          <option value="III">III (6pts)</option>
-                        </select>
+                {groupedOS.map((os) => (
+                  <tr key={`os-${os.key}`}>
+                    <td>{os.day}</td>
+                    <td>{os.establishment}</td>
+                    <td className="text-xs">{os.documents.join(', ')}</td>
+                    <td>
+                      {os.isCertidao ? (
+                        <span className="text-xs text-gray-500">Certidão</span>
                       ) : (
-                        action.riskLevel ? `${action.riskLevel} (${RISK_LABELS[action.riskLevel]})` : '-'
+                        os.riskLevel ? `${os.riskLevel} (${RISK_LABELS[os.riskLevel]})` : '-'
                       )}
                     </td>
-                    <td className="text-center font-medium">{action.riskPoints}</td>
-                    <td className={editingPreview ? 'editable-field' : ''}>
-                      {editingPreview ? (
+                    <td className="text-center font-medium">{os.riskPoints}</td>
+                    <td className={editingPreview && !os.isCertidao ? 'editable-field' : ''}>
+                      {os.isCertidao ? (
+                        <span className="text-xs text-gray-500">-</span>
+                      ) : editingPreview ? (
                         <select
-                          value={action.difficultyGrade}
-                          onChange={(e) => updateDailyAction(action.id, 'difficultyGrade', parseInt(e.target.value) as 1 | 2)}
+                          value={os.difficultyGrade}
+                          onChange={(e) => updateOsGrade(os.key, parseInt(e.target.value) as 1 | 2, os.difficultyJustifications)}
                           className="editable-input w-full"
                         >
                           <option value={1}>×1</option>
                           <option value={2}>×2</option>
                         </select>
                       ) : (
-                        `×${action.difficultyGrade}`
+                        `×${os.difficultyGrade}`
                       )}
                     </td>
-                    <td className={editingPreview ? 'editable-field text-xs' : 'text-xs'}>
-                      {action.difficultyGrade === 2 ? (
+                    <td className={editingPreview && os.difficultyGrade === 2 && !os.isCertidao ? 'editable-field text-xs' : 'text-xs'}>
+                      {os.difficultyGrade === 2 && !os.isCertidao ? (
                         editingPreview ? (
                           <div className="space-y-1">
                             {DIFFICULTY_JUSTIFICATIONS.map(j => (
                               <label key={j.id} className="flex items-center gap-1 cursor-pointer">
                                 <input
                                   type="checkbox"
-                                  checked={action.difficultyJustifications.includes(j.id)}
-                                  onChange={() => toggleDifficultyJustification(action.id, j.id)}
+                                  checked={os.difficultyJustifications.includes(j.id)}
+                                  onChange={() => toggleOsJustification(os.key, j.id)}
                                   className="w-3 h-3"
                                 />
                                 <span className="text-[9px]">{j.label}</span>
@@ -1150,8 +1263,8 @@ export default function MonthlyReport() {
                             ))}
                           </div>
                         ) : (
-                          action.difficultyJustifications.length > 0 
-                            ? action.difficultyJustifications.map(jId => {
+                          os.difficultyJustifications.length > 0 
+                            ? os.difficultyJustifications.map(jId => {
                                 const just = DIFFICULTY_JUSTIFICATIONS.find(dj => dj.id === jId);
                                 return just?.label;
                               }).join(', ')
@@ -1161,11 +1274,11 @@ export default function MonthlyReport() {
                         '-'
                       )}
                     </td>
-                    <td className="text-center font-bold bg-gray-100">{action.totalPoints}</td>
+                    <td className="text-center font-bold bg-gray-100">{os.totalPoints}</td>
                   </tr>
                 ))}
                 <tr style={{ fontWeight: 'bold', backgroundColor: '#003366', color: 'white' }}>
-                  <td colSpan={3} className="text-right">TOTAL DE PONTOS:</td>
+                  <td colSpan={4} className="text-right">TOTAL DE PONTOS (OS):</td>
                   <td className="text-center">{totalPoints.basePoints}</td>
                   <td colSpan={2}></td>
                   <td className="text-center">{totalPoints.totalWithGrade}</td>
