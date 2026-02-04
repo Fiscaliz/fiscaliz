@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { X, RotateCcw, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -239,8 +240,8 @@ export function FullScreenSignature({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col">
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] bg-background flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <Button
@@ -329,4 +330,6 @@ export function FullScreenSignature({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
