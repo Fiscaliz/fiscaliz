@@ -864,7 +864,8 @@ _Enviado via FISCALIZ®_`;
                         );
                       })}
                   </div>
-                  {content && content.trim() && (
+                  {/* Mostrar observações adicionais apenas se não for JSON bruto */}
+                  {content && content.trim() && !content.includes('"nonConformities"') && !content.startsWith('{') && (
                     <div className="mt-4 pt-3 border-t border-gray-200">
                       <p className="font-medium mb-1">Observações adicionais:</p>
                       <p>{content}</p>
@@ -877,8 +878,8 @@ _Enviado via FISCALIZ®_`;
             </div>
           </div>
 
-          {/* OBSERVAÇÕES ADICIONAIS */}
-          {observations && (
+          {/* OBSERVAÇÕES ADICIONAIS - Filtrar JSON bruto da análise por IA */}
+          {observations && !observations.includes('"nonConformities"') && !observations.startsWith('{') && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">OBSERVAÇÕES ADICIONAIS</h3>
               <div className="text-sm leading-relaxed whitespace-pre-wrap">
@@ -1261,22 +1262,25 @@ _Enviado via FISCALIZ®_`;
                   </div>
                 </div>
 
-                <div className="space-y-2 pt-2 border-t">
-                  <Label htmlFor="observations" className="text-xs flex items-center gap-1">
-                    <FileText className="h-3 w-3" />
-                    Observações Adicionais
-                  </Label>
-                  <Textarea
-                    id="observations"
-                    placeholder="Irregularidades ou observações não contempladas no checklist ou análise por IA..."
-                    value={observations}
-                    onChange={(e) => setObservations(e.target.value)}
-                    className="min-h-[80px] text-sm"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Campo para registrar informações adicionais não cobertas pelos métodos automáticos
-                  </p>
-                </div>
+                {/* Observações Adicionais - esconder se for JSON da análise por IA */}
+                {(!observations || (!observations.includes('"nonConformities"') && !observations.startsWith('{'))) && (
+                  <div className="space-y-2 pt-2 border-t">
+                    <Label htmlFor="observations" className="text-xs flex items-center gap-1">
+                      <FileText className="h-3 w-3" />
+                      Observações Adicionais
+                    </Label>
+                    <Textarea
+                      id="observations"
+                      placeholder="Irregularidades ou observações não contempladas no checklist ou análise por IA..."
+                      value={observations}
+                      onChange={(e) => setObservations(e.target.value)}
+                      className="min-h-[80px] text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Campo para registrar informações adicionais não cobertas pelos métodos automáticos
+                    </p>
+                  </div>
+                )}
 
               </div>
             )}
@@ -1317,7 +1321,8 @@ _Enviado via FISCALIZ®_`;
                           );
                         })}
                     </div>
-                    {content && content.trim() && (
+                    {/* Mostrar observações adicionais apenas se não for JSON bruto */}
+                    {content && content.trim() && !content.includes('"nonConformities"') && !content.startsWith('{') && (
                       <div className="mt-4 pt-3 border-t border-muted">
                         <p className="font-medium mb-1">Observações adicionais:</p>
                         <p>{content}</p>

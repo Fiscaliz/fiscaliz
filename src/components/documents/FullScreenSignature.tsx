@@ -287,11 +287,14 @@ export function FullScreenSignature({
         />
       </div>
 
-      {/* Signature line indicator */}
+      {/* Signature line indicator with label */}
       <div className="mx-4 -mt-16 mb-4 pointer-events-none">
         <div className="h-px bg-muted-foreground/40 mx-8" />
-        <p className="text-xs text-muted-foreground text-center mt-1">
-          Linha de assinatura
+        <p className="text-sm font-medium text-foreground text-center mt-2">
+          Contribuinte / Preposto
+        </p>
+        <p className="text-xs text-muted-foreground text-center">
+          Assine acima da linha
         </p>
       </div>
 
@@ -312,14 +315,14 @@ export function FullScreenSignature({
           size="lg"
           onClick={saveSignature}
           disabled={isSaving || !hasDrawn}
-          className="flex-1 h-14 text-base"
+          className="flex-1 h-14 text-base bg-gradient-to-r from-primary to-secondary"
         >
           {isSaving ? (
             <>Salvando...</>
           ) : (
             <>
               <Check className="h-5 w-5 mr-2" />
-              Salvar
+              Salvar Assinatura
             </>
           )}
         </Button>
