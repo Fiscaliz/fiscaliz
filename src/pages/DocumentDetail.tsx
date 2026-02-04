@@ -310,9 +310,9 @@ export default function DocumentDetail() {
     return (
       <AppLayout>
         <Header title="Carregando..." showBack />
-        <div className="p-4 space-y-4">
-          <Skeleton className="h-[400px] w-full" />
-          <Skeleton className="h-12 w-full" />
+        <div className="p-5 space-y-4">
+          <Skeleton className="h-[400px] w-full rounded-2xl" />
+          <Skeleton className="h-12 w-full rounded-xl" />
         </div>
       </AppLayout>
     );
@@ -322,8 +322,10 @@ export default function DocumentDetail() {
     return (
       <AppLayout>
         <Header title="Documento não encontrado" showBack />
-        <div className="p-4 text-center text-muted-foreground">
-          O documento solicitado não foi encontrado.
+        <div className="p-5 text-center">
+          <p className="text-body text-muted-foreground">
+            O documento solicitado não foi encontrado.
+          </p>
         </div>
       </AppLayout>
     );
@@ -337,7 +339,7 @@ export default function DocumentDetail() {
         showBack 
       />
       
-      <div className="p-4">
+      <div className="p-5">
         <DocumentViewer
           document={document}
           onSave={handleSave}

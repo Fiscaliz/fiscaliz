@@ -52,34 +52,38 @@ export default function NewAction() {
     <AppLayout>
       <BrandHeader />
       
-      <div className="p-4">
-        <h1 className="text-xl font-bold text-center mb-4 text-primary">
-          MOTIVO DA AÇÃO FISCAL
-        </h1>
+      <div className="p-5 space-y-6">
+        <div className="text-center">
+          <h1 className="text-h2 text-primary font-bold">
+            Motivo da Ação Fiscal
+          </h1>
+          <p className="text-caption text-muted-foreground mt-1">
+            Selecione o motivo que melhor descreve esta ação
+          </p>
+        </div>
         
-        <Card className="mb-4 border-0 shadow-sm bg-primary/5">
+        <Card className="bg-accent/30 border-accent">
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">
-              Escolha o motivo que melhor descreve esta ação fiscal. 
-              Isso ajuda a priorizar e organizar suas tarefas.
+            <p className="text-body text-accent-foreground">
+              Isso ajuda a priorizar e organizar suas tarefas e relatórios mensais.
             </p>
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-4">
           {actionReasons.map((reason) => (
             <Card 
               key={reason.id}
               className={cn(
-                'border-0 shadow-sm cursor-pointer transition-all hover:shadow-md active:scale-95',
-                selectedReason === reason.id && 'ring-2 ring-primary'
+                'cursor-pointer card-hover',
+                selectedReason === reason.id && 'ring-2 ring-primary bg-primary/5'
               )}
               onClick={() => handleReasonSelect(reason.id)}
             >
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
                   <div className={cn(
-                    'rounded-lg p-2',
+                    'rounded-xl p-2.5',
                     reason.priority === 'high' && 'bg-destructive/10',
                     reason.priority === 'medium' && 'bg-warning/10',
                     reason.priority === 'low' && 'bg-muted'
@@ -87,14 +91,14 @@ export default function NewAction() {
                     <reason.icon className={cn('h-5 w-5', reason.color)} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm leading-tight">{reason.label}</p>
+                    <p className="font-semibold text-body leading-tight">{reason.label}</p>
                     {reason.sublabel && (
-                      <span className="text-[10px] text-muted-foreground block">
+                      <span className="text-micro text-muted-foreground block mt-0.5">
                         {reason.sublabel}
                       </span>
                     )}
                     {reason.priority === 'high' && (
-                      <span className="text-[10px] text-destructive font-medium uppercase">
+                      <span className="text-micro text-destructive font-semibold uppercase mt-1 block">
                         Alta prioridade
                       </span>
                     )}
