@@ -240,17 +240,30 @@ export default function MonthlyReport() {
   }, [dailyActions]);
 
   // Calcular pontos totais (pontos de risco * grau de dificuldade)
+  // Exceção: Certidão (certidao) vale apenas 1 ponto fixo
   const totalPoints = useMemo(() => {
     let basePoints = 0;
     let totalWithGrade = 0;
     
     dailyActions.forEach(action => {
-      basePoints += action.riskPoints;
-      totalWithGrade += action.totalPoints;
+      // Certidão vale apenas 1 ponto (não usa tabela de risco)
+      if (action.documentType === 'certidao') {
+        basePoints += 1;
+        totalWithGrade += 1;
+      } else {
+        basePoints += action.riskPoints;
+        totalWithGrade += action.totalPoints;
+      }
     });
     
     return { basePoints, totalWithGrade };
   }, [dailyActions]);
+
+  // Estado para OS Programadas (editável)
+  const [editedOsProgramadas, setEditedOsProgramadas] = useState<number | null>(null);
+  // OS Cumprida é igual aos pontos gerados (totalWithGrade)
+  const osProgramadas = editedOsProgramadas ?? (parseInt(daysToWork) || 0);
+  const osCumprida = totalPoints.totalWithGrade;
 
   // Valores finais (editados ou calculados)
   const finalMplDays = editedMplDays ?? calculatedStats.mplDays;
@@ -803,11 +816,27 @@ export default function MonthlyReport() {
             <div className="section-title">ESCALA DE TRABALHO</div>
             <table>
               <thead>
-                <tr><th>Tipo de Atividade</th><th>Dias</th></tr>
+                <tr><th>Tipo de Atividade</th><th>Dias/Pontos</th></tr>
               </thead>
               <tbody>
                 <tr><td>Dias a Cumprir no Período</td><td>{daysToWork || 0}</td></tr>
-                <tr><td>OS Programadas</td><td>{totalDocuments}</td></tr>
+                <tr>
+                  <td>OS a Cumprir (Pontos Programados)</td>
+                  <td className={editingPreview ? 'editable-field' : ''}>
+                    {editingPreview ? (
+                      <input
+                        type="number"
+                        value={osProgramadas}
+                        onChange={(e) => setEditedOsProgramadas(parseInt(e.target.value) || 0)}
+                        className="editable-input w-16"
+                      />
+                    ) : osProgramadas}
+                  </td>
+                </tr>
+                <tr>
+                  <td>OS Cumprida (Pontos Gerados)</td>
+                  <td className="font-bold">{osCumprida}</td>
+                </tr>
                 <tr>
                   <td>Fiscalização em Área</td>
                   <td className={editingPreview ? 'editable-field' : ''}>
@@ -1017,6 +1046,20 @@ export default function MonthlyReport() {
           <div className="mb-6">
             <div className="section-title">TABELA DE PONTOS - CUMPRIMENTO DA OS MENSAL</div>
             
+            {/* Resumo de OS */}
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-xs">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="font-bold text-blue-900">OS a Cumprir (Programadas):</p>
+                  <p className="text-lg font-bold text-blue-700">{osProgramadas} pontos</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-green-900">OS Cumprida (Geradas):</p>
+                  <p className="text-lg font-bold text-green-700">{osCumprida} pontos</p>
+                </div>
+              </div>
+            </div>
+
             {/* Legenda de Risco - Tabela Anvisa */}
             <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded text-xs">
               <p className="font-bold mb-2">Pontuação por Nível de Risco Sanitário (Tabela Anvisa IN nº 66/2020):</p>
@@ -1025,6 +1068,7 @@ export default function MonthlyReport() {
                 <span><strong>Risco II (Médio):</strong> 3 pontos</span>
                 <span><strong>Risco III (Alto):</strong> 6 pontos</span>
               </div>
+              <p className="mt-2 text-gray-600"><strong>Exceção:</strong> Certidão Sanitária = 1 ponto fixo</p>
             </div>
 
             {/* Legenda de Grau de Dificuldade */}
@@ -1606,6 +1650,29 @@ export default function MonthlyReport() {
                   </div>
                 </div>
                 
+                {/* OS a Cumprir e OS Cumprida */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="osProgramadas">OS a Cumprir (Pontos)</Label>
+                    <Input
+                      id="osProgramadas"
+                      type="number"
+                      value={editedOsProgramadas ?? (parseInt(daysToWork) || '')}
+                      onChange={(e) => setEditedOsProgramadas(parseInt(e.target.value) || 0)}
+                      placeholder="Pontos programados"
+                      disabled={isLocked}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label>OS Cumprida (Pontos)</Label>
+                    <div className="mt-1 p-2 bg-success/10 rounded-lg text-center">
+                      <span className="text-lg font-bold text-success">{osCumprida}</span>
+                      <p className="text-[10px] text-muted-foreground">Calculado automaticamente</p>
+                    </div>
+                  </div>
+                </div>
+                
                 <div>
                   <Label htmlFor="pfeDays">Plantão Fiscal Especial (PFE)</Label>
                   <Input
@@ -1626,11 +1693,12 @@ export default function MonthlyReport() {
                 <div className="flex items-start gap-3">
                   <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
                   <div className="text-xs text-muted-foreground">
-                    <p className="font-medium mb-1">Campos automáticos:</p>
+                    <p className="font-medium mb-1">Como são calculados os pontos (OS):</p>
                     <ul className="space-y-1">
-                      <li>• <strong>MPL/CO</strong>: Calculado por dia trabalhado (1 por dia, não por estabelecimento)</li>
-                      <li>• <strong>Escala de trabalho</strong>: Baseada nas peças fiscais enviadas</li>
-                      <li>• Edite na prévia do PDF antes de enviar, se necessário</li>
+                      <li>• <strong>Risco I:</strong> 2pts | <strong>Risco II:</strong> 3pts | <strong>Risco III:</strong> 6pts</li>
+                      <li>• <strong>Certidão:</strong> 1 ponto fixo (não usa tabela de risco)</li>
+                      <li>• <strong>Grau 2:</strong> Multiplica pontos por 2 (com justificativa)</li>
+                      <li>• Edite na prévia do PDF ou na aba Pontos se necessário</li>
                     </ul>
                   </div>
                 </div>
