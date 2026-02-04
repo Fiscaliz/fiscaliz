@@ -131,6 +131,7 @@ export function DocumentViewer({
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const pdfContentRef = useRef<HTMLDivElement>(null);
+  const pdfPreviewRef = useRef<HTMLDivElement>(null);
   const [contributorSignatureUrl, setContributorSignatureUrl] = useState<string | null>(document.content?.contributor_signature || null);
   const [documentDate, setDocumentDate] = useState(document.content?.document_date || new Date(document.created_at).toISOString().split('T')[0]);
   const [documentTime, setDocumentTime] = useState(document.content?.document_time || new Date(document.created_at).toTimeString().slice(0, 5));
@@ -237,13 +238,37 @@ export function DocumentViewer({
       // Temporariamente mostrar a preview para captura
       setShowPDFPreview(true);
       
-      // Esperar renderização completa (incluindo imagens)
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Aguardar múltiplos frames para garantir renderização completa
+      await new Promise<void>(resolve => {
+        let frameCount = 0;
+        const waitForRender = () => {
+          frameCount++;
+          if (frameCount < 3) {
+            requestAnimationFrame(waitForRender);
+          } else {
+            // Aguardar tempo extra para imagens carregarem
+            setTimeout(resolve, 2000);
+          }
+        };
+        requestAnimationFrame(waitForRender);
+      });
       
-      const previewElement = window.document.querySelector('.pdf-preview-container') as HTMLElement;
+      // Usar ref diretamente - mais confiável que querySelector
+      const previewElement = pdfPreviewRef.current || window.document.querySelector('.pdf-preview-container') as HTMLElement;
       
       if (previewElement) {
-        console.log('[PDF Generation] Found preview container, generating canvas...');
+        console.log('[PDF Generation] Found preview container via ref, generating canvas...');
+        
+        // Aguardar todas as imagens carregarem
+        const images = previewElement.querySelectorAll('img');
+        const imagePromises = Array.from(images).map(img => {
+          if (img.complete) return Promise.resolve();
+          return new Promise<void>((resolve) => {
+            img.onload = () => resolve();
+            img.onerror = () => resolve(); // Continue even if image fails
+          });
+        });
+        await Promise.all(imagePromises);
         
         try {
           const canvas = await html2canvas(previewElement, {
@@ -254,6 +279,14 @@ export function DocumentViewer({
             logging: true,
             windowWidth: previewElement.scrollWidth,
             windowHeight: previewElement.scrollHeight,
+            onclone: (clonedDoc) => {
+              // Garantir que o clone está visível
+              const clonedPreview = clonedDoc.querySelector('.pdf-preview-container') as HTMLElement;
+              if (clonedPreview) {
+                clonedPreview.style.position = 'relative';
+                clonedPreview.style.display = 'block';
+              }
+            }
           });
           
           console.log('[PDF Generation] Canvas created:', canvas.width, 'x', canvas.height);
@@ -691,7 +724,7 @@ _Enviado via FISCALIZ®_`;
   // PDF Preview - Layout oficial igual ao modelo de Certidão
   if (showPDFPreview) {
     return (
-      <div className="min-h-screen bg-white text-black print:text-black pdf-preview-container" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11pt' }}>
+      <div ref={pdfPreviewRef} className="min-h-screen bg-white text-black print:text-black pdf-preview-container" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11pt' }}>
         <style>{`
           @media print {
             body { margin: 0; padding: 0; }
