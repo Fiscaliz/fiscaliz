@@ -114,23 +114,39 @@ export default function EstablishmentEntry() {
       
       if (result.data) {
         const extractedData = result.data;
+        const extractedCnpj = extractedData.cnpj || '';
+        
+        // Se tiver CNPJ mas não tiver CNAE, buscar do banco
+        let cnaeFromDb = '';
+        if (extractedCnpj && !extractedData.cnaePrincipal) {
+          const { data: existingEstablishment } = await supabase
+            .from('establishments')
+            .select('cnae_principal')
+            .eq('cnpj', extractedCnpj)
+            .not('cnae_principal', 'is', null)
+            .limit(1)
+            .maybeSingle();
+          
+          if (existingEstablishment?.cnae_principal) {
+            cnaeFromDb = existingEstablishment.cnae_principal;
+          }
+        }
         
         // Populate establishment data with extracted values
         setEstablishment({
-          cnpj: extractedData.cnpj || '',
+          cnpj: extractedCnpj,
           razao_social: extractedData.razaoSocial || '',
           nome_fantasia: extractedData.nomeFantasia || '',
           endereco: extractedData.endereco || '',
           bairro: extractedData.bairro || '',
           cep: extractedData.cep || '',
-          alvara_numero: extractedData.alvaraNumero || '',
-          cnae_principal: extractedData.cnaePrincipal || '',
+          cnae_principal: extractedData.cnaePrincipal || cnaeFromDb || '',
           responsavel_nome: extractedData.responsavelNome || '',
         });
 
         toast({
           title: 'Dados extraídos com sucesso!',
-          description: 'Verifique e complete as informações se necessário.',
+          description: cnaeFromDb ? 'CNAE recuperado do banco de dados.' : 'Verifique e complete as informações se necessário.',
         });
       }
     } catch (error) {
