@@ -145,11 +145,12 @@ export default function Home() {
       <BrandHeader />
 
       {/* Main Content */}
-      <div className="-mt-4 rounded-t-3xl bg-background px-4 pt-6">
+      <div className="-mt-5 rounded-t-[2rem] bg-background px-5 pt-6 space-y-6">
         {/* New Action Button */}
         <Button 
           size="lg" 
-          className="mb-6 w-full h-14 text-base font-semibold shadow-lg"
+          variant="premium"
+          className="w-full shadow-premium-lg"
           onClick={() => navigate('/nova-acao')}
         >
           <Plus className="mr-2 h-5 w-5" />
@@ -157,8 +158,8 @@ export default function Home() {
         </Button>
 
         {/* Quick Actions */}
-        <section className="mb-6">
-          <h2 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+        <section>
+          <h2 className="mb-4 text-micro font-semibold text-muted-foreground uppercase tracking-widest">
             Ações Rápidas
           </h2>
           <div className="grid grid-cols-3 gap-3">
@@ -168,12 +169,12 @@ export default function Home() {
                 to={action.href}
                 className="group"
               >
-                <Card className="h-full border-0 shadow-sm transition-all hover:shadow-md group-active:scale-95">
+                <Card className="h-full transition-all duration-200 hover:shadow-premium group-active:scale-[0.98]">
                   <CardContent className="flex flex-col items-center p-4 text-center">
-                    <div className={`mb-2 rounded-xl p-2.5 ${action.color} text-primary-foreground`}>
+                    <div className={`mb-3 rounded-2xl p-3 ${action.color} text-primary-foreground shadow-premium-sm`}>
                       <action.icon className="h-5 w-5" />
                     </div>
-                    <p className="text-xs font-medium leading-tight">{action.label}</p>
+                    <p className="text-caption font-semibold leading-tight">{action.label}</p>
                   </CardContent>
                 </Card>
               </Link>
@@ -182,18 +183,18 @@ export default function Home() {
         </section>
 
         {/* Monthly Report Link */}
-        <section className="mb-6">
+        <section>
           <Link to="/relatorio-mensal">
-            <Card className="border-0 shadow-sm hover:shadow-md transition-all">
+            <Card className="transition-all duration-200 hover:shadow-premium">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-xl p-2.5 bg-success/10">
+                  <div className="flex items-center gap-4">
+                    <div className="rounded-2xl p-3 bg-success/15">
                       <Calendar className="h-5 w-5 text-success" />
                     </div>
                     <div>
-                      <p className="font-semibold">Relatório Mensal</p>
-                      <p className="text-sm text-muted-foreground">Produtividade e estatísticas</p>
+                      <p className="text-h3">Relatório Mensal</p>
+                      <p className="text-caption text-muted-foreground">Produtividade e estatísticas</p>
                     </div>
                   </div>
                   <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -204,39 +205,41 @@ export default function Home() {
         </section>
 
         {/* Pending Tasks Preview */}
-        <section className="mb-6">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+        <section>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-micro font-semibold text-muted-foreground uppercase tracking-widest">
               Tarefas Pendentes
             </h2>
-            <Link to="/tarefas" className="text-sm text-primary hover:underline">
+            <Link to="/tarefas" className="text-caption text-primary font-semibold hover:underline">
               Ver todas
             </Link>
           </div>
           
-          <Card className="border-0 shadow-sm">
+          <Card>
             <CardContent className="p-4">
               {pendingTasks.length === 0 ? (
-                <div className="flex items-center justify-center py-8 text-center">
+                <div className="flex items-center justify-center py-10 text-center">
                   <div>
-                    <ClipboardList className="mx-auto mb-2 h-10 w-10 text-muted-foreground/50" />
-                    <p className="text-sm text-muted-foreground">
+                    <div className="mx-auto mb-3 h-14 w-14 rounded-2xl bg-muted/50 flex items-center justify-center">
+                      <ClipboardList className="h-7 w-7 text-muted-foreground/50" />
+                    </div>
+                    <p className="text-body text-muted-foreground">
                       Nenhuma tarefa pendente
                     </p>
-                    <p className="text-xs text-muted-foreground/70">
+                    <p className="text-caption text-muted-foreground/70">
                       Suas tarefas aparecerão aqui
                     </p>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {pendingTasks.map((task) => (
                     <Link 
                       key={task.id} 
                       to="/tarefas"
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-all duration-200"
                     >
-                      <div className={`p-2 rounded-lg ${isUrgent(task.due_date) ? 'bg-warning/10' : 'bg-primary/10'}`}>
+                      <div className={`p-2.5 rounded-xl ${isUrgent(task.due_date) ? 'bg-warning/15' : 'bg-primary/10'}`}>
                         {isUrgent(task.due_date) ? (
                           <AlertTriangle className="h-4 w-4 text-warning" />
                         ) : (
@@ -244,14 +247,14 @@ export default function Home() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{task.title}</p>
+                        <p className="text-body font-medium truncate">{task.title}</p>
                         {task.due_date && (
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-caption text-muted-foreground">
                             Prazo: {formatDate(task.due_date)}
                           </p>
                         )}
                       </div>
-                      <Badge variant={task.priority === 'high' ? 'destructive' : 'secondary'} className="text-xs">
+                      <Badge variant={task.priority === 'high' ? 'destructive' : 'muted'}>
                         {task.priority === 'high' ? 'Urgente' : 'Normal'}
                       </Badge>
                     </Link>
@@ -263,54 +266,56 @@ export default function Home() {
         </section>
 
         {/* Recent Documents */}
-        <section className="mb-6">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+        <section className="pb-4">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-micro font-semibold text-muted-foreground uppercase tracking-widest">
               Documentos Recentes
             </h2>
-            <Link to="/documentos" className="text-sm text-primary hover:underline">
+            <Link to="/documentos" className="text-caption text-primary font-semibold hover:underline">
               Ver todos
             </Link>
           </div>
           
-          <Card className="border-0 shadow-sm">
+          <Card>
             <CardContent className="p-4">
               {recentDocs.length === 0 ? (
-                <div className="flex items-center justify-center py-8 text-center">
+                <div className="flex items-center justify-center py-10 text-center">
                   <div>
-                    <FileText className="mx-auto mb-2 h-10 w-10 text-muted-foreground/50" />
-                    <p className="text-sm text-muted-foreground">
+                    <div className="mx-auto mb-3 h-14 w-14 rounded-2xl bg-muted/50 flex items-center justify-center">
+                      <FileText className="h-7 w-7 text-muted-foreground/50" />
+                    </div>
+                    <p className="text-body text-muted-foreground">
                       Nenhum documento ainda
                     </p>
-                    <p className="text-xs text-muted-foreground/70">
+                    <p className="text-caption text-muted-foreground/70">
                       Comece uma nova ação fiscal
                     </p>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {recentDocs.map((doc) => (
                     <Link 
                       key={doc.id} 
                       to={`/documento/${doc.id}`}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-all duration-200"
                     >
-                      <div className="p-2 rounded-lg bg-primary/10">
+                      <div className="p-2.5 rounded-xl bg-primary/10">
                         <FileText className="h-4 w-4 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">
+                        <p className="text-body font-medium truncate">
                           {documentTypeLabels[doc.document_type] || doc.document_type}
                         </p>
-                        <p className="text-xs text-muted-foreground truncate">
+                        <p className="text-caption text-muted-foreground truncate">
                           {doc.establishment?.nome_fantasia || doc.establishment?.razao_social || 'Estabelecimento'}
                         </p>
                       </div>
                       <div className="text-right">
-                        <Badge variant={doc.status === 'sent' ? 'default' : 'outline'} className="text-xs">
+                        <Badge variant={doc.status === 'sent' ? 'default' : 'outline'}>
                           {doc.status === 'sent' ? 'Enviado' : 'Rascunho'}
                         </Badge>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-caption text-muted-foreground mt-1">
                           {formatDate(doc.created_at)}
                         </p>
                       </div>

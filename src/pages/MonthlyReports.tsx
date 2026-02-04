@@ -40,20 +40,20 @@ const months = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
-const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive'; icon: React.ReactNode }> = {
+const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'success' | 'warning' | 'muted'; icon: React.ReactNode }> = {
   draft: { 
     label: 'Rascunho', 
-    variant: 'secondary',
+    variant: 'warning',
     icon: <Clock className="h-3 w-3" />
   },
   sent: { 
     label: 'Enviado', 
-    variant: 'default',
+    variant: 'success',
     icon: <Send className="h-3 w-3" />
   },
   archived: { 
     label: 'Arquivado', 
-    variant: 'outline',
+    variant: 'muted',
     icon: <CheckCircle2 className="h-3 w-3" />
   },
 };
@@ -101,12 +101,10 @@ export default function MonthlyReports() {
   };
 
   const handleOpenReport = (report: MonthlyReportItem) => {
-    // Navegar para o relatório mensal com mês/ano selecionado
     navigate(`/relatorio-mensal?month=${report.month}&year=${report.year}`);
   };
 
   const handleCreateNew = () => {
-    // Navegar para criar novo relatório (mês atual)
     navigate('/relatorio-mensal');
   };
 
@@ -126,32 +124,32 @@ export default function MonthlyReports() {
         title="Relatórios Mensais" 
         showBack 
         rightAction={
-          <Button size="sm" onClick={handleCreateNew} className="gap-1">
+          <Button size="sm" onClick={handleCreateNew} className="gap-1.5 rounded-xl">
             <Plus className="h-4 w-4" />
             Novo
           </Button>
         }
       />
       
-      <div className="p-4 space-y-4">
+      <div className="p-5 space-y-5">
         {/* Summary Cards */}
         <div className="grid grid-cols-3 gap-3">
           <Card className="bg-card">
-            <CardContent className="p-3 text-center">
-              <div className="text-2xl font-bold text-foreground">{counts.total}</div>
-              <div className="text-xs text-muted-foreground">Total</div>
+            <CardContent className="p-4 text-center">
+              <div className="text-display text-foreground">{counts.total}</div>
+              <div className="text-micro text-muted-foreground uppercase tracking-wider">Total</div>
             </CardContent>
           </Card>
           <Card className="bg-card">
-            <CardContent className="p-3 text-center">
-              <div className="text-2xl font-bold text-warning">{counts.draft}</div>
-              <div className="text-xs text-muted-foreground">Rascunhos</div>
+            <CardContent className="p-4 text-center">
+              <div className="text-display text-warning">{counts.draft}</div>
+              <div className="text-micro text-muted-foreground uppercase tracking-wider">Rascunhos</div>
             </CardContent>
           </Card>
           <Card className="bg-card">
-            <CardContent className="p-3 text-center">
-              <div className="text-2xl font-bold text-success">{counts.sent}</div>
-              <div className="text-xs text-muted-foreground">Enviados</div>
+            <CardContent className="p-4 text-center">
+              <div className="text-display text-success">{counts.sent}</div>
+              <div className="text-micro text-muted-foreground uppercase tracking-wider">Enviados</div>
             </CardContent>
           </Card>
         </div>
@@ -160,14 +158,16 @@ export default function MonthlyReports() {
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-24 w-full" />
+              <Skeleton key={i} className="h-28 w-full rounded-2xl" />
             ))}
           </div>
         ) : reports.length === 0 ? (
           <Card>
-            <CardContent className="p-8 text-center">
-              <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-              <p className="text-muted-foreground mb-4">
+            <CardContent className="p-10 text-center">
+              <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-muted/50 flex items-center justify-center">
+                <FileText className="h-8 w-8 text-muted-foreground/50" />
+              </div>
+              <p className="text-body text-muted-foreground mb-5">
                 Nenhum relatório mensal encontrado
               </p>
               <Button onClick={handleCreateNew} className="gap-2">
@@ -181,15 +181,17 @@ export default function MonthlyReports() {
             {reports.map((report) => (
               <Card 
                 key={report.id}
-                className="cursor-pointer hover:bg-accent/50 transition-colors"
+                className="cursor-pointer transition-all duration-200 hover:shadow-premium active:scale-[0.99]"
                 onClick={() => handleOpenReport(report)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Calendar className="h-4 w-4 text-primary shrink-0" />
-                        <span className="font-medium text-base">
+                      <div className="flex items-center gap-2.5 mb-2">
+                        <div className="p-2 rounded-xl bg-primary/10">
+                          <Calendar className="h-4 w-4 text-primary" />
+                        </div>
+                        <span className="text-body font-semibold">
                           {months[report.month - 1]} {report.year}
                         </span>
                         {report.is_locked && (
@@ -198,12 +200,12 @@ export default function MonthlyReports() {
                       </div>
                       
                       {report.os_number && (
-                        <p className="text-sm text-muted-foreground mb-2">
+                        <p className="text-caption text-muted-foreground mb-2 ml-10">
                           OS: {report.os_number}
                         </p>
                       )}
                       
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-4 text-micro text-muted-foreground ml-10">
                         {report.total_fiscalizations !== null && (
                           <span className="flex items-center gap-1">
                             <Target className="h-3 w-3" />
@@ -211,7 +213,7 @@ export default function MonthlyReports() {
                           </span>
                         )}
                         {report.sent_at && (
-                          <span className="flex items-center gap-1">
+                          <span className="flex items-center gap-1 text-success">
                             <Send className="h-3 w-3" />
                             Enviado: {format(new Date(report.sent_at), "dd/MM/yyyy", { locale: ptBR })}
                           </span>
@@ -225,7 +227,7 @@ export default function MonthlyReports() {
                     </div>
                     
                     <div className="flex items-center gap-2">
-                      <Badge variant={statusConfig[report.status]?.variant || 'secondary'} className="gap-1">
+                      <Badge variant={statusConfig[report.status]?.variant || 'muted'} className="gap-1">
                         {statusConfig[report.status]?.icon}
                         {statusConfig[report.status]?.label || report.status}
                       </Badge>

@@ -42,20 +42,20 @@ const documentTypeLabels: Record<string, string> = {
   coleta_amostra: 'Coleta de Amostra',
 };
 
-const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive'; icon: React.ReactNode }> = {
+const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'muted' | 'success' | 'warning'; icon: React.ReactNode }> = {
   draft: { 
     label: 'Rascunho', 
-    variant: 'secondary',
+    variant: 'warning',
     icon: <Clock className="h-3 w-3" />
   },
   sent: { 
     label: 'Enviado', 
-    variant: 'default',
+    variant: 'success',
     icon: <Send className="h-3 w-3" />
   },
   archived: { 
     label: 'Concluído', 
-    variant: 'outline',
+    variant: 'muted',
     icon: <Archive className="h-3 w-3" />
   },
 };
@@ -123,21 +123,21 @@ export default function Documents() {
     <AppLayout>
       <Header title="Documentos" showBack />
       
-      <div className="p-4 space-y-4">
+      <div className="p-5 space-y-5">
         {/* Status Filter Tabs */}
         <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as DocumentStatus)}>
-          <TabsList className="w-full grid grid-cols-4">
-            <TabsTrigger value="all" className="text-xs">
+          <TabsList className="w-full grid grid-cols-4 h-12 p-1 bg-muted/50">
+            <TabsTrigger value="all" className="text-caption rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-premium-sm">
               Todos ({counts.all})
             </TabsTrigger>
-            <TabsTrigger value="draft" className="text-xs">
+            <TabsTrigger value="draft" className="text-caption rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-premium-sm">
               Rascunho ({counts.draft})
             </TabsTrigger>
-            <TabsTrigger value="sent" className="text-xs">
+            <TabsTrigger value="sent" className="text-caption rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-premium-sm">
               Enviado ({counts.sent})
             </TabsTrigger>
-            <TabsTrigger value="archived" className="text-xs">
-              Concluídas ({counts.archived})
+            <TabsTrigger value="archived" className="text-caption rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-premium-sm">
+              Concluído ({counts.archived})
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -146,14 +146,16 @@ export default function Documents() {
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-24 w-full" />
+              <Skeleton key={i} className="h-28 w-full rounded-2xl" />
             ))}
           </div>
         ) : filteredDocuments.length === 0 ? (
           <Card>
-            <CardContent className="p-8 text-center">
-              <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-              <p className="text-muted-foreground">
+            <CardContent className="p-10 text-center">
+              <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-muted/50 flex items-center justify-center">
+                <FileText className="h-8 w-8 text-muted-foreground/50" />
+              </div>
+              <p className="text-body text-muted-foreground">
                 {statusFilter === 'all' 
                   ? 'Nenhum documento encontrado'
                   : `Nenhum documento com status "${statusConfig[statusFilter]?.label || statusFilter}"`
@@ -166,34 +168,36 @@ export default function Documents() {
             {filteredDocuments.map((doc) => (
               <Card 
                 key={doc.id}
-                className="cursor-pointer hover:bg-accent/50 transition-colors"
+                className="cursor-pointer transition-all duration-200 hover:shadow-premium active:scale-[0.99]"
                 onClick={() => navigate(`/documento/${doc.id}`)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <FileText className="h-4 w-4 text-primary shrink-0" />
-                        <span className="font-medium text-sm truncate">
+                      <div className="flex items-center gap-2.5 mb-2">
+                        <div className="p-2 rounded-xl bg-primary/10">
+                          <FileText className="h-4 w-4 text-primary" />
+                        </div>
+                        <span className="text-body font-semibold truncate">
                           {documentTypeLabels[doc.document_type] || doc.document_type}
                         </span>
                       </div>
                       
-                      <p className="text-sm text-muted-foreground truncate mb-2">
+                      <p className="text-caption text-muted-foreground truncate mb-3 ml-10">
                         {doc.establishment?.nome_fantasia || doc.establishment?.razao_social || 'Estabelecimento não informado'}
                       </p>
                       
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-4 text-micro text-muted-foreground ml-10">
                         <span>
                           Criado: {format(new Date(doc.created_at), "dd/MM/yyyy", { locale: ptBR })}
                         </span>
                         {doc.sent_at && (
-                          <span>
+                          <span className="text-success">
                             Enviado: {format(new Date(doc.sent_at), "dd/MM/yyyy", { locale: ptBR })}
                           </span>
                         )}
                         {doc.deadline_date && (
-                          <span className="text-amber-600">
+                          <span className="text-warning">
                             Prazo: {format(new Date(doc.deadline_date), "dd/MM/yyyy", { locale: ptBR })}
                           </span>
                         )}
@@ -201,7 +205,7 @@ export default function Documents() {
                     </div>
                     
                     <div className="flex items-center gap-2">
-                      <Badge variant={statusConfig[doc.status]?.variant || 'secondary'} className="gap-1">
+                      <Badge variant={statusConfig[doc.status]?.variant || 'muted'} className="gap-1">
                         {statusConfig[doc.status]?.icon}
                         {statusConfig[doc.status]?.label || doc.status}
                       </Badge>
