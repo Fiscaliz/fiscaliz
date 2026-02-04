@@ -1043,7 +1043,7 @@ export default function MonthlyReport() {
                   <th style={{ width: '35px', textAlign: 'center' }}>Dia</th>
                   <th style={{ width: '40px', textAlign: 'center' }}>ML</th>
                   <th style={{ width: '80px' }}>Ação</th>
-                  <th style={{ width: '80px' }}>Escala</th>
+                  
                   <th style={{ width: '50px', textAlign: 'center' }}>Niv.Gr.</th>
                   <th>Estabelecimento/Descrição</th>
                   <th style={{ width: '45px', textAlign: 'center' }}>Cód.</th>
@@ -1096,18 +1096,6 @@ export default function MonthlyReport() {
                           <option value="Serviço Interno">Serviço Interno</option>
                         </select>
                       ) : action.actionType}
-                    </td>
-                    <td className={editingPreview ? 'editable-field' : ''}>
-                      {editingPreview ? (
-                        <select
-                          value={action.scale}
-                          onChange={(e) => updateDailyAction(action.id, 'scale', e.target.value)}
-                          className="editable-input w-full"
-                        >
-                          <option value="Plantão Fiscal1">Plantão Fiscal1</option>
-                          <option value="Plantão Fiscal2">Plantão Fiscal2</option>
-                        </select>
-                      ) : action.scale}
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       {action.riskLevel ? (
@@ -1797,6 +1785,18 @@ export default function MonthlyReport() {
                       <p className="text-[10px] text-muted-foreground">Calculado automaticamente</p>
                     </div>
                   </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="pfeDays">Plantão Fiscal Especial (PFE)</Label>
+                  <Input
+                    id="pfeDays"
+                    type="number"
+                    value={pfeDays}
+                    onChange={(e) => setPfeDays(e.target.value)}
+                    disabled={isLocked}
+                    className="mt-1"
+                  />
                 </div>
               </CardContent>
             </Card>
