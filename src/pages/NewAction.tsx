@@ -70,7 +70,7 @@ export default function NewAction() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-3">
           {actionReasons.map((reason) => (
             <Card 
               key={reason.id}
@@ -81,28 +81,28 @@ export default function NewAction() {
               onClick={() => handleReasonSelect(reason.id)}
             >
               <CardContent className="p-4">
-                <div className="flex items-start gap-3">
+                <div className="flex items-center gap-4">
                   <div className={cn(
-                    'rounded-xl p-2.5',
+                    'rounded-xl p-3 shrink-0',
                     reason.priority === 'high' && 'bg-destructive/10',
                     reason.priority === 'medium' && 'bg-warning/10',
                     reason.priority === 'low' && 'bg-muted'
                   )}>
-                    <reason.icon className={cn('h-5 w-5', reason.color)} />
+                    <reason.icon className={cn('h-6 w-6', reason.color)} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-body leading-tight">{reason.label}</p>
+                    <p className="font-semibold text-body">{reason.label}</p>
                     {reason.sublabel && (
-                      <span className="text-micro text-muted-foreground block mt-0.5">
+                      <span className="text-caption text-muted-foreground">
                         {reason.sublabel}
                       </span>
                     )}
-                    {reason.priority === 'high' && (
-                      <span className="text-micro text-destructive font-semibold uppercase mt-1 block">
-                        Alta prioridade
-                      </span>
-                    )}
                   </div>
+                  {reason.priority === 'high' && (
+                    <span className="text-micro text-destructive font-semibold uppercase px-2 py-1 bg-destructive/10 rounded-full">
+                      Alta
+                    </span>
+                  )}
                 </div>
               </CardContent>
             </Card>
