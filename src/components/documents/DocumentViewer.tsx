@@ -380,12 +380,15 @@ export function DocumentViewer({
             throw new Error('Usuário não autenticado. Faça login novamente.');
           }
           
-          // Caminho correto: user_id no primeiro nível da pasta
-          const fileName = `${user.id}/${document.id}_${Date.now()}.pdf`;
+          // Gerar nome do arquivo único uma vez
+          const timestamp = Date.now();
+          const pdfFileName = `${document.id}_${timestamp}.pdf`;
+          // Caminho completo: user_id no primeiro nível da pasta
+          const fullPath = `${user.id}/${pdfFileName}`;
           
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('fiscal-photos')
-            .upload(fileName, pdfBlob, { 
+            .upload(fullPath, pdfBlob, { 
               contentType: 'application/pdf',
               upsert: true 
             });
@@ -396,11 +399,12 @@ export function DocumentViewer({
           }
           
           if (uploadData) {
-            const { data: urlData } = supabase.storage
-              .from('fiscal-photos')
-              .getPublicUrl(fileName);
-            pdfUrl = urlData.publicUrl;
-            console.log('[PDF Generation] PDF uploaded successfully:', pdfUrl);
+            // Usar URL personalizada do Fiscaliz em vez do domínio do storage
+            const baseUrl = window.location.hostname.includes('localhost') 
+              ? window.location.origin 
+              : 'https://fiscaliz.lovable.app';
+            pdfUrl = `${baseUrl}/pdf/${pdfFileName}?u=${user.id}`;
+            console.log('[PDF Generation] PDF uploaded successfully, friendly URL:', pdfUrl);
           }
       } catch (canvasError) {
         console.error('[PDF Generation] Canvas/PDF error:', canvasError);

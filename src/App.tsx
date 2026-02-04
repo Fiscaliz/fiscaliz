@@ -26,6 +26,7 @@ import MonthlyReport from "./pages/MonthlyReport";
 import MonthlyReports from "./pages/MonthlyReports";
 import DocumentDetail from "./pages/DocumentDetail";
 import Documents from "./pages/Documents";
+import PDFRedirect from "./pages/PDFRedirect";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -127,6 +128,9 @@ const App = () => (
                 <Documents />
               </ProtectedRoute>
             } />
+            
+            {/* Public PDF redirect route - no auth required */}
+            <Route path="/pdf/:fileName" element={<PDFRedirect />} />
             
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
