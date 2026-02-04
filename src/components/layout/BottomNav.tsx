@@ -4,14 +4,15 @@ import {
   FileText, 
   FolderOpen, 
   BarChart3, 
-  User 
+  User,
+  ClipboardList
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { to: '/', icon: Home, label: 'Início' },
   { to: '/nova-acao', icon: FileText, label: 'Nova Ação' },
-  { to: '/tarefas', icon: FolderOpen, label: 'Tarefas' },
+  { to: '/relatorios-mensais', icon: ClipboardList, label: 'Relatórios' },
   { to: '/dashboard', icon: BarChart3, label: 'Dashboard' },
   { to: '/perfil', icon: User, label: 'Perfil' },
 ];
