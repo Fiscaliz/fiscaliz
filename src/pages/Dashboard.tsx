@@ -2,18 +2,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { BrandHeader } from '@/components/layout/BrandHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   BarChart3, 
   FileText, 
-  TrendingUp, 
   MapPin,
-  Calendar,
   AlertTriangle,
-  CheckCircle,
   Clock,
-  Users,
   Package,
   Trash2,
   Activity,
@@ -22,8 +17,6 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import {
-  AreaChart,
-  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -37,7 +30,7 @@ import {
   Legend
 } from 'recharts';
 
-const COLORS = ['#003366', '#0ea5e9', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+const COLORS = ['#0F4C5C', '#14B8A6', '#2E8B57', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
 const documentTypeLabels: Record<string, string> = {
   termo_intimacao: 'Termo Intimação',
@@ -71,13 +64,11 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('individual');
   
-  // Individual stats
   const [myDocuments, setMyDocuments] = useState<any[]>([]);
   const [myActions, setMyActions] = useState<any[]>([]);
   const [myTasks, setMyTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Division stats
   const [divisionDocuments, setDivisionDocuments] = useState<any[]>([]);
   const [divisionActions, setDivisionActions] = useState<any[]>([]);
 
@@ -150,7 +141,6 @@ export default function Dashboard() {
     if (actionsRes.data) setDivisionActions(actionsRes.data);
   };
 
-  // Individual metrics
   const myStats = useMemo(() => {
     const docsByType: Record<string, number> = {};
     myDocuments.forEach(doc => {
@@ -169,12 +159,10 @@ export default function Dashboard() {
       return daysUntilDue <= 7;
     }).length;
 
-    // Calcular total de kg inutilizados
     const totalInutilizadoKg = myDocuments
       .filter(doc => doc.document_type === 'inutilizacao')
       .reduce((sum, doc) => sum + (doc.total_weight_kg || 0), 0);
 
-    // Contar apreensões
     const totalApreensoes = myDocuments.filter(doc => doc.document_type === 'apreensao').length;
 
     return {
@@ -189,7 +177,6 @@ export default function Dashboard() {
     };
   }, [myDocuments, myActions, myTasks]);
 
-  // Division metrics
   const divisionStats = useMemo(() => {
     const docsByType: Record<string, number> = {};
     divisionDocuments.forEach(doc => {
@@ -206,12 +193,10 @@ export default function Dashboard() {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5);
 
-    // Calcular total de kg inutilizados da divisão
     const totalInutilizadoKg = divisionDocuments
       .filter((doc: any) => doc.document_type === 'inutilizacao')
       .reduce((sum: number, doc: any) => sum + (doc.total_weight_kg || 0), 0);
 
-    // Contar apreensões da divisão
     const totalApreensoes = divisionDocuments.filter((doc: any) => doc.document_type === 'apreensao').length;
 
     return {
@@ -224,7 +209,6 @@ export default function Dashboard() {
     };
   }, [divisionDocuments, divisionActions]);
 
-  // Chart data
   const pieChartData = useMemo(() => {
     return Object.entries(myStats.docsByType).map(([key, value]) => ({
       name: documentTypeLabels[key] || key,
@@ -250,14 +234,18 @@ export default function Dashboard() {
     <AppLayout>
       <BrandHeader />
       
-      <div className="p-4">
+      <div className="-mt-5 rounded-t-[2rem] bg-background px-5 pt-6 space-y-5">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="individual">Meu Dashboard</TabsTrigger>
-            <TabsTrigger value="division">Divisão</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 h-12 p-1 bg-muted/50 rounded-xl">
+            <TabsTrigger value="individual" className="text-body font-semibold rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-premium-sm">
+              Meu Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="division" className="text-body font-semibold rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-premium-sm">
+              Divisão
+            </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="individual" className="space-y-4">
+          <TabsContent value="individual" className="space-y-5 mt-5">
             {/* Stats Cards */}
             <div className="grid grid-cols-2 gap-3">
               <StatCard 
@@ -265,67 +253,69 @@ export default function Dashboard() {
                 label="Documentos"
                 value={myStats.totalDocuments.toString()}
                 subtitle="este mês"
-                color="bg-primary"
+                color="bg-primary/15 text-primary"
               />
               <StatCard 
                 icon={Activity}
                 label="Fiscalizações"
                 value={myStats.totalActions.toString()}
                 subtitle="este mês"
-                color="bg-info"
+                color="bg-info/15 text-info"
               />
               <StatCard 
                 icon={Trash2}
                 label="Inutilizados"
                 value={`${myStats.totalInutilizadoKg.toFixed(1)} kg`}
                 subtitle="este mês"
-                color="bg-destructive"
+                color="bg-destructive/15 text-destructive"
               />
               <StatCard 
                 icon={Package}
                 label="Apreensões"
                 value={myStats.totalApreensoes.toString()}
                 subtitle="este mês"
-                color="bg-warning"
+                color="bg-warning/15 text-warning"
               />
               <StatCard 
                 icon={Clock}
                 label="Pendentes"
                 value={myStats.pendingTasks.toString()}
                 subtitle="tarefas"
-                color="bg-muted"
+                color="bg-muted text-muted-foreground"
               />
               <StatCard 
                 icon={AlertTriangle}
                 label="Urgentes"
                 value={myStats.urgentTasks.toString()}
                 subtitle="< 7 dias"
-                color="bg-destructive/80"
+                color="bg-destructive/15 text-destructive"
               />
             </div>
             
             {/* Documents by Type Chart */}
             {pieChartData.length > 0 ? (
-              <Card className="border-0 shadow-sm">
+              <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4 text-primary" />
+                  <CardTitle className="text-body font-semibold flex items-center gap-2">
+                    <div className="p-2 rounded-xl bg-primary/10">
+                      <BarChart3 className="h-4 w-4 text-primary" />
+                    </div>
                     Documentos por Tipo
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[200px]">
+                  <div className="h-[220px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={pieChartData}
                           cx="50%"
                           cy="50%"
-                          innerRadius={40}
-                          outerRadius={80}
+                          innerRadius={45}
+                          outerRadius={85}
                           paddingAngle={2}
                           dataKey="value"
-                          label={({ name, value }) => `${value}`}
+                          label={({ value }) => `${value}`}
                         >
                           {pieChartData.map((_, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -339,21 +329,25 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             ) : (
-              <Card className="border-0 shadow-sm">
+              <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4 text-primary" />
+                  <CardTitle className="text-body font-semibold flex items-center gap-2">
+                    <div className="p-2 rounded-xl bg-primary/10">
+                      <BarChart3 className="h-4 w-4 text-primary" />
+                    </div>
                     Produtividade Mensal
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-center py-12 text-center">
+                  <div className="flex items-center justify-center py-14 text-center">
                     <div>
-                      <BarChart3 className="mx-auto mb-2 h-10 w-10 text-muted-foreground/40" />
-                      <p className="text-sm text-muted-foreground">
+                      <div className="mx-auto mb-3 h-14 w-14 rounded-2xl bg-muted/50 flex items-center justify-center">
+                        <BarChart3 className="h-7 w-7 text-muted-foreground/40" />
+                      </div>
+                      <p className="text-body text-muted-foreground">
                         Dados de produtividade
                       </p>
-                      <p className="text-xs text-muted-foreground/70">
+                      <p className="text-caption text-muted-foreground/70">
                         Aparecerão conforme você fiscalizar
                       </p>
                     </div>
@@ -364,22 +358,24 @@ export default function Dashboard() {
 
             {/* Actions by Reason Chart */}
             {barChartData.length > 0 && (
-              <Card className="border-0 shadow-sm">
+              <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Target className="h-4 w-4 text-primary" />
+                  <CardTitle className="text-body font-semibold flex items-center gap-2">
+                    <div className="p-2 rounded-xl bg-secondary/10">
+                      <Target className="h-4 w-4 text-secondary" />
+                    </div>
                     Motivos das Ações
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[200px]">
+                  <div className="h-[220px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={barChartData} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                         <XAxis type="number" />
-                        <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11 }} />
+                        <YAxis type="category" dataKey="name" width={85} tick={{ fontSize: 11 }} />
                         <Tooltip />
-                        <Bar dataKey="quantidade" fill="#003366" radius={[0, 4, 4, 0]} />
+                        <Bar dataKey="quantidade" fill="hsl(var(--primary))" radius={[0, 6, 6, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -388,7 +384,7 @@ export default function Dashboard() {
             )}
           </TabsContent>
           
-          <TabsContent value="division" className="space-y-4">
+          <TabsContent value="division" className="space-y-5 mt-5">
             {/* Division Stats */}
             <div className="grid grid-cols-2 gap-3">
               <StatCard 
@@ -396,56 +392,62 @@ export default function Dashboard() {
                 label="Total Divisão"
                 value={divisionStats.totalDocuments.toString()}
                 subtitle="documentos"
-                color="bg-secondary"
+                color="bg-secondary/15 text-secondary"
               />
               <StatCard 
                 icon={MapPin}
                 label="Fiscalizações"
                 value={divisionStats.totalActions.toString()}
                 subtitle="este mês"
-                color="bg-info"
+                color="bg-info/15 text-info"
               />
             </div>
             
             {/* Top Bairros */}
             {divisionBarData.length > 0 ? (
-              <Card className="border-0 shadow-sm">
+              <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-primary" />
+                  <CardTitle className="text-body font-semibold flex items-center gap-2">
+                    <div className="p-2 rounded-xl bg-info/10">
+                      <MapPin className="h-4 w-4 text-info" />
+                    </div>
                     Top 5 Bairros Fiscalizados
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[200px]">
+                  <div className="h-[220px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={divisionBarData}>
-                        <CartesianGrid strokeDasharray="3 3" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                         <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-15} />
                         <YAxis />
                         <Tooltip />
-                        <Bar dataKey="ações" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="ações" fill="hsl(var(--info))" radius={[6, 6, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </CardContent>
               </Card>
             ) : (
-              <Card className="border-0 shadow-sm">
+              <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-primary" />
+                  <CardTitle className="text-body font-semibold flex items-center gap-2">
+                    <div className="p-2 rounded-xl bg-info/10">
+                      <MapPin className="h-4 w-4 text-info" />
+                    </div>
                     Mapa de Risco - Goiânia
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-center py-12 text-center rounded-lg bg-muted/50">
+                  <div className="flex items-center justify-center py-14 text-center rounded-xl bg-muted/30">
                     <div>
-                      <MapPin className="mx-auto mb-2 h-10 w-10 text-muted-foreground/40" />
-                      <p className="text-sm text-muted-foreground">
+                      <div className="mx-auto mb-3 h-14 w-14 rounded-2xl bg-muted/50 flex items-center justify-center">
+                        <MapPin className="h-7 w-7 text-muted-foreground/40" />
+                      </div>
+                      <p className="text-body text-muted-foreground">
                         Mapa de calor
                       </p>
-                      <p className="text-xs text-muted-foreground/70">
+                      <p className="text-caption text-muted-foreground/70">
                         Requer mais dados de fiscalização
                       </p>
                     </div>
@@ -454,16 +456,18 @@ export default function Dashboard() {
               </Card>
             )}
 
-            {/* Top Irregularities placeholder */}
-            <Card className="border-0 shadow-sm">
+            {/* Top Irregularities */}
+            <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-warning" />
+                <CardTitle className="text-body font-semibold flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-warning/10">
+                    <AlertTriangle className="h-4 w-4 text-warning" />
+                  </div>
                   Top 5 Irregularidades
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {[
                     { label: 'Falta de alvará sanitário', count: 0 },
                     { label: 'Produtos vencidos', count: 0 },
@@ -471,39 +475,39 @@ export default function Dashboard() {
                     { label: 'Falta de controle de pragas', count: 0 },
                     { label: 'Estrutura física irregular', count: 0 },
                   ].map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between py-2 border-b last:border-0">
-                      <span className="text-sm">{item.label}</span>
-                      <span className="text-sm font-medium text-muted-foreground">{item.count}</span>
+                    <div key={idx} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
+                      <span className="text-body">{item.label}</span>
+                      <span className="text-body font-semibold text-muted-foreground">{item.count}</span>
                     </div>
                   ))}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Metrics Grid */}
-            <div className="grid grid-cols-2 gap-3">
-              <Card className="border-0 shadow-sm">
+            {/* Additional Metrics */}
+            <div className="grid grid-cols-2 gap-3 pb-4">
+              <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className="rounded-lg p-2 bg-destructive/10">
+                    <div className="rounded-xl p-2.5 bg-destructive/15">
                       <Trash2 className="h-5 w-5 text-destructive" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">{divisionStats.totalInutilizadoKg.toFixed(1)} kg</p>
-                      <p className="text-xs text-muted-foreground">Inutilizados</p>
+                      <p className="text-h2 font-bold">{divisionStats.totalInutilizadoKg.toFixed(1)} kg</p>
+                      <p className="text-caption text-muted-foreground">Inutilizados</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border-0 shadow-sm">
+              <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className="rounded-lg p-2 bg-warning/10">
+                    <div className="rounded-xl p-2.5 bg-warning/15">
                       <Package className="h-5 w-5 text-warning" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">{divisionStats.totalApreensoes}</p>
-                      <p className="text-xs text-muted-foreground">Apreensões</p>
+                      <p className="text-h2 font-bold">{divisionStats.totalApreensoes}</p>
+                      <p className="text-caption text-muted-foreground">Apreensões</p>
                     </div>
                   </div>
                 </CardContent>
@@ -526,16 +530,16 @@ interface StatCardProps {
 
 function StatCard({ icon: Icon, label, value, subtitle, color }: StatCardProps) {
   return (
-    <Card className="border-0 shadow-sm">
+    <Card className="transition-all duration-200 hover:shadow-premium">
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-xs font-medium text-muted-foreground">{label}</p>
-            <p className="mt-1 text-2xl font-bold">{value}</p>
-            <p className="text-xs text-muted-foreground">{subtitle}</p>
+            <p className="text-micro font-semibold text-muted-foreground uppercase tracking-wide">{label}</p>
+            <p className="mt-1.5 text-h1 font-bold">{value}</p>
+            <p className="text-caption text-muted-foreground">{subtitle}</p>
           </div>
-          <div className={`rounded-lg p-2 ${color} text-primary-foreground`}>
-            <Icon className="h-4 w-4" />
+          <div className={`rounded-xl p-2.5 ${color}`}>
+            <Icon className="h-5 w-5" />
           </div>
         </div>
       </CardContent>

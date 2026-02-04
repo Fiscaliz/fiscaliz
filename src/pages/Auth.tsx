@@ -105,39 +105,46 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
   return (
     <div ref={ref} className="flex min-h-screen flex-col bg-background safe-area-inset">
       {/* Header with gradient */}
-      <div className="fiscaliz-gradient px-6 pb-12 pt-16 text-center">
-        <div className="mx-auto mb-6 flex h-36 w-36 items-center justify-center rounded-2xl bg-primary-foreground/10 backdrop-blur-sm p-3">
-          <img 
-            src={fiscalizLogo} 
-            alt="Fiscaliz" 
-            className="h-full w-full object-contain drop-shadow-lg"
-          />
+      <div className="fiscaliz-gradient px-6 pb-16 pt-16 text-center relative overflow-hidden">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '32px 32px' }} />
         </div>
-        <h1 className="text-3xl font-bold text-primary-foreground tracking-tight">FISCALIZ</h1>
-        <p className="mt-2 text-sm font-medium text-primary-foreground/90 tracking-wide">
-          PLATAFORMA INTELIGENTE DE FISCALIZAÇÃO
-        </p>
+        
+        <div className="relative z-10">
+          <div className="mx-auto mb-6 flex h-32 w-32 items-center justify-center rounded-3xl bg-primary-foreground/10 backdrop-blur-md p-4 shadow-lg">
+            <img 
+              src={fiscalizLogo} 
+              alt="Fiscaliz" 
+              className="h-full w-full object-contain drop-shadow-lg"
+            />
+          </div>
+          <h1 className="text-display text-primary-foreground">FISCALIZ</h1>
+          <p className="mt-3 text-caption font-semibold text-primary-foreground/90 tracking-widest uppercase">
+            Plataforma Inteligente de Fiscalização
+          </p>
+        </div>
       </div>
 
       {/* Auth Card */}
-      <div className="flex-1 -mt-6 rounded-t-3xl bg-background px-6 pt-8">
-        <Card className="border-0 shadow-none">
+      <div className="flex-1 -mt-8 rounded-t-[2rem] bg-background px-5 pt-8">
+        <Card className="border-0 shadow-none bg-transparent">
           <CardHeader className="px-0 pt-0">
-            <CardTitle className="text-xl">
+            <CardTitle className="text-h1">
               {isLogin ? 'Acessar Sistema' : 'Criar Conta'}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-body">
               {isLogin 
                 ? 'Entre com suas credenciais' 
                 : 'Cadastre-se para começar a fiscalizar'}
             </CardDescription>
           </CardHeader>
           <CardContent className="px-0">
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
               {!isLogin && (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="fullName">Nome Completo</Label>
+                    <Label htmlFor="fullName" className="text-caption font-semibold uppercase tracking-wide">Nome Completo</Label>
                     <Input
                       id="fullName"
                       type="text"
@@ -145,52 +152,36 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       required={!isLogin}
-                      className="h-12"
                       autoComplete="name"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Tipo de Identificação (opcional)</Label>
+                    <Label className="text-caption font-semibold uppercase tracking-wide">Tipo de Identificação (opcional)</Label>
                     <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setIdentificationType('cpf')}
-                        className={`flex-1 py-2 px-3 text-sm rounded-md border transition-colors ${
-                          identificationType === 'cpf' 
-                            ? 'bg-primary text-primary-foreground border-primary' 
-                            : 'bg-background border-input hover:bg-accent'
-                        }`}
-                      >
-                        CPF
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIdentificationType('cnpj')}
-                        className={`flex-1 py-2 px-3 text-sm rounded-md border transition-colors ${
-                          identificationType === 'cnpj' 
-                            ? 'bg-primary text-primary-foreground border-primary' 
-                            : 'bg-background border-input hover:bg-accent'
-                        }`}
-                      >
-                        CNPJ
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIdentificationType('inscricao_municipal')}
-                        className={`flex-1 py-2 px-3 text-sm rounded-md border transition-colors ${
-                          identificationType === 'inscricao_municipal' 
-                            ? 'bg-primary text-primary-foreground border-primary' 
-                            : 'bg-background border-input hover:bg-accent'
-                        }`}
-                      >
-                        Insc. Municipal
-                      </button>
+                      {[
+                        { value: 'cpf', label: 'CPF' },
+                        { value: 'cnpj', label: 'CNPJ' },
+                        { value: 'inscricao_municipal', label: 'Insc. Municipal' }
+                      ].map((type) => (
+                        <button
+                          key={type.value}
+                          type="button"
+                          onClick={() => setIdentificationType(type.value as typeof identificationType)}
+                          className={`flex-1 py-3 px-3 text-caption font-semibold rounded-xl border-2 transition-all duration-200 ${
+                            identificationType === type.value 
+                              ? 'bg-primary text-primary-foreground border-primary shadow-premium-sm' 
+                              : 'bg-background border-border/60 hover:bg-accent hover:border-accent'
+                          }`}
+                        >
+                          {type.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="registrationNumber">
+                    <Label htmlFor="registrationNumber" className="text-caption font-semibold uppercase tracking-wide">
                       {identificationType === 'cpf' ? 'CPF' : identificationType === 'cnpj' ? 'CNPJ' : 'Inscrição Municipal'} (opcional)
                     </Label>
                     <Input
@@ -203,14 +194,13 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
                       }
                       value={registrationNumber}
                       onChange={(e) => setRegistrationNumber(e.target.value)}
-                      className="h-12"
                     />
                   </div>
                 </>
               )}
               
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-caption font-semibold uppercase tracking-wide">Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -218,13 +208,12 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="h-12"
                   autoComplete="email"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
+                <Label htmlFor="password" className="text-caption font-semibold uppercase tracking-wide">Senha</Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -234,13 +223,13 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={6}
-                    className="h-12 pr-12"
+                    className="pr-12"
                     autoComplete={isLogin ? 'current-password' : 'new-password'}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
@@ -249,7 +238,9 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
 
               <Button 
                 type="submit" 
-                className="h-12 w-full text-base font-medium"
+                className="w-full"
+                size="lg"
+                variant="premium"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
@@ -261,7 +252,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
               </Button>
             </form>
 
-            <div className="mt-6 text-center">
+            <div className="mt-8 text-center">
               <button
                 type="button"
                 onClick={() => {
@@ -271,7 +262,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
                   setFullName('');
                   setRegistrationNumber('');
                 }}
-                className="text-sm text-primary hover:underline"
+                className="text-body text-primary font-semibold hover:underline transition-all"
               >
                 {isLogin 
                   ? 'Não tem conta? Cadastre-se' 
@@ -282,11 +273,11 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
         </Card>
 
         {/* Footer */}
-        <div className="mt-8 pb-8 text-center">
-          <p className="text-xs text-muted-foreground">
+        <div className="mt-10 pb-10 text-center">
+          <p className="text-caption text-muted-foreground">
             Sistema de Fiscalização Sanitária
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-micro text-muted-foreground/70 uppercase tracking-wider mt-1">
             © 2026 Prefeitura de Goiânia
           </p>
         </div>

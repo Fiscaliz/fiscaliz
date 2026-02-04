@@ -2,43 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Fiscaliz Design System - Vigilância Sanitária de Goiânia */
+/* Fiscaliz Design System - Modern Premium Edition */
 
 @layer base {
   :root {
-    /* Fiscaliz Brand Colors - Azul Institucional + Verde */
-    --background: 210 20% 98%;
-    --foreground: 210 50% 10%;
+    /* Premium Neutral Base */
+    --background: 210 40% 98%;
+    --foreground: 215 28% 17%;
 
     --card: 0 0% 100%;
-    --card-foreground: 210 50% 10%;
+    --card-foreground: 215 28% 17%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 210 50% 10%;
+    --popover-foreground: 215 28% 17%;
 
-    /* Primary: Azul Institucional #003366 */
-    --primary: 210 100% 20%;
+    /* Primary: Azul Petróleo */
+    --primary: 192 78% 21%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary: Verde Fiscaliz */
-    --secondary: 160 60% 45%;
+    /* Secondary: Verde Institucional */
+    --secondary: 146 48% 36%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 20% 94%;
-    --muted-foreground: 210 20% 40%;
+    /* Muted: Cinza Carvão */
+    --muted: 215 16% 90%;
+    --muted-foreground: 215 16% 47%;
 
-    /* Accent: Verde claro */
-    --accent: 160 50% 90%;
-    --accent-foreground: 160 60% 25%;
+    /* Accent: Teal Suave */
+    --accent: 168 76% 94%;
+    --accent-foreground: 168 76% 25%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     /* Status Colors */
-    --warning: 45 93% 47%;
-    --warning-foreground: 45 93% 10%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 38 92% 10%;
     
-    --success: 142 76% 36%;
+    --success: 158 64% 40%;
     --success-foreground: 0 0% 100%;
 
     --info: 199 89% 48%;
@@ -46,74 +47,75 @@
 
     /* Priority Colors */
     --priority-high: 0 84% 60%;
-    --priority-medium: 45 93% 47%;
-    --priority-low: 142 76% 36%;
+    --priority-medium: 38 92% 50%;
+    --priority-low: 158 64% 40%;
 
-    --border: 210 20% 88%;
-    --input: 210 20% 88%;
-    --ring: 210 100% 20%;
+    --border: 215 20% 90%;
+    --input: 215 20% 88%;
+    --ring: 168 76% 42%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
     /* Sidebar */
-    --sidebar-background: 210 100% 18%;
+    --sidebar-background: 192 78% 18%;
     --sidebar-foreground: 210 20% 95%;
     --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 210 100% 20%;
-    --sidebar-accent: 210 100% 25%;
+    --sidebar-primary-foreground: 192 78% 21%;
+    --sidebar-accent: 192 78% 28%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 210 100% 25%;
-    --sidebar-ring: 160 60% 45%;
+    --sidebar-border: 192 78% 28%;
+    --sidebar-ring: 168 76% 42%;
 
-    /* Fiscaliz Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(210 100% 20%) 0%, hsl(210 100% 30%) 100%);
-    --gradient-secondary: linear-gradient(135deg, hsl(160 60% 45%) 0%, hsl(160 60% 35%) 100%);
-    --gradient-brand: linear-gradient(135deg, hsl(210 100% 20%) 0%, hsl(160 60% 40%) 100%);
+    /* Premium Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(192 78% 21%) 0%, hsl(192 68% 32%) 100%);
+    --gradient-secondary: linear-gradient(135deg, hsl(146 48% 36%) 0%, hsl(146 48% 28%) 100%);
+    --gradient-brand: linear-gradient(135deg, hsl(192 78% 21%) 0%, hsl(146 48% 36%) 100%);
+    --gradient-subtle: linear-gradient(180deg, transparent 0%, hsl(192 78% 21% / 0.02) 100%);
 
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(210 20% 10% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(210 20% 10% / 0.1), 0 2px 4px -2px hsl(210 20% 10% / 0.1);
-    --shadow-lg: 0 10px 15px -3px hsl(210 20% 10% / 0.1), 0 4px 6px -4px hsl(210 20% 10% / 0.1);
-    --shadow-glow: 0 0 20px hsl(160 60% 45% / 0.3);
+    /* Premium Shadows */
+    --shadow-sm: 0 1px 2px hsl(215 28% 17% / 0.04);
+    --shadow-md: 0 4px 12px hsl(215 28% 17% / 0.08);
+    --shadow-lg: 0 12px 24px hsl(215 28% 17% / 0.12);
+    --shadow-glow: 0 0 24px hsl(168 76% 42% / 0.15);
   }
 
   .dark {
-    --background: 210 50% 8%;
+    --background: 215 28% 8%;
     --foreground: 210 20% 95%;
 
-    --card: 210 50% 12%;
+    --card: 215 28% 12%;
     --card-foreground: 210 20% 95%;
 
-    --popover: 210 50% 12%;
+    --popover: 215 28% 12%;
     --popover-foreground: 210 20% 95%;
 
-    --primary: 160 60% 50%;
-    --primary-foreground: 210 50% 8%;
+    --primary: 168 76% 50%;
+    --primary-foreground: 215 28% 8%;
 
-    --secondary: 210 100% 30%;
+    --secondary: 192 78% 35%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 40% 18%;
+    --muted: 215 28% 18%;
     --muted-foreground: 210 20% 60%;
 
-    --accent: 160 40% 20%;
-    --accent-foreground: 160 60% 70%;
+    --accent: 168 40% 20%;
+    --accent-foreground: 168 76% 70%;
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 40% 20%;
-    --input: 210 40% 20%;
-    --ring: 160 60% 50%;
+    --border: 215 28% 20%;
+    --input: 215 28% 20%;
+    --ring: 168 76% 50%;
 
-    --sidebar-background: 210 50% 6%;
+    --sidebar-background: 215 28% 6%;
     --sidebar-foreground: 210 20% 90%;
-    --sidebar-primary: 160 60% 50%;
-    --sidebar-primary-foreground: 210 50% 8%;
-    --sidebar-accent: 210 40% 15%;
+    --sidebar-primary: 168 76% 50%;
+    --sidebar-primary-foreground: 215 28% 8%;
+    --sidebar-accent: 215 28% 15%;
     --sidebar-accent-foreground: 210 20% 90%;
-    --sidebar-border: 210 40% 18%;
-    --sidebar-ring: 160 60% 50%;
+    --sidebar-border: 215 28% 18%;
+    --sidebar-ring: 168 76% 50%;
   }
 }
 
@@ -125,6 +127,8 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   /* Mobile-first safe areas */
@@ -135,13 +139,30 @@
 }
 
 @layer utilities {
-  /* Fiscaliz utility classes */
+  /* Premium gradient utility */
   .fiscaliz-gradient {
     background: var(--gradient-brand);
   }
 
+  .fiscaliz-gradient-primary {
+    background: var(--gradient-primary);
+  }
+
+  .fiscaliz-gradient-subtle {
+    background: var(--gradient-subtle);
+  }
+
+  /* Premium shadows */
   .fiscaliz-shadow {
     box-shadow: var(--shadow-md);
+  }
+
+  .fiscaliz-shadow-sm {
+    box-shadow: var(--shadow-sm);
+  }
+
+  .fiscaliz-shadow-lg {
+    box-shadow: var(--shadow-lg);
   }
 
   .fiscaliz-glow {
@@ -150,8 +171,8 @@
 
   /* Touch-friendly targets */
   .touch-target {
-    min-height: 44px;
-    min-width: 44px;
+    min-height: 48px;
+    min-width: 48px;
   }
 
   /* Status indicators */
@@ -167,6 +188,20 @@
   .status-success {
     background-color: hsl(var(--success));
     color: hsl(var(--success-foreground));
+  }
+
+  /* Premium card hover effect */
+  .card-hover {
+    @apply transition-all duration-200 ease-out;
+  }
+  
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .card-hover:active {
+    transform: translateY(0);
   }
 
   /* Document watermark - uses background image */
@@ -198,7 +233,7 @@
     transform: translate(-50%, -50%);
     width: 300px;
     height: 300px;
-    opacity: 0.04;
+    opacity: 0.03;
     pointer-events: none;
     z-index: 0;
   }
@@ -223,7 +258,7 @@
   }
 }
 
-/* Animations */
+/* Premium Animations */
 @keyframes slide-up {
   from {
     opacity: 0;
@@ -253,8 +288,35 @@
   }
 }
 
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes hover-lift {
+  to {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+}
+
 .animate-slide-up {
-  animation: slide-up 0.3s ease-out;
+  animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .animate-pulse-soft {
@@ -263,4 +325,19 @@
 
 .animate-sync {
   animation: sync-spin 1s linear infinite;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--muted) / 0.5) 50%,
+    hsl(var(--muted)) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }

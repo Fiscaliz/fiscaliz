@@ -19,14 +19,14 @@ export function AppLayout({ children, hideBottomNav, className, showWatermark = 
           <img 
             src={fiscalizLogo} 
             alt="" 
-            className="w-full h-full object-contain opacity-[0.03]"
+            className="w-full h-full object-contain"
           />
         </div>
       )}
       
       <main className={cn(
         'flex-1 relative z-10',
-        !hideBottomNav && 'pb-20' // Space for bottom nav
+        !hideBottomNav && 'pb-24' // Space for bottom nav
       )}>
         {children}
       </main>

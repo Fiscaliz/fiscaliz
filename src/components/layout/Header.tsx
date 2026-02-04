@@ -20,17 +20,17 @@ export function Header({ title, subtitle, showBack, rightAction, className, show
 
   return (
     <header className={cn(
-      'sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-sm pt-safe-top',
+      'sticky top-0 z-40 border-b border-border/50 bg-card/95 backdrop-blur-md pt-safe-top',
       className
     )}>
-      <div className="flex items-center justify-between px-4 py-3">
+      <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-3">
           {showBack && (
             <Button
               variant="ghost"
               size="icon"
               onClick={() => navigate(-1)}
-              className="h-9 w-9"
+              className="h-10 w-10 rounded-xl"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
@@ -39,24 +39,24 @@ export function Header({ title, subtitle, showBack, rightAction, className, show
             <img 
               src={fiscalizLogo} 
               alt="Fiscaliz" 
-              className="h-12 w-auto drop-shadow-sm"
+              className="h-10 w-auto drop-shadow-sm"
             />
           )}
           <div>
-            <h1 className="text-lg font-semibold text-foreground">{title}</h1>
+            <h1 className="text-h3 text-foreground">{title}</h1>
             {subtitle && (
-              <p className="text-sm text-muted-foreground">{subtitle}</p>
+              <p className="text-caption text-muted-foreground">{subtitle}</p>
             )}
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {/* Online/Offline indicator */}
           <div className={cn(
-            'flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium',
+            'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-micro font-semibold uppercase tracking-wide',
             isOnline 
-              ? 'bg-success/10 text-success' 
-              : 'bg-warning/10 text-warning'
+              ? 'bg-success/15 text-success' 
+              : 'bg-warning/15 text-warning'
           )}>
             {isOnline ? (
               <>

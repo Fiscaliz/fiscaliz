@@ -23,30 +23,30 @@ export default function Profile() {
   const initials = fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
 
   const menuItems = [
-    { icon: User, label: 'Editar Perfil', href: '/perfil/editar' },
-    { icon: FileText, label: 'Meus Documentos', href: '/documentos' },
-    { icon: Calendar, label: 'Relatório Mensal', href: '/relatorio-mensal' },
-    { icon: Settings, label: 'Configurações', href: '/configuracoes' },
-    { icon: HelpCircle, label: 'Ajuda', href: '/ajuda' },
+    { icon: User, label: 'Editar Perfil', href: '/perfil/editar', color: 'bg-primary/10 text-primary' },
+    { icon: FileText, label: 'Meus Documentos', href: '/documentos', color: 'bg-info/10 text-info' },
+    { icon: Calendar, label: 'Relatório Mensal', href: '/relatorio-mensal', color: 'bg-success/10 text-success' },
+    { icon: Settings, label: 'Configurações', href: '/configuracoes', color: 'bg-muted text-muted-foreground' },
+    { icon: HelpCircle, label: 'Ajuda', href: '/ajuda', color: 'bg-warning/10 text-warning' },
   ];
 
   return (
     <AppLayout>
       <Header title="Perfil" />
       
-      <div className="p-4">
+      <div className="p-5 space-y-6">
         {/* Profile Card with Logo */}
-        <Card className="mb-6 border-0 shadow-sm overflow-hidden">
-          <div className="fiscaliz-gradient px-4 py-6">
+        <Card className="overflow-hidden">
+          <div className="fiscaliz-gradient px-5 py-8">
             <div className="flex items-center gap-4">
-              <div className="h-20 w-20 rounded-xl bg-primary-foreground/10 p-1 backdrop-blur-sm flex items-center justify-center">
+              <div className="h-20 w-20 rounded-2xl bg-primary-foreground/10 p-2 backdrop-blur-sm flex items-center justify-center shadow-lg">
                 <img src={fiscalizLogo} alt="Fiscaliz" className="h-full w-full object-contain" />
               </div>
               <div className="text-primary-foreground">
-                <h2 className="text-lg font-bold">{fullName}</h2>
-                <p className="text-sm text-primary-foreground/80">Matrícula: {user?.user_metadata?.registration_number || 'Não informada'}</p>
-                <div className="mt-1 flex items-center gap-1 text-xs text-primary-foreground/70">
-                  <Shield className="h-3 w-3" />
+                <h2 className="text-h2 font-bold">{fullName}</h2>
+                <p className="text-body text-primary-foreground/85">Matrícula: {user?.user_metadata?.registration_number || 'Não informada'}</p>
+                <div className="mt-2 flex items-center gap-1.5 text-caption text-primary-foreground/70">
+                  <Shield className="h-3.5 w-3.5" />
                   <span>Auditor Fiscal de Saúde Pública</span>
                 </div>
               </div>
@@ -55,18 +55,20 @@ export default function Profile() {
         </Card>
 
         {/* Menu Items */}
-        <Card className="mb-6 border-0 shadow-sm">
+        <Card>
           <CardContent className="p-0">
             {menuItems.map((item, index) => (
               <Link
                 key={item.label}
                 to={item.href}
-                className="flex w-full items-center justify-between px-4 py-4 text-left hover:bg-muted/50 transition-colors"
-                style={{ borderBottom: index < menuItems.length - 1 ? '1px solid hsl(var(--border))' : 'none' }}
+                className="flex w-full items-center justify-between px-5 py-4 text-left hover:bg-muted/50 transition-all duration-200"
+                style={{ borderBottom: index < menuItems.length - 1 ? '1px solid hsl(var(--border) / 0.5)' : 'none' }}
               >
-                <div className="flex items-center gap-3">
-                  <item.icon className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium">{item.label}</span>
+                <div className="flex items-center gap-4">
+                  <div className={`p-2.5 rounded-xl ${item.color}`}>
+                    <item.icon className="h-5 w-5" />
+                  </div>
+                  <span className="text-body font-medium">{item.label}</span>
                 </div>
                 <ChevronRight className="h-5 w-5 text-muted-foreground" />
               </Link>
@@ -77,7 +79,7 @@ export default function Profile() {
         {/* Sign Out Button */}
         <Button 
           variant="outline" 
-          className="w-full h-12 text-destructive border-destructive/30 hover:bg-destructive/10"
+          className="w-full border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
           onClick={signOut}
         >
           <LogOut className="mr-2 h-5 w-5" />
@@ -85,10 +87,10 @@ export default function Profile() {
         </Button>
 
         {/* App Info */}
-        <div className="mt-8 text-center">
-          <img src={fiscalizLogo} alt="Fiscaliz" className="mx-auto mb-2 h-10 w-10 opacity-50" />
-          <p className="text-xs text-muted-foreground">Fiscaliz v1.0.0</p>
-          <p className="text-xs text-muted-foreground">© 2026 Prefeitura de Goiânia</p>
+        <div className="mt-10 text-center pb-4">
+          <img src={fiscalizLogo} alt="Fiscaliz" className="mx-auto mb-3 h-12 w-12 opacity-40" />
+          <p className="text-caption text-muted-foreground">Fiscaliz v1.0.0</p>
+          <p className="text-micro text-muted-foreground/70 uppercase tracking-wider mt-1">© 2026 Prefeitura de Goiânia</p>
         </div>
       </div>
     </AppLayout>
