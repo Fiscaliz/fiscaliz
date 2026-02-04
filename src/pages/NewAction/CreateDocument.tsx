@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
@@ -24,7 +24,10 @@ import {
   X,
   Image as ImageIcon,
   Clock,
-  FolderOpen
+  FolderOpen,
+  CloudOff,
+  Check,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { checklistTemplates, getAllCategories, type ChecklistItem } from '@/data/checklists';
@@ -38,6 +41,7 @@ import { VisitaFiscalForm, formatVisitaFiscalContent, type VisitaFiscalData } fr
 import { AutoInfracaoForm, formatAutoInfracaoContent, type AutoInfracaoData } from '@/components/documents/AutoInfracaoForm';
 import { RelatorioTecnicoForm, formatRelatorioTecnicoContent, type RelatorioTecnicoData } from '@/components/documents/RelatorioTecnicoForm';
 import { TransportModeSelector } from '@/components/documents/TransportModeSelector';
+import { clearDraftByKey } from '@/hooks/useAutoSaveDraft';
 
 type UploadedImage = {
   id: string;
@@ -165,6 +169,135 @@ export default function CreateDocument() {
   const autoInfracaoFileInputRef = useRef<HTMLInputElement>(null);
   const relatorioTecnicoFileInputRef = useRef<HTMLInputElement>(null);
   const relatorioTecnicoCameraRef = useRef<HTMLInputElement>(null);
+
+  // Auto-save state
+  const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const draftKey = `document_${tipo}_${establishment?.cnpj || 'new'}`;
+
+  // Collect all form data for auto-save
+  const collectFormData = useCallback(() => {
+    return {
+      method,
+      selectedChecklist,
+      selectedItems,
+      manualContent,
+      deadlineDays,
+      otrosContent,
+      observations,
+      dengueInspection,
+      documentDate,
+      documentTime,
+      transportMode,
+      certidaoData,
+      visitaFiscalData,
+      autoInfracaoData,
+      relatorioTecnicoData,
+      aiAnalysisText,
+      aiPhotoLegends,
+      aiAnalysisComplete,
+      establishment,
+      motivo,
+      tipo,
+    };
+  }, [
+    method, selectedChecklist, selectedItems, manualContent, deadlineDays,
+    otrosContent, observations, dengueInspection, documentDate, documentTime,
+    transportMode, certidaoData, visitaFiscalData, autoInfracaoData,
+    relatorioTecnicoData, aiAnalysisText, aiPhotoLegends, aiAnalysisComplete,
+    establishment, motivo, tipo
+  ]);
+
+  // Auto-save to localStorage
+  const saveToLocalStorage = useCallback(() => {
+    try {
+      setAutoSaveStatus('saving');
+      const data = collectFormData();
+      const draftData = {
+        savedAt: new Date().toISOString(),
+        data,
+      };
+      localStorage.setItem(`fiscaliz_draft_${draftKey}`, JSON.stringify(draftData));
+      setLastAutoSave(new Date());
+      setAutoSaveStatus('saved');
+      
+      // Reset status after 2 seconds
+      setTimeout(() => setAutoSaveStatus('idle'), 2000);
+    } catch (error) {
+      console.error('[AutoSave] Error:', error);
+      setAutoSaveStatus('error');
+    }
+  }, [collectFormData, draftKey]);
+
+  // Load draft from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedDraft = localStorage.getItem(`fiscaliz_draft_${draftKey}`);
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        const data = parsed.data;
+        
+        // Restore form data
+        if (data.method) setMethod(data.method);
+        if (data.selectedChecklist) setSelectedChecklist(data.selectedChecklist);
+        if (data.selectedItems) setSelectedItems(data.selectedItems);
+        if (data.manualContent) setManualContent(data.manualContent);
+        if (data.deadlineDays) setDeadlineDays(data.deadlineDays);
+        if (data.otrosContent) setOtrosContent(data.otrosContent);
+        if (data.observations) setObservations(data.observations);
+        if (data.dengueInspection !== undefined) setDengueInspection(data.dengueInspection);
+        if (data.documentDate) setDocumentDate(data.documentDate);
+        if (data.documentTime) setDocumentTime(data.documentTime);
+        if (data.transportMode) setTransportMode(data.transportMode);
+        if (data.certidaoData) setCertidaoData(data.certidaoData);
+        if (data.visitaFiscalData) setVisitaFiscalData(data.visitaFiscalData);
+        if (data.autoInfracaoData) setAutoInfracaoData(data.autoInfracaoData);
+        if (data.relatorioTecnicoData) setRelatorioTecnicoData(data.relatorioTecnicoData);
+        if (data.aiAnalysisText) setAiAnalysisText(data.aiAnalysisText);
+        if (data.aiPhotoLegends) setAiPhotoLegends(data.aiPhotoLegends);
+        if (data.aiAnalysisComplete) setAiAnalysisComplete(data.aiAnalysisComplete);
+        
+        setLastAutoSave(new Date(parsed.savedAt));
+        
+        toast({
+          title: 'Rascunho recuperado',
+          description: 'Seu trabalho anterior foi restaurado automaticamente.',
+        });
+      }
+    } catch (error) {
+      console.error('[AutoSave] Error loading draft:', error);
+    }
+  }, [draftKey]);
+
+  // Set up auto-save interval (every 10 seconds)
+  useEffect(() => {
+    autoSaveIntervalRef.current = setInterval(() => {
+      saveToLocalStorage();
+    }, 10000);
+
+    // Also save when user leaves the page
+    const handleBeforeUnload = () => {
+      saveToLocalStorage();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      if (autoSaveIntervalRef.current) {
+        clearInterval(autoSaveIntervalRef.current);
+      }
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [saveToLocalStorage]);
+
+  // Clear draft after successful save
+  const clearDraft = useCallback(() => {
+    try {
+      localStorage.removeItem(`fiscaliz_draft_${draftKey}`);
+    } catch (error) {
+      console.error('[AutoSave] Error clearing draft:', error);
+    }
+  }, [draftKey]);
 
   // Auto-select certidao method for certidao type
   const isCertidao = tipo === 'certidao';
@@ -606,6 +739,9 @@ export default function CreateDocument() {
 
       if (docError) throw docError;
 
+      // Clear auto-saved draft after successful save
+      clearDraft();
+
       toast({
         title: 'Documento salvo!',
         description: `${documentTypeLabels[tipo]} criado com sucesso. Clique para visualizar.`,
@@ -633,6 +769,34 @@ export default function CreateDocument() {
         subtitle={establishment?.nome_fantasia || establishment?.razao_social || 'Criar documento'}
         showBack 
       />
+      
+      {/* Auto-save indicator */}
+      <div className="fixed top-16 right-4 z-40">
+        {autoSaveStatus === 'saving' && (
+          <Badge variant="secondary" className="gap-1 animate-pulse">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Salvando...
+          </Badge>
+        )}
+        {autoSaveStatus === 'saved' && (
+          <Badge variant="outline" className="gap-1 bg-background text-primary border-primary/50">
+            <Check className="h-3 w-3" />
+            Salvo localmente
+          </Badge>
+        )}
+        {autoSaveStatus === 'error' && (
+          <Badge variant="destructive" className="gap-1">
+            <CloudOff className="h-3 w-3" />
+            Erro ao salvar
+          </Badge>
+        )}
+        {lastAutoSave && autoSaveStatus === 'idle' && (
+          <Badge variant="outline" className="gap-1 text-muted-foreground">
+            <Clock className="h-3 w-3" />
+            Último: {lastAutoSave.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+          </Badge>
+        )}
+      </div>
       
       <div className="p-4 space-y-4">
         {/* Certidão Form - auto-shown for certidao type */}
