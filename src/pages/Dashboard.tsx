@@ -275,18 +275,32 @@ export default function Dashboard() {
                 color="bg-info"
               />
               <StatCard 
+                icon={Trash2}
+                label="Inutilizados"
+                value={`${myStats.totalInutilizadoKg.toFixed(1)} kg`}
+                subtitle="este mês"
+                color="bg-destructive"
+              />
+              <StatCard 
+                icon={Package}
+                label="Apreensões"
+                value={myStats.totalApreensoes.toString()}
+                subtitle="este mês"
+                color="bg-warning"
+              />
+              <StatCard 
                 icon={Clock}
                 label="Pendentes"
                 value={myStats.pendingTasks.toString()}
                 subtitle="tarefas"
-                color="bg-warning"
+                color="bg-muted"
               />
               <StatCard 
                 icon={AlertTriangle}
                 label="Urgentes"
                 value={myStats.urgentTasks.toString()}
                 subtitle="< 7 dias"
-                color="bg-destructive"
+                color="bg-destructive/80"
               />
             </div>
             
