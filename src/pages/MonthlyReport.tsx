@@ -91,6 +91,7 @@ interface GroupedOS {
   documents: string[]; // Lista de documentos emitidos
   isInternal: boolean;
   isCertidao: boolean; // Certidão = 1 ponto fixo
+  isRelatorioAtividade: boolean; // Relatório de Atividade = 6 pontos fixos
 }
 
 // Tabela de pontos por risco sanitário (Tabela Anvisa)
@@ -290,12 +291,18 @@ export default function MonthlyReport() {
       } else {
         // Criar nova OS
         const isCertidao = action.documentType === 'certidao';
-        const riskPoints = isCertidao ? 1 : action.riskPoints;
+        const isRelatorioAtividade = action.documentType === 'relatorio_atividade';
         
-        // Verificar se há override de grau
+        // Relatório de Atividade = 6 pts fixos, Certidão = 1 pt fixo
+        const riskPoints = isRelatorioAtividade ? 6 : (isCertidao ? 1 : action.riskPoints);
+        
+        // Verificar se há override de grau (não aplicável para certidão e relatório de atividade)
         const override = osGradeOverrides.get(groupKey);
-        const grade = override?.grade ?? (isCertidao ? 1 : action.difficultyGrade);
-        const justifications = override?.justifications ?? (isCertidao ? [] : action.difficultyJustifications);
+        const grade = override?.grade ?? (isCertidao || isRelatorioAtividade ? 1 : action.difficultyGrade);
+        const justifications = override?.justifications ?? (isCertidao || isRelatorioAtividade ? [] : action.difficultyJustifications);
+        
+        // Calcular pontos totais
+        const calculatedPoints = isRelatorioAtividade ? 6 : (isCertidao ? 1 : riskPoints * grade);
         
         osMap.set(groupKey, {
           key: groupKey,
@@ -307,18 +314,19 @@ export default function MonthlyReport() {
           riskPoints,
           difficultyGrade: grade,
           difficultyJustifications: justifications,
-          totalPoints: isCertidao ? 1 : riskPoints * grade,
+          totalPoints: calculatedPoints,
           documents: [action.documentNumber],
           isInternal: action.isInternal,
           isCertidao,
+          isRelatorioAtividade,
         });
       }
     });
     
-    // Aplicar overrides às OS já criadas
+    // Aplicar overrides às OS já criadas (não aplicável para certidão e relatório de atividade)
     osGradeOverrides.forEach((override, key) => {
       const os = osMap.get(key);
-      if (os && !os.isCertidao) {
+      if (os && !os.isCertidao && !os.isRelatorioAtividade) {
         os.difficultyGrade = override.grade;
         os.difficultyJustifications = override.justifications;
         os.totalPoints = os.riskPoints * override.grade;
@@ -353,7 +361,7 @@ export default function MonthlyReport() {
   };
 
   // Calcular pontos totais baseado nas OS agrupadas (não nas peças individuais)
-  // Certidão vale apenas 1 ponto fixo
+  // Certidão = 1 ponto fixo, Relatório de Atividade = 6 pontos fixos
   const totalPoints = useMemo(() => {
     let basePoints = 0;
     let totalWithGrade = 0;
@@ -362,6 +370,9 @@ export default function MonthlyReport() {
       if (os.isCertidao) {
         basePoints += 1;
         totalWithGrade += 1;
+      } else if (os.isRelatorioAtividade) {
+        basePoints += 6;
+        totalWithGrade += 6;
       } else {
         basePoints += os.riskPoints;
         totalWithGrade += os.totalPoints;
@@ -586,13 +597,15 @@ export default function MonthlyReport() {
           actionDateFull = format(createdDate, 'yyyy-MM-dd');
         }
         const isInternal = doc.document_type === 'relatorio_atividade' || !doc.establishment_id;
+        const isRelatorioAtividade = doc.document_type === 'relatorio_atividade';
         
         // Determinar transporte baseado no conteúdo do documento - vazio para atividades internas
         const transport: 'MPL' | 'CO' | '' = isInternal ? '' : (content.transport_mode || 'MPL');
         
         // Obter nível de risco do estabelecimento
+        // Relatório de Atividade (Elaboração de Relatório Mensal) = 6 pontos fixos
         const riskLevel = doc.establishments?.risk_level as 'I' | 'II' | 'III' | null;
-        const riskPoints = riskLevel ? RISK_POINTS[riskLevel] : 0;
+        const riskPoints = isRelatorioAtividade ? 6 : (riskLevel ? RISK_POINTS[riskLevel] : 0);
         
         // Usar razão social como nome principal
         const establishmentName = doc.establishments?.razao_social || 
@@ -600,9 +613,10 @@ export default function MonthlyReport() {
           'Atividade Interna';
         
         // Grau de dificuldade (1 = normal, 2 = com justificativa)
-        const difficultyGrade: 1 | 2 = content.difficulty_grade || 1;
-        const difficultyJustifications = content.difficulty_justifications || [];
-        const totalPoints = riskPoints * difficultyGrade;
+        // Relatório de Atividade não usa grau de dificuldade (já é fixo em 6)
+        const difficultyGrade: 1 | 2 = isRelatorioAtividade ? 1 : (content.difficulty_grade || 1);
+        const difficultyJustifications = isRelatorioAtividade ? [] : (content.difficulty_justifications || []);
+        const totalPoints = isRelatorioAtividade ? 6 : (riskPoints * difficultyGrade);
         
         // Determinar tipo de ação (Inspeção, Reinspeção, Insp. Investigativa, Serviço Interno)
         let actionType = 'Inspeção';
@@ -612,13 +626,14 @@ export default function MonthlyReport() {
           actionType = content.action_type;
         }
         
-        // Obter atividade econômica/CNAE do estabelecimento
+        // Obter atividade econômica/CNAE do estabelecimento (CNAE é a fonte de verdade para risco sanitário)
         const cnaeCode = doc.establishments?.cnae_principal || '';
         // Buscar descrição da atividade econômica pela tabela CNAE
         const cnaeEntry = cnaeCode ? getRiskByCNAE(cnaeCode) : null;
+        // Atividade = CNAE descrição (não usar nome fantasia)
         const economicActivity = cnaeEntry?.description || 
           content.atividade_economica ||
-          doc.establishments?.nome_fantasia ||
+          cnaeCode || // Usar o código CNAE se não tiver descrição
           '';
         
         // Escala (Plantão Fiscal1 como padrão)
@@ -1807,9 +1822,10 @@ export default function MonthlyReport() {
                     <p className="font-medium mb-1">Como são calculados os pontos (OS):</p>
                     <ul className="space-y-1">
                       <li>• <strong>Risco I:</strong> 2pts | <strong>Risco II:</strong> 3pts | <strong>Risco III:</strong> 6pts</li>
-                      <li>• <strong>Certidão:</strong> 1 ponto fixo (não usa tabela de risco)</li>
+                      <li>• <strong>Relatório de Atividade:</strong> 6 pontos fixos</li>
+                      <li>• <strong>Certidão:</strong> 1 ponto fixo</li>
                       <li>• <strong>Grau 2:</strong> Multiplica pontos por 2 (com justificativa)</li>
-                      <li>• Edite na prévia do PDF ou na aba Pontos se necessário</li>
+                      <li>• Atividade = CNAE (base para cálculo de risco sanitário)</li>
                     </ul>
                   </div>
                 </div>
