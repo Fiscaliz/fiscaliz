@@ -390,6 +390,9 @@ export default function CreateDocument() {
             endereco: establishment.endereco,
             bairro: establishment.bairro,
             cep: establishment.cep,
+            cnae_principal: establishment.cnae_principal || null,
+            alvara_numero: establishment.alvara_numero || null,
+            responsavel_nome: establishment.responsavel_nome || null,
             created_by: user.id,
           })
           .select()
