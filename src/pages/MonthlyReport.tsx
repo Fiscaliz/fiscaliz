@@ -1142,8 +1142,16 @@ export default function MonthlyReport() {
                         />
                       ) : action.establishment}
                     </td>
-                    <td style={{ textAlign: 'center' }}>
-                      {action.cnaeCode ? action.cnaeCode.slice(0, 4) : '-'}
+                    <td style={{ textAlign: 'center' }} className={editingPreview ? 'editable-field' : ''}>
+                      {editingPreview ? (
+                        <input
+                          type="text"
+                          value={action.cnaeCode}
+                          onChange={(e) => updateDailyAction(action.id, 'cnaeCode', e.target.value)}
+                          className="editable-input w-12"
+                          placeholder="-"
+                        />
+                      ) : (action.cnaeCode ? action.cnaeCode.replace(/[^0-9]/g, '').slice(0, 4) : '-')}
                     </td>
                     <td className={editingPreview ? 'editable-field' : ''}>
                       {editingPreview ? (
@@ -1153,7 +1161,7 @@ export default function MonthlyReport() {
                           onChange={(e) => updateDailyAction(action.id, 'economicActivity', e.target.value)}
                           className="editable-input w-full"
                         />
-                      ) : (action.economicActivity || action.actionType)}
+                      ) : (action.economicActivity || '-')}
                     </td>
                     <td style={{ textAlign: 'center' }} className={editingPreview ? 'editable-field' : ''}>
                       {editingPreview ? (
