@@ -13,7 +13,6 @@ type ExtractedData = {
   endereco?: string;
   bairro?: string;
   cep?: string;
-  alvaraNumero?: string;
   cnaePrincipal?: string;
   responsavelNome?: string;
 };
@@ -58,12 +57,12 @@ Analise a imagem do documento fiscal e extraia as seguintes informações do EST
 - Endereço completo (logradouro, número, complemento, quadra, lote)
 - Bairro
 - CEP (formato: XXXXX-XXX ou apenas números)
-- Número do Alvará (se mencionado)
-- CNAE/Atividade Principal (código ou descrição)
+- CNAE/Atividade Principal (PRIORIDADE ALTA: busque código numérico como 5611-2/01, 4712-1/00 ou descrição como "Restaurante", "Lanchonete", "Padaria")
 - Nome do Responsável/Representante do estabelecimento
 
 IMPORTANTE:
 - Foque nos dados do ESTABELECIMENTO, não do órgão fiscalizador
+- CNAE é fundamental para classificação de risco - busque atentamente por códigos numéricos no formato XXXX-X/XX ou descrições de atividade econômica
 - Retorne APENAS os dados que você conseguir identificar claramente na imagem
 - Se não conseguir identificar algum campo, deixe-o como null
 - Não invente dados
@@ -77,10 +76,11 @@ IMPORTANTE:
   "endereco": "string ou null",
   "bairro": "string ou null",
   "cep": "string (apenas números) ou null",
-  "alvaraNumero": "string ou null",
-  "cnaePrincipal": "string ou null",
+  "cnaePrincipal": "string (código CNAE no formato XXXX-X/XX ou descrição da atividade) ou null",
   "responsavelNome": "string ou null"
 }
+
+ATENÇÃO ESPECIAL para CNAE: procure por códigos como "5611-2/01", "4712-1/00", ou descrições como "Restaurantes e similares", "Lanchonete", "Padaria", "Açougue", etc.
 
 Retorne APENAS o JSON, sem texto adicional ou explicações.`;
 
