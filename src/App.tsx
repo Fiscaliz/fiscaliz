@@ -23,6 +23,7 @@ import InternalActivitySelection from "./pages/NewAction/InternalActivitySelecti
 import CreateRA from "./pages/NewAction/CreateRA";
 import PFESelection from "./pages/NewAction/PFESelection";
 import MonthlyReport from "./pages/MonthlyReport";
+import MonthlyReports from "./pages/MonthlyReports";
 import DocumentDetail from "./pages/DocumentDetail";
 import Documents from "./pages/Documents";
 import NotFound from "./pages/NotFound";
@@ -109,6 +110,11 @@ const App = () => (
             <Route path="/relatorio-mensal" element={
               <ProtectedRoute>
                 <MonthlyReport />
+              </ProtectedRoute>
+            } />
+            <Route path="/relatorios-mensais" element={
+              <ProtectedRoute>
+                <MonthlyReports />
               </ProtectedRoute>
             } />
             <Route path="/documento/:id" element={
