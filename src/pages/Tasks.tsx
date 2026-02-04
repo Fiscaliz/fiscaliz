@@ -66,32 +66,32 @@ export default function Tasks() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const loadTasks = async () => {
+      if (!user) return;
+      
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          establishment:establishments(nome_fantasia, razao_social, endereco),
+          document:fiscal_documents(document_type, document_number)
+        `)
+        .eq('user_id', user.id)
+        .order('due_date', { ascending: true });
+
+      if (error) {
+        console.error('Error loading tasks:', error);
+      } else {
+        setTasks(data || []);
+      }
+      setLoading(false);
+    };
+
     if (user) {
       loadTasks();
     }
   }, [user]);
-
-  const loadTasks = async () => {
-    if (!user) return;
-    
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('tasks')
-      .select(`
-        *,
-        establishment:establishments(nome_fantasia, razao_social, endereco),
-        document:fiscal_documents(document_type, document_number)
-      `)
-      .eq('user_id', user.id)
-      .order('due_date', { ascending: true });
-
-    if (error) {
-      console.error('Error loading tasks:', error);
-    } else {
-      setTasks(data || []);
-    }
-    setLoading(false);
-  };
 
   const handleTaskClick = (task: Task) => {
     if (task.document_id) {
@@ -111,7 +111,12 @@ export default function Tasks() {
       .eq('id', taskId);
 
     if (!error) {
-      loadTasks();
+      // Update local state instead of re-fetching
+      setTasks(prev => prev.map(t => 
+        t.id === taskId 
+          ? { ...t, status: 'completed', completed_at: new Date().toISOString() } 
+          : t
+      ));
     }
   };
 
