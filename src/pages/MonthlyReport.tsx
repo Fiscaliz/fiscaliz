@@ -555,8 +555,10 @@ export default function MonthlyReport() {
         deadline_days,
         deadline_date,
         establishment_id,
+        fiscal_action_id,
         status,
-        establishments(*)
+        establishments(*),
+        fiscal_actions(reason, reason_details)
       `)
       .eq('user_id', user.id)
       .in('status', ['sent', 'draft']);
@@ -618,10 +620,31 @@ export default function MonthlyReport() {
         const difficultyJustifications = isRelatorioAtividade ? [] : (content.difficulty_justifications || []);
         const totalPoints = isRelatorioAtividade ? 6 : (riskPoints * difficultyGrade);
         
-        // Determinar tipo de ação (Inspeção, Reinspeção, Insp. Investigativa, Serviço Interno)
+        // Determinar tipo de ação baseado no motivo da fiscal_action
+        // Mapeamento: rotina->Inspeção, denuncia->Denúncia, relatorio_tecnico->RT, investigativa->Insp.Investigativa, etc.
+        const fiscalActionReason = doc.fiscal_actions?.reason as string | undefined;
+        const reasonLabels: Record<string, string> = {
+          'rotina': 'Inspeção',
+          'denuncia': 'Denúncia',
+          'relatorio_tecnico': 'RT',
+          'investigativa': 'Insp.Invest.',
+          'demanda_chefia': 'Demanda',
+          'surto': 'Surto',
+          'operacao_conjunta': 'Op.Conjunta',
+          'coleta': 'Coleta',
+          'demanda_especifica': 'Demanda',
+          'demanda_interna': 'Demanda',
+          'pfe': 'PFE',
+          'outros': 'Outros',
+        };
+        
         let actionType = 'Inspeção';
         if (isInternal) {
           actionType = 'Serviço Interno';
+        } else if (content.is_reinspection || content.reinspcao) {
+          actionType = 'Reinspeção';
+        } else if (fiscalActionReason && reasonLabels[fiscalActionReason]) {
+          actionType = reasonLabels[fiscalActionReason];
         } else if (content.action_type) {
           actionType = content.action_type;
         }
@@ -1049,7 +1072,7 @@ export default function MonthlyReport() {
                   <th style={{ width: '45px', textAlign: 'center' }}>Cód.</th>
                   <th style={{ width: '100px' }}>Atividade Econômica/Tipo de Ação</th>
                   <th style={{ width: '80px', textAlign: 'center' }}>Doc.Em.</th>
-                  <th style={{ width: '35px', textAlign: 'center' }}>OS</th>
+                  
                 </tr>
               </thead>
               <tbody>
@@ -1092,7 +1115,14 @@ export default function MonthlyReport() {
                         >
                           <option value="Inspeção">Inspeção</option>
                           <option value="Reinspeção">Reinspeção</option>
-                          <option value="Insp.Investigativa">Insp.Investigativa</option>
+                          <option value="Denúncia">Denúncia</option>
+                          <option value="Insp.Invest.">Insp.Invest.</option>
+                          <option value="RT">RT</option>
+                          <option value="Demanda">Demanda</option>
+                          <option value="Surto">Surto</option>
+                          <option value="Op.Conjunta">Op.Conjunta</option>
+                          <option value="Coleta">Coleta</option>
+                          <option value="PFE">PFE</option>
                           <option value="Serviço Interno">Serviço Interno</option>
                         </select>
                       ) : action.actionType}
@@ -1135,7 +1165,7 @@ export default function MonthlyReport() {
                         />
                       ) : action.documentNumber}
                     </td>
-                    <td style={{ textAlign: 'center' }}>PF</td>
+                    
                   </tr>
                 ))}
               </tbody>
