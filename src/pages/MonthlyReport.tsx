@@ -825,7 +825,7 @@ export default function MonthlyReport() {
                       <input
                         type="number"
                         value={osProgramadas}
-                        onChange={(e) => setEditedOsProgramadas(parseInt(e.target.value) || 0)}
+                        onChange={(e) => setOsProgramadas(e.target.value)}
                         className="editable-input w-16"
                       />
                     ) : osProgramadas}
@@ -1655,8 +1655,8 @@ export default function MonthlyReport() {
                     <Input
                       id="osProgramadas"
                       type="number"
-                      value={editedOsProgramadas ?? (parseInt(daysToWork) || '')}
-                      onChange={(e) => setEditedOsProgramadas(parseInt(e.target.value) || 0)}
+                      value={osProgramadas}
+                      onChange={(e) => setOsProgramadas(e.target.value)}
                       placeholder="Pontos programados"
                       disabled={isLocked}
                       className="mt-1"
