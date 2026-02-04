@@ -10,6 +10,7 @@ type Body = {
   documentType: string;
   photos: string[]; // public URLs
   establishmentType?: string;
+  description?: string; // for single photo re-analysis
 };
 
 const SYSTEM_PROMPT = `Você é um auditor fiscal da Vigilância Sanitária de Goiânia, especializado em fiscalização de estabelecimentos de alimentação.
@@ -170,7 +171,7 @@ serve(async (req) => {
       });
     }
 
-    const { documentType, photos, establishmentType } = (await req.json()) as Body;
+    const { documentType, photos, establishmentType, description } = (await req.json()) as Body;
     if (!documentType || !Array.isArray(photos) || photos.length === 0) {
       return new Response(JSON.stringify({ error: "Invalid payload: documentType and photos required" }), {
         status: 400,
@@ -180,6 +181,81 @@ serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    // Special mode: suggest legal basis for user-edited description
+    if (documentType === 'suggest_legal_basis' && description) {
+      const suggestPrompt = `Você é um auditor fiscal da Vigilância Sanitária especializado em RDC 216/2004.
+
+O fiscal identificou a seguinte não conformidade: "${description}"
+
+Analise a foto e a descrição fornecida e retorne APENAS o item específico da RDC 216/2004 que melhor se aplica.
+
+Consulte os itens:
+- 4.1.x: Edificação e Instalações
+- 4.2.x: Higienização
+- 4.3.x: Controle de Pragas
+- 4.4.x: Água
+- 4.5.x: Resíduos
+- 4.6.x: Manipuladores
+- 4.7.x: Matérias-primas
+- 4.8.x: Preparação
+- 4.9.x: Armazenamento e Transporte
+- 4.10.x: Exposição
+- 4.11.x: Documentação
+
+Retorne um JSON: {"item_rdc": "4.X.X", "justificativa": "breve explicação"}`;
+
+      const suggestParts: any[] = [
+        { type: "text", text: suggestPrompt },
+        { type: "image_url", image_url: { url: photos[0] } }
+      ];
+
+      console.log(`[analyze-photos] Suggesting legal basis for description: ${description.substring(0, 50)}...`);
+
+      const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [{ role: "user", content: suggestParts }],
+          temperature: 0.1,
+        }),
+      });
+
+      if (!aiResp.ok) {
+        const errorText = await aiResp.text();
+        console.error("AI gateway error:", aiResp.status, errorText);
+        return new Response(JSON.stringify({ error: `AI gateway error: ${aiResp.status}` }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const json = await aiResp.json();
+      const rawText = (json?.choices?.[0]?.message?.content as string | undefined) || "";
+      
+      try {
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const result = JSON.parse(jsonMatch[0]);
+          return new Response(JSON.stringify({ 
+            photoAnalysis: [{ foto: 1, item_rdc: result.item_rdc, legenda: description }],
+            justificativa: result.justificativa,
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } catch (parseError) {
+        console.error("Failed to parse suggest response:", parseError);
+      }
+      
+      return new Response(JSON.stringify({ photoAnalysis: [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const userPrompt = `Analise as ${photos.length} fotos de fiscalização sanitária de um estabelecimento${establishmentType ? ` do tipo ${establishmentType}` : ''}.
 

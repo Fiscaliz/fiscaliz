@@ -504,12 +504,64 @@ export default function CreateDocument() {
     ));
   };
 
+  // State para controlar qual foto está sendo re-analisada
+  const [reanalyzingPhoto, setReanalyzingPhoto] = useState<number | null>(null);
+
+  // Re-analisar foto individual com a descrição editada
+  const handleReanalyzePhoto = async (photoIndex: number, description: string, photoUrl: string) => {
+    if (!description.trim()) return;
+    
+    setReanalyzingPhoto(photoIndex);
+    
+    try {
+      const response = await supabase.functions.invoke('analyze-photos', {
+        body: {
+          documentType: 'suggest_legal_basis',
+          photos: [photoUrl],
+          description: description,
+        },
+      });
+
+      if (response.error) throw response.error;
+      
+      const { photoAnalysis } = response.data || {};
+      if (photoAnalysis && photoAnalysis.length > 0 && photoAnalysis[0].item_rdc) {
+        updatePhotoLegend(photoIndex, 'item_rdc', photoAnalysis[0].item_rdc);
+        toast({
+          title: 'Dispositivo atualizado',
+          description: `Item ${photoAnalysis[0].item_rdc} sugerido pela IA`,
+        });
+      } else {
+        toast({
+          title: 'Não foi possível identificar',
+          description: 'Preencha o dispositivo legal manualmente',
+          variant: 'destructive',
+        });
+      }
+    } catch (error: any) {
+      console.error('Error re-analyzing photo:', error);
+      toast({
+        title: 'Erro na análise',
+        description: error.message || 'Não foi possível re-analisar a foto',
+        variant: 'destructive',
+      });
+    } finally {
+      setReanalyzingPhoto(null);
+    }
+  };
+
   const handleSave = async () => {
     if (!user) return;
     
     setSaving(true);
     
     try {
+      // Garantir sessão ativa antes de operações de banco
+      const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
+      if (authError || !currentUser) {
+        throw new Error('Sessão expirada. Por favor, faça login novamente.');
+      }
+
       // Create establishment if new
       let establishmentId = establishment?.id;
       
@@ -526,7 +578,7 @@ export default function CreateDocument() {
             cnae_principal: establishment.cnae_principal || null,
             alvara_numero: establishment.alvara_numero || null,
             responsavel_nome: establishment.responsavel_nome || null,
-            created_by: user.id,
+            created_by: currentUser.id,
           })
           .select()
           .single();
@@ -539,7 +591,7 @@ export default function CreateDocument() {
       const { data: action, error: actionError } = await supabase
         .from('fiscal_actions')
         .insert({
-          user_id: user.id,
+          user_id: currentUser.id,
           establishment_id: establishmentId,
           reason: motivo as any,
         })
@@ -582,7 +634,7 @@ export default function CreateDocument() {
       if (uploadedImages.length > 0) {
         for (const img of uploadedImages) {
           const fileExt = img.file.name.split('.').pop() || 'jpg';
-          const fileName = `${user.id}/${plannedDocId}_${img.id}.${fileExt}`;
+          const fileName = `${currentUser.id}/${plannedDocId}_${img.id}.${fileExt}`;
 
           const { error: uploadError } = await supabase.storage
             .from('fiscal-photos')
@@ -717,7 +769,7 @@ export default function CreateDocument() {
 
       const insertData: any = {
         id: plannedDocId,
-        user_id: user.id,
+        user_id: currentUser.id,
         establishment_id: establishmentId,
         fiscal_action_id: action.id,
         document_type: tipo,
@@ -1625,7 +1677,7 @@ export default function CreateDocument() {
                     </Button>
                   </div>
 
-                  <div className="space-y-4 max-h-[400px] overflow-y-auto">
+                  <div className="space-y-4">
                     {aiPhotoLegends.map((legend, idx) => (
                       <div key={idx} className="border rounded-lg p-3 space-y-2 bg-muted/30">
                         <div className="flex gap-3">
@@ -1648,24 +1700,51 @@ export default function CreateDocument() {
                               )}
                             </div>
                             <div>
-                              <Label className="text-xs text-muted-foreground">Descrição</Label>
+                              <Label className="text-xs text-muted-foreground">Descrição da irregularidade</Label>
                               <Textarea
                                 value={legend.legenda}
                                 onChange={(e) => updatePhotoLegend(legend.photoIndex, 'legenda', e.target.value)}
-                                placeholder="Descrição da irregularidade (deixe vazio se não houver)"
+                                placeholder="Descreva a irregularidade visível na foto (deixe vazio se não houver)"
                                 className="text-sm min-h-[60px]"
-                                maxLength={100}
+                                maxLength={150}
                               />
                             </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground">Item RDC 216/2004</Label>
-                              <Input
-                                value={legend.item_rdc}
-                                onChange={(e) => updatePhotoLegend(legend.photoIndex, 'item_rdc', e.target.value)}
-                                placeholder="Ex: 4.1.3"
-                                className="text-sm"
-                              />
+                            <div className="flex gap-2 items-end">
+                              <div className="flex-1">
+                                <Label className="text-xs text-muted-foreground">Item RDC 216/2004</Label>
+                                <Input
+                                  value={legend.item_rdc}
+                                  onChange={(e) => updatePhotoLegend(legend.photoIndex, 'item_rdc', e.target.value)}
+                                  placeholder="Ex: 4.1.3"
+                                  className="text-sm"
+                                />
+                              </div>
+                              {legend.legenda?.trim() && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="flex-shrink-0 gap-1 text-xs"
+                                  disabled={reanalyzingPhoto === legend.photoIndex}
+                                  onClick={() => {
+                                    const photoUrl = legend.previewUrl || uploadedImages[legend.photoIndex]?.previewUrl;
+                                    if (photoUrl) {
+                                      handleReanalyzePhoto(legend.photoIndex, legend.legenda, photoUrl);
+                                    }
+                                  }}
+                                >
+                                  {reanalyzingPhoto === legend.photoIndex ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <Sparkles className="h-3 w-3" />
+                                  )}
+                                  Sugerir
+                                </Button>
+                              )}
                             </div>
+                            <p className="text-[10px] text-muted-foreground italic">
+                              Edite a descrição e clique em "Sugerir" para a IA recomendar o dispositivo legal correto
+                            </p>
                           </div>
                         </div>
                       </div>
