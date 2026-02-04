@@ -58,6 +58,8 @@ interface DocumentViewerProps {
     deadline_date?: string;
     status: string;
     is_locked?: boolean;
+    sent_at?: string;
+    sent_to?: string;
     establishment?: {
       razao_social: string;
       nome_fantasia?: string;
@@ -1959,6 +1961,47 @@ _Enviado via FISCALIZ®_`;
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Botões para documentos já enviados (bloqueados) */}
+      {isLocked && (
+        <div className="space-y-3 print:hidden">
+          <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-xl">
+            <Lock className="h-4 w-4 text-muted-foreground" />
+            <p className="text-xs text-muted-foreground">
+              Documento finalizado em {document.sent_at ? format(new Date(document.sent_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : 'data não registrada'}.
+            </p>
+          </div>
+          
+          <Button 
+            onClick={handleSendViaWhatsApp}
+            variant="premium"
+            className="w-full gap-2"
+            size="lg"
+            disabled={isGeneratingPDF}
+          >
+            {isGeneratingPDF ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Gerando PDF...
+              </>
+            ) : (
+              <>
+                <MessageCircle className="h-5 w-5" />
+                Reenviar via WhatsApp
+              </>
+            )}
+          </Button>
+          
+          <Button 
+            onClick={handleGeneratePDF}
+            variant="outline"
+            className="w-full gap-2"
+          >
+            <Download className="h-5 w-5" />
+            Baixar PDF
+          </Button>
         </div>
       )}
 
