@@ -81,11 +81,17 @@ export default function CreateRA() {
     setSaving(true);
 
     try {
+      // Garantir sessão ativa antes de operações de banco
+      const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
+      if (authError || !currentUser) {
+        throw new Error('Sessão expirada. Por favor, faça login novamente.');
+      }
+
       // Criar fiscal_action para RA
       const { data: action, error: actionError } = await supabase
         .from('fiscal_actions')
         .insert({
-          user_id: user.id,
+          user_id: currentUser.id,
           establishment_id: null,
           reason: 'demanda_interna' as any,
           reason_details: `${atividadeId} - ${atividadeDescricao}`,
@@ -108,7 +114,7 @@ export default function CreateRA() {
       const { data: newDoc, error: docError } = await supabase
         .from('fiscal_documents')
         .insert({
-          user_id: user.id,
+          user_id: currentUser.id,
           fiscal_action_id: action.id,
           document_type: 'relatorio_atividade' as any,
           content: contentObj,
