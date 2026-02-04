@@ -320,11 +320,14 @@ export function DocumentViewer({
           // Converter PDF para blob
           const pdfBlob = pdf.output('blob');
           
-          // Fazer upload para o Storage - pasta pública
+          // Fazer upload para o Storage - pasta do usuário
           const { data: { user } } = await supabase.auth.getUser();
-          const fileName = user 
-            ? `${user.id}/documents/${document.id}_${Date.now()}.pdf`
-            : `public/documents/${document.id}_${Date.now()}.pdf`;
+          if (!user) {
+            throw new Error('Usuário não autenticado. Faça login novamente.');
+          }
+          
+          // Caminho correto: user_id no primeiro nível da pasta
+          const fileName = `${user.id}/${document.id}_${Date.now()}.pdf`;
           
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('fiscal-photos')
