@@ -214,15 +214,47 @@ export function DocumentViewer({
     setShowSendModal(true);
   };
 
+  // Função auxiliar para aguardar a ref do PDF estar disponível
+  const waitForPdfPreviewRef = (): Promise<HTMLDivElement> => {
+    return new Promise((resolve, reject) => {
+      let attempts = 0;
+      const maxAttempts = 50; // 5 segundos máximo (50 * 100ms)
+      
+      const checkRef = () => {
+        attempts++;
+        
+        // Tentar ref primeiro, depois querySelector como fallback
+        const element = pdfPreviewRef.current || window.document.querySelector('.pdf-preview-container') as HTMLDivElement;
+        
+        if (element) {
+          console.log('[PDF Generation] Found preview container after', attempts, 'attempts');
+          resolve(element);
+          return;
+        }
+        
+        if (attempts >= maxAttempts) {
+          reject(new Error('Timeout: container de preview não encontrado após 5 segundos'));
+          return;
+        }
+        
+        setTimeout(checkRef, 100);
+      };
+      
+      checkRef();
+    });
+  };
+
   const handleSendViaWhatsApp = async () => {
-    if (!whatsapp) return;
+    // Para reenvio de documentos bloqueados, pode não ter WhatsApp preenchido
+    // Nesse caso, vamos permitir gerar o PDF e compartilhar sem número
+    const isResend = isLocked;
     
     setIsGeneratingPDF(true);
     
     try {
-      // Limpar número de telefone
-      const cleanPhone = whatsapp.replace(/\D/g, '');
-      const phoneWithCountry = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+      // Limpar número de telefone (pode estar vazio para reenvio)
+      const cleanPhone = whatsapp ? whatsapp.replace(/\D/g, '') : '';
+      const phoneWithCountry = cleanPhone ? (cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`) : '';
       
       const docType = documentTypeLabels[document.document_type] || document.document_type;
       const establishment = document.establishment?.nome_fantasia || document.establishment?.razao_social || 'Estabelecimento';
@@ -237,42 +269,29 @@ export function DocumentViewer({
         description: "Aguarde enquanto o documento é preparado com template oficial."
       });
       
-      // Temporariamente mostrar a preview para captura
+      // Mostrar a preview para captura
       setShowPDFPreview(true);
       
-      // Aguardar múltiplos frames para garantir renderização completa
-      await new Promise<void>(resolve => {
-        let frameCount = 0;
-        const waitForRender = () => {
-          frameCount++;
-          if (frameCount < 3) {
-            requestAnimationFrame(waitForRender);
-          } else {
-            // Aguardar tempo extra para imagens carregarem
-            setTimeout(resolve, 2000);
-          }
-        };
-        requestAnimationFrame(waitForRender);
-      });
+      // Aguardar a ref estar disponível (polling robusto)
+      const previewElement = await waitForPdfPreviewRef();
       
-      // Usar ref diretamente - mais confiável que querySelector
-      const previewElement = pdfPreviewRef.current || window.document.querySelector('.pdf-preview-container') as HTMLElement;
-      
-      if (previewElement) {
-        console.log('[PDF Generation] Found preview container via ref, generating canvas...');
-        
-        // Aguardar todas as imagens carregarem
-        const images = previewElement.querySelectorAll('img');
-        const imagePromises = Array.from(images).map(img => {
-          if (img.complete) return Promise.resolve();
-          return new Promise<void>((resolve) => {
-            img.onload = () => resolve();
-            img.onerror = () => resolve(); // Continue even if image fails
-          });
+      // Aguardar imagens carregarem
+      const images = previewElement.querySelectorAll('img');
+      const imagePromises = Array.from(images).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise<void>((resolve) => {
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
         });
-        await Promise.all(imagePromises);
-        
-        try {
+      });
+      await Promise.all(imagePromises);
+      
+      // Pequeno delay extra para garantir renderização completa
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      console.log('[PDF Generation] Found preview container, generating canvas...');
+      
+      try {
           const canvas = await html2canvas(previewElement, {
             scale: 2,
             useCORS: true,
@@ -383,13 +402,9 @@ export function DocumentViewer({
             pdfUrl = urlData.publicUrl;
             console.log('[PDF Generation] PDF uploaded successfully:', pdfUrl);
           }
-        } catch (canvasError) {
-          console.error('[PDF Generation] Canvas/PDF error:', canvasError);
-          throw canvasError;
-        }
-      } else {
-        console.error('[PDF Generation] Preview container not found');
-        throw new Error('Não foi possível encontrar o container de preview');
+      } catch (canvasError) {
+        console.error('[PDF Generation] Canvas/PDF error:', canvasError);
+        throw canvasError;
       }
       
       setShowPDFPreview(false);
