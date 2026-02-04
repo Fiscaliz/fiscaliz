@@ -87,6 +87,7 @@ export default function Documents() {
         deadline_date,
         establishment:establishments(nome_fantasia, razao_social)
       `)
+      .eq('user_id', user?.id)
       .order('created_at', { ascending: false });
 
     if (error) {
