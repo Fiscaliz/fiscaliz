@@ -36,6 +36,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BRASAO_GOIANIA_SVG, SUS_LOGO_SVG, FISCALIZ_LOGO } from '@/lib/logos';
 import { SignatureCanvas } from './SignatureCanvas';
+import { FullScreenSignature } from './FullScreenSignature';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
@@ -136,6 +137,7 @@ export function DocumentViewer({
   const [observations, setObservations] = useState(document.content?.observations || '');
   const documentRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showFullScreenSignature, setShowFullScreenSignature] = useState(false);
   const prepostoFileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -1636,33 +1638,15 @@ _Enviado via FISCALIZ®_`;
                           </Button>
                         </div>
                       ) : (
-                        <SignatureCanvas
-                          documentId={document.id}
-                          onSave={(url) => {
-                            setContributorSignatureUrl(url);
-                            // Auto-save imediato quando assinatura é capturada
-                            if (onSave) {
-                              onSave({ 
-                                content: { 
-                                  ...document.content, 
-                                  text: content, 
-                                  contributor_photo: contributorPhoto, 
-                                  contributor_signature: url,
-                                  preposto_photo: prepostoPhoto, 
-                                  preposto_name: prepostoName, 
-                                  preposto_cpf: prepostoCpf,
-                                  document_date: documentDate,
-                                  document_time: documentTime,
-                                  observations: observations,
-                                } 
-                              });
-                            }
-                            toast({
-                              title: "Assinatura salva",
-                              description: "Rubrica do contribuinte capturada e salva automaticamente"
-                            });
-                          }}
-                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowFullScreenSignature(true)}
+                          className="w-full h-16 border-dashed flex flex-col gap-1"
+                        >
+                          <Edit3 className="h-5 w-5" />
+                          <span className="text-xs">Assinar em tela cheia</span>
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -1936,6 +1920,34 @@ _Enviado via FISCALIZ®_`;
           )}
         </div>
       )}
+
+      {/* Full Screen Signature Modal */}
+      <FullScreenSignature
+        isOpen={showFullScreenSignature}
+        onClose={() => setShowFullScreenSignature(false)}
+        documentId={document.id}
+        title="Ciência do Contribuinte ou Preposto"
+        onSave={(url) => {
+          setContributorSignatureUrl(url);
+          // Auto-save imediato quando assinatura é capturada
+          if (onSave) {
+            onSave({ 
+              content: { 
+                ...document.content, 
+                text: content, 
+                contributor_photo: contributorPhoto, 
+                contributor_signature: url,
+                preposto_photo: prepostoPhoto, 
+                preposto_name: prepostoName, 
+                preposto_cpf: prepostoCpf,
+                document_date: documentDate,
+                document_time: documentTime,
+                observations: observations,
+              } 
+            });
+          }
+        }}
+      />
     </div>
   );
 }
