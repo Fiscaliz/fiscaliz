@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { BottomNav } from './BottomNav';
+import { PageTransition } from './PageTransition';
 import { cn } from '@/lib/utils';
 import fiscalizLogo from '@/assets/logo-fiscaliz.png';
 
@@ -28,7 +29,9 @@ export function AppLayout({ children, hideBottomNav, className, showWatermark = 
         'flex-1 relative z-10',
         !hideBottomNav && 'pb-24' // Space for bottom nav
       )}>
-        {children}
+        <PageTransition>
+          {children}
+        </PageTransition>
       </main>
       {!hideBottomNav && <BottomNav />}
     </div>
