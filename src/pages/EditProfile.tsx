@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Pen, Upload, X } from 'lucide-react';
+import { Pen, Upload, X, Image } from 'lucide-react';
 
 export default function EditProfile() {
   const { user } = useAuth();
@@ -16,6 +16,8 @@ export default function EditProfile() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [showSignaturePad, setShowSignaturePad] = useState(false);
+  const signatureFileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingSignature, setIsUploadingSignature] = useState(false);
 
   const defaultFullName = useMemo(
     () => (user?.user_metadata as any)?.full_name || user?.email?.split('@')[0] || '',
@@ -129,7 +131,7 @@ export default function EditProfile() {
     const { data: urlData } = supabase.storage.from('fiscal-photos').getPublicUrl(fileName);
     setSignatureUrl(urlData.publicUrl);
     setShowSignaturePad(false);
-    toast({ title: 'Rubrica salva!' });
+    toast({ title: 'Rubrica salva!', description: 'Clique em Salvar para confirmar as alterações.' });
   };
 
   const handleSave = async () => {
@@ -255,31 +257,88 @@ export default function EditProfile() {
             </div>
 
             {/* Signature Section */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label>Rubrica / Assinatura Digital</Label>
               {signatureUrl ? (
-                <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30">
-                  <img src={signatureUrl} alt="Rubrica" className="h-16 w-auto border rounded" />
+                <div className="flex items-center gap-3 p-4 border rounded-xl bg-muted/30">
+                  <img src={signatureUrl} alt="Rubrica" className="h-16 w-auto border rounded bg-white" />
                   <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">Rubrica cadastrada</p>
+                    <p className="text-sm font-medium text-foreground">Rubrica cadastrada</p>
+                    <p className="text-xs text-muted-foreground">Visível em todos os documentos</p>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => setShowSignaturePad(true)}>
-                    <Pen className="h-4 w-4 mr-1" />
-                    Alterar
+                  <Button variant="ghost" size="icon" onClick={() => setSignatureUrl(null)}>
+                    <X className="h-4 w-4" />
                   </Button>
                 </div>
               ) : (
-                <Button 
-                  variant="outline" 
-                  className="w-full h-20 border-dashed"
-                  onClick={() => setShowSignaturePad(true)}
-                  disabled={loading}
-                >
-                  <Pen className="h-5 w-5 mr-2" />
-                  Adicionar Rubrica
-                </Button>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button 
+                    variant="outline" 
+                    className="h-20 border-dashed flex-col gap-2"
+                    onClick={() => setShowSignaturePad(true)}
+                    disabled={loading}
+                  >
+                    <Pen className="h-5 w-5" />
+                    <span className="text-xs">Desenhar rubrica</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="h-20 border-dashed flex-col gap-2"
+                    onClick={() => signatureFileInputRef.current?.click()}
+                    disabled={loading || isUploadingSignature}
+                  >
+                    <Image className="h-5 w-5" />
+                    <span className="text-xs">{isUploadingSignature ? 'Enviando...' : 'Upload de imagem'}</span>
+                  </Button>
+                </div>
               )}
               <p className="text-xs text-muted-foreground">Esta rubrica será usada em todos os documentos fiscais</p>
+              
+              {/* Hidden file input for signature upload */}
+              <input
+                ref={signatureFileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file || !user) return;
+                  
+                  setIsUploadingSignature(true);
+                  try {
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `signatures/${user.id}-upload-${Date.now()}.${fileExt}`;
+                    
+                    const { error: uploadError } = await supabase.storage
+                      .from('fiscal-photos')
+                      .upload(fileName, file, { upsert: true });
+                    
+                    if (uploadError) throw uploadError;
+                    
+                    const { data: urlData } = supabase.storage
+                      .from('fiscal-photos')
+                      .getPublicUrl(fileName);
+                    
+                    setSignatureUrl(urlData.publicUrl);
+                    toast({ 
+                      title: 'Imagem de assinatura carregada!',
+                      description: 'Clique em Salvar para confirmar as alterações.'
+                    });
+                  } catch (err: any) {
+                    toast({ 
+                      title: 'Erro ao fazer upload', 
+                      description: err.message,
+                      variant: 'destructive' 
+                    });
+                  } finally {
+                    setIsUploadingSignature(false);
+                    // Reset input
+                    if (signatureFileInputRef.current) {
+                      signatureFileInputRef.current.value = '';
+                    }
+                  }
+                }}
+              />
             </div>
 
             {/* Signature Pad Modal */}
