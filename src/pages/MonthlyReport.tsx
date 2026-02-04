@@ -172,6 +172,7 @@ export default function MonthlyReport() {
   // OS (campos manuais que ainda são necessários)
   const [osNumber, setOsNumber] = useState('');
   const [daysToWork, setDaysToWork] = useState('');
+  const [osProgramadas, setOsProgramadas] = useState(''); // OS a Cumprir (Pontos Programados) - campo separado
   const [pfeDays, setPfeDays] = useState('');
   
   // Campos editáveis na prévia (valores calculados que podem ser ajustados)
@@ -259,10 +260,7 @@ export default function MonthlyReport() {
     return { basePoints, totalWithGrade };
   }, [dailyActions]);
 
-  // Estado para OS Programadas (editável)
-  const [editedOsProgramadas, setEditedOsProgramadas] = useState<number | null>(null);
   // OS Cumprida é igual aos pontos gerados (totalWithGrade)
-  const osProgramadas = editedOsProgramadas ?? (parseInt(daysToWork) || 0);
   const osCumprida = totalPoints.totalWithGrade;
 
   // Valores finais (editados ou calculados)
