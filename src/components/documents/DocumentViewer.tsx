@@ -143,15 +143,27 @@ export function DocumentViewer({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showFullScreenSignature, setShowFullScreenSignature] = useState(false);
   const prepostoFileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
-
-  // Get attached photos from document
-  const attachedPhotos: string[] = useMemo(() => {
+  const evidenceFileInputRef = useRef<HTMLInputElement>(null);
+  const [evidencePhotos, setEvidencePhotos] = useState<string[]>(() => {
+    // Initialize from document.attachments
     if (!document.attachments) return [];
     return (document.attachments as AttachmentPhoto[])
       .filter(a => a.url)
       .map(a => a.url);
-  }, [document.attachments]);
+  });
+  const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
+  const { toast } = useToast();
+
+  // Get attached photos - use state (evidencePhotos) for live updates when editing
+  const attachedPhotos: string[] = useMemo(() => {
+    // If we have evidence photos in state (user added/edited), use those
+    if (evidencePhotos.length > 0) return evidencePhotos;
+    // Otherwise fall back to document.attachments
+    if (!document.attachments) return [];
+    return (document.attachments as AttachmentPhoto[])
+      .filter(a => a.url)
+      .map(a => a.url);
+  }, [evidencePhotos, document.attachments]);
 
   // Check if this is a Relatório Técnico with photo legends
   const isRelatorioTecnico = document.document_type === 'relatorio_tecnico';
@@ -765,6 +777,102 @@ _Enviado via FISCALIZ®_`;
     if (onSave) {
       onSave({ content: { ...document.content, text: content, contributor_photo: contributorPhoto, preposto_photo: null, preposto_name: prepostoName, preposto_cpf: prepostoCpf } });
     }
+  };
+
+  // Evidence photos upload (multiple)
+  const handleEvidencePhotosUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    try {
+      setIsUploadingEvidence(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Erro",
+          description: "Usuário não autenticado",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const uploadedUrls: string[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}/${document.id}_evidence_${Date.now()}_${i}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('fiscal-photos')
+          .upload(fileName, file, { upsert: true });
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          continue;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('fiscal-photos')
+          .getPublicUrl(fileName);
+
+        uploadedUrls.push(urlData.publicUrl);
+      }
+
+      const newPhotos = [...evidencePhotos, ...uploadedUrls];
+      setEvidencePhotos(newPhotos);
+
+      // Save to database
+      const attachments = newPhotos.map((url, idx) => ({
+        id: `img_${idx}`,
+        url,
+        type: 'image'
+      }));
+
+      if (onSave) {
+        onSave({ attachments });
+      }
+
+      toast({
+        title: "Fotos adicionadas",
+        description: `${uploadedUrls.length} foto(s) adicionada(s) com sucesso`
+      });
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Erro no upload",
+        description: error.message || "Não foi possível enviar as fotos",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploadingEvidence(false);
+      // Reset input
+      if (evidenceFileInputRef.current) {
+        evidenceFileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const removeEvidencePhoto = (index: number) => {
+    const newPhotos = evidencePhotos.filter((_, idx) => idx !== index);
+    setEvidencePhotos(newPhotos);
+
+    // Save to database
+    const attachments = newPhotos.map((url, idx) => ({
+      id: `img_${idx}`,
+      url,
+      type: 'image'
+    }));
+
+    if (onSave) {
+      onSave({ attachments });
+    }
+
+    toast({
+      title: "Foto removida",
+      description: "A foto foi removida do documento"
+    });
   };
 
   const savePrepostoData = () => {
@@ -1672,6 +1780,83 @@ _Enviado via FISCALIZ®_`;
                 <p className="text-sm text-muted-foreground">Nenhuma foto adicionada</p>
               )}
             </div>
+
+            {/* Evidence Photos Section - Upload/Edit Attachments */}
+            {canEdit && (
+              <div className="p-4 bg-muted/30 rounded-lg space-y-4 print:hidden">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold flex items-center gap-2">
+                    <Camera className="h-4 w-4" />
+                    Fotos de Evidência (Anexos)
+                  </p>
+                  <Badge variant="outline" className="text-xs">
+                    {evidencePhotos.length} foto(s)
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Adicione fotos das irregularidades ou evidências da fiscalização
+                </p>
+
+                {/* Grid of existing photos */}
+                {evidencePhotos.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {evidencePhotos.map((url, idx) => (
+                      <div key={idx} className="relative aspect-square rounded-lg border overflow-hidden group">
+                        <img 
+                          src={url} 
+                          alt={`Evidência ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => removeEvidencePhoto(idx)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-xs font-bold px-1.5 py-0.5 rounded">
+                          {idx + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Upload buttons */}
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => evidenceFileInputRef.current?.click()}
+                    disabled={isUploadingEvidence}
+                    className="flex-1"
+                  >
+                    {isUploadingEvidence ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        Enviando...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-1" />
+                        Adicionar Fotos
+                      </>
+                    )}
+                  </Button>
+                  <input
+                    ref={evidenceFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleEvidencePhotosUpload}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Preposto/Responsável Section - Editable (apenas para documentos que não sejam certidão) */}
             {canEdit && document.document_type !== 'certidao' && (
