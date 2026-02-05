@@ -3,6 +3,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { BrandHeader } from '@/components/layout/BrandHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   BarChart3, 
   FileText, 
@@ -12,7 +13,8 @@ import {
   Package,
   Trash2,
   Activity,
-  Target
+  Target,
+  TableIcon
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -29,6 +31,8 @@ import {
   Bar,
   Legend
 } from 'recharts';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const COLORS = ['#0F4C5C', '#14B8A6', '#2E8B57', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
@@ -46,6 +50,22 @@ const documentTypeLabels: Record<string, string> = {
   certidao: 'Certidão',
   coleta_amostra: 'Col. Amostra',
 };
+
+// Abreviações para a tabela estatística (ordem do template)
+const docTypeShortLabels: { key: string; label: string }[] = [
+  { key: 'termo_intimacao', label: 'TI' },
+  { key: 'visita_fiscal', label: 'VF' },
+  { key: 'apreensao', label: 'APR' },
+  { key: 'interdicao', label: 'INTERD' },
+  { key: 'inutilizacao', label: 'INUT' },
+  { key: 'advertencia', label: 'ADV' },
+  { key: 'auto_infracao', label: 'AI' },
+  { key: 'certidao', label: 'CERT' },
+  { key: 'relatorio_tecnico', label: 'R. TÉC' },
+  { key: 'replica', label: 'RÉPL' },
+  { key: 'coleta_amostra', label: 'COLETA' },
+  { key: 'notificacao', label: 'NOTIF' },
+];
 
 const actionReasonLabels: Record<string, string> = {
   denuncia: 'Denúncia',
@@ -246,6 +266,44 @@ export default function Dashboard() {
           </TabsList>
           
           <TabsContent value="individual" className="space-y-5 mt-5">
+            {/* Tabela Estatística de Documentos Emitidos */}
+            <Card className="overflow-hidden">
+              <CardHeader className="pb-2 bg-warning/20">
+                <CardTitle className="text-body font-bold flex items-center gap-2">
+                  <TableIcon className="h-5 w-5 text-warning" />
+                  DOCUMENTOS EMITIDOS - {format(new Date(), 'MMMM yyyy', { locale: ptBR }).toUpperCase()}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-warning/30 hover:bg-warning/30">
+                        <TableHead className="font-bold text-foreground text-center min-w-[60px]">TOTAL</TableHead>
+                        {docTypeShortLabels.map(({ label }) => (
+                          <TableHead key={label} className="font-bold text-foreground text-center min-w-[50px] text-xs">
+                            {label}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell className="font-bold text-center text-lg bg-warning/10">
+                          {myStats.totalDocuments}
+                        </TableCell>
+                        {docTypeShortLabels.map(({ key }) => (
+                          <TableCell key={key} className="text-center font-medium">
+                            {myStats.docsByType[key] || 0}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Stats Cards */}
             <div className="grid grid-cols-2 gap-3">
               <StatCard 
@@ -328,33 +386,7 @@ export default function Dashboard() {
                   </div>
                 </CardContent>
               </Card>
-            ) : (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-body font-semibold flex items-center gap-2">
-                    <div className="p-2 rounded-xl bg-primary/10">
-                      <BarChart3 className="h-4 w-4 text-primary" />
-                    </div>
-                    Produtividade Mensal
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-center py-14 text-center">
-                    <div>
-                      <div className="mx-auto mb-3 h-14 w-14 rounded-2xl bg-muted/50 flex items-center justify-center">
-                        <BarChart3 className="h-7 w-7 text-muted-foreground/40" />
-                      </div>
-                      <p className="text-body text-muted-foreground">
-                        Dados de produtividade
-                      </p>
-                      <p className="text-caption text-muted-foreground/70">
-                        Aparecerão conforme você fiscalizar
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            ) : null}
 
             {/* Actions by Reason Chart */}
             {barChartData.length > 0 && (
