@@ -10,6 +10,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { 
   Upload, 
   CheckSquare, 
@@ -116,6 +126,7 @@ export default function CreateDocument() {
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
   const [aiAnalysisText, setAiAnalysisText] = useState('');
   const [aiUploadedPhotoUrls, setAiUploadedPhotoUrls] = useState<string[]>([]); // URLs from AI analysis upload
+  const [showSaveConfirmDialog, setShowSaveConfirmDialog] = useState(false);
   const [transportMode, setTransportMode] = useState<'MPL' | 'CO'>('MPL');
   const [certidaoData, setCertidaoData] = useState({
     selectedOptions: [] as string[],
@@ -612,6 +623,15 @@ export default function CreateDocument() {
     }
   };
 
+  // Handler que pede confirmação antes de salvar no modo AI
+  const handleSaveWithConfirmation = () => {
+    if (method === 'ai' && aiAnalysisComplete) {
+      setShowSaveConfirmDialog(true);
+    } else {
+      handleSave();
+    }
+  };
+
   const handleSave = async () => {
     if (!user) return;
     
@@ -671,6 +691,7 @@ export default function CreateDocument() {
             description: 'Informe o prazo para adequação (1 a 45 dias) antes de salvar o Termo de Intimação.',
             variant: 'destructive',
           });
+          setSaving(false);
           return;
         }
         if (parsedDeadlineDays < 1 || parsedDeadlineDays > 45) {
@@ -679,6 +700,7 @@ export default function CreateDocument() {
             description: 'O prazo deve estar entre 1 e 45 dias.',
             variant: 'destructive',
           });
+          setSaving(false);
           return;
         }
       }
@@ -1899,7 +1921,7 @@ export default function CreateDocument() {
               ) : (
                 <Button 
                   className="flex-1" 
-                  onClick={handleSave}
+                  onClick={handleSaveWithConfirmation}
                   disabled={saving || (tipo === 'termo_intimacao' && !dengueInspection)}
                 >
                   {saving ? 'Salvando...' : 'Salvar Documento'}
@@ -2123,6 +2145,25 @@ export default function CreateDocument() {
           </>
         )}
       </div>
+
+      {/* Diálogo de confirmação antes de salvar no modo AI */}
+      <AlertDialog open={showSaveConfirmDialog} onOpenChange={setShowSaveConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Salvar documento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você revisou todas as {aiPhotoLegends.filter(l => l.legenda?.trim()).length} irregularidade(s) identificadas? 
+              Após salvar, você será direcionado para a visualização do documento.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continuar editando</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setShowSaveConfirmDialog(false); handleSave(); }}>
+              Salvar agora
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
