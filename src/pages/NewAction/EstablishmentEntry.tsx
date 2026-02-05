@@ -264,11 +264,17 @@ export default function EstablishmentEntry() {
     setLoading(true);
     
     // First check local database
-    const { data: localData } = await supabase
+    const { data: localData, error: localError } = await supabase
       .from('establishments')
       .select('*')
       .eq('cnpj', cleanCNPJ)
-      .single();
+      .limit(1)
+      .maybeSingle();
+
+    // maybeSingle() should avoid throwing when 0 rows; still handle unexpected errors
+    if (localError) {
+      console.warn('[CNPJ] Erro ao buscar no banco local:', localError);
+    }
 
     if (localData) {
       setEstablishment(localData);
