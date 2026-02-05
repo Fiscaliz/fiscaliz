@@ -115,6 +115,7 @@ export default function CreateDocument() {
   const [aiAnalysisComplete, setAiAnalysisComplete] = useState(false);
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
   const [aiAnalysisText, setAiAnalysisText] = useState('');
+  const [aiUploadedPhotoUrls, setAiUploadedPhotoUrls] = useState<string[]>([]); // URLs from AI analysis upload
   const [transportMode, setTransportMode] = useState<'MPL' | 'CO'>('MPL');
   const [certidaoData, setCertidaoData] = useState({
     selectedOptions: [] as string[],
@@ -197,6 +198,7 @@ export default function CreateDocument() {
       aiAnalysisText,
       aiPhotoLegends,
       aiAnalysisComplete,
+      aiUploadedPhotoUrls,
       establishment,
       motivo,
       tipo,
@@ -206,7 +208,7 @@ export default function CreateDocument() {
     otrosContent, observations, dengueInspection, documentDate, documentTime,
     transportMode, certidaoData, visitaFiscalData, autoInfracaoData,
     relatorioTecnicoData, aiAnalysisText, aiPhotoLegends, aiAnalysisComplete,
-    establishment, motivo, tipo
+    aiUploadedPhotoUrls, establishment, motivo, tipo
   ]);
 
   // Auto-save to localStorage
@@ -257,6 +259,7 @@ export default function CreateDocument() {
         if (data.aiAnalysisText) setAiAnalysisText(data.aiAnalysisText);
         if (data.aiPhotoLegends) setAiPhotoLegends(data.aiPhotoLegends);
         if (data.aiAnalysisComplete) setAiAnalysisComplete(data.aiAnalysisComplete);
+        if (data.aiUploadedPhotoUrls) setAiUploadedPhotoUrls(data.aiUploadedPhotoUrls);
         
         setLastAutoSave(new Date(parsed.savedAt));
         
@@ -495,6 +498,7 @@ export default function CreateDocument() {
       }
       
       setAiPhotoLegends(legends);
+      setAiUploadedPhotoUrls(uploadedUrls); // Save the URLs from AI analysis
       setAiAnalysisComplete(true);
 
       // Count photos with identified irregularities
@@ -733,8 +737,10 @@ export default function CreateDocument() {
         : [];
 
       // Prepare attachments (URLs only)
-      const attachments = uploadedUrls.length > 0
-        ? uploadedUrls.map((url, idx) => ({
+      // Use newly uploaded URLs, or fall back to AI analysis URLs if available
+      const photoUrlsForAttachments = uploadedUrls.length > 0 ? uploadedUrls : aiUploadedPhotoUrls;
+      const attachments = photoUrlsForAttachments.length > 0
+        ? photoUrlsForAttachments.map((url, idx) => ({
             id: `img_${idx}`,
             url,
             type: 'image',
@@ -1722,6 +1728,7 @@ export default function CreateDocument() {
                         setAiAnalysisComplete(false);
                         setAiPhotoLegends([]);
                         setAiAnalysisText('');
+                        setAiUploadedPhotoUrls([]);
                       }}
                     >
                       Refazer análise
@@ -1837,6 +1844,7 @@ export default function CreateDocument() {
                   setAiAnalysisComplete(false);
                   setAiPhotoLegends([]);
                   setAiAnalysisText('');
+                  setAiUploadedPhotoUrls([]);
                 }}
               >
                 Voltar
