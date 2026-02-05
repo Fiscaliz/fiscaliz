@@ -257,15 +257,19 @@ Retorne um JSON: {"item_rdc": "4.X.X", "justificativa": "breve explicação"}`;
       });
     }
 
-    const userPrompt = `Analise as ${photos.length} fotos de fiscalização sanitária de um estabelecimento${establishmentType ? ` do tipo ${establishmentType}` : ''}.
+    const userPrompt = `Analise RAPIDAMENTE as ${photos.length} fotos de fiscalização sanitária de um estabelecimento${establishmentType ? ` do tipo ${establishmentType}` : ''}.
+
+IMPORTANTE: Seja RÁPIDO e OBJETIVO. Para cada foto:
+- Se identificar irregularidade clara: descreva brevemente e cite o item da RDC 216/2004
+- Se NÃO identificar irregularidade clara: retorne descrição vazia (o fiscal vai preencher)
 
 Retorne um JSON com:
-1. "nonConformities": array com uma entrada para cada não conformidade encontrada
-   - Cada entrada deve ter: foto (número da foto), description (máx 60 chars), severity, legalBasis, recommendation, deadline
+1. "nonConformities": array com uma entrada para CADA FOTO analisada
+   - Cada entrada deve ter: foto (número da foto 1 a ${photos.length}), description (máx 60 chars OU vazio se não identificado), severity, legalBasis, recommendation, deadline
 2. "generalObservations": observações gerais (máx 200 chars)
 3. "confidence": nível de confiança da análise (0.0 a 1.0)
 
-Se a foto não mostrar irregularidade clara, não inclua no array.
+RETORNE RAPIDAMENTE. Não demore mais que necessário.
 Retorne APENAS o JSON, sem markdown.`;
 
     const parts: any[] = [{ type: "text", text: userPrompt }];
@@ -275,21 +279,66 @@ Retorne APENAS o JSON, sem markdown.`;
 
     console.log(`[analyze-photos] Analyzing ${photos.length} photos for document type: ${documentType}`);
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: parts },
-        ],
-        temperature: 0.2,
-      }),
-    });
+    // Add 30s timeout using AbortController
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    let aiResp: Response;
+    try {
+      aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-lite",
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: parts },
+          ],
+          temperature: 0.1,
+          max_tokens: 2000,
+        }),
+        signal: controller.signal,
+      });
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      
+      // Timeout or network error - return fallback for all photos
+      if (fetchError.name === 'AbortError') {
+        console.log(`[analyze-photos] Timeout after 30s, returning fallback for ${photos.length} photos`);
+        
+        const fallbackNonConformities = photos.map((_, idx) => ({
+          foto: idx + 1,
+          description: "",
+          severity: "média",
+          legalBasis: "",
+          recommendation: "Preencher manualmente",
+          deadline: "7 dias",
+        }));
+        
+        return new Response(JSON.stringify({
+          text: "Análise excedeu tempo limite. Preencha as irregularidades manualmente.",
+          photoAnalysis: fallbackNonConformities.map(nc => ({
+            foto: nc.foto,
+            legenda: nc.description,
+            item_rdc: "",
+          })),
+          analysisResult: {
+            nonConformities: fallbackNonConformities,
+            generalObservations: "Tempo limite excedido. Complete manualmente.",
+            confidence: 0,
+          },
+          timedOut: true,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      throw fetchError;
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!aiResp.ok) {
       const errorText = await aiResp.text();

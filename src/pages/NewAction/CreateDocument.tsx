@@ -462,6 +462,8 @@ export default function CreateDocument() {
         deadline?: string;
       }> | undefined;
 
+      const timedOut = (aiData as any)?.timedOut === true;
+
       const legends: AIPhotoLegend[] = [];
       
       // Create legends for all photos, with AI data where available
@@ -478,16 +480,44 @@ export default function CreateDocument() {
       setAiPhotoLegends(legends);
       setAiAnalysisComplete(true);
 
-      toast({
-        title: 'Análise concluída!',
-        description: `${photoAnalysis?.length || 0} irregularidade(s) detectada(s). Revise e edite as legendas antes de salvar.`,
-      });
+      // Count photos with identified irregularities
+      const identifiedCount = legends.filter(l => l.legenda.trim()).length;
+      const pendingCount = legends.length - identifiedCount;
+
+      if (timedOut) {
+        toast({
+          title: 'Tempo limite excedido',
+          description: `Preencha as ${uploadedImages.length} irregularidade(s) manualmente.`,
+          variant: 'destructive',
+        });
+      } else if (identifiedCount === 0) {
+        toast({
+          title: 'Nenhuma irregularidade identificada',
+          description: `Preencha manualmente as ${uploadedImages.length} foto(s).`,
+        });
+      } else {
+        toast({
+          title: 'Análise concluída!',
+          description: `${identifiedCount} identificada(s)${pendingCount > 0 ? `, ${pendingCount} para preencher` : ''}. Revise antes de salvar.`,
+        });
+      }
 
     } catch (error: any) {
       console.error('AI analysis error:', error);
+      
+      // On error, create empty legends for manual filling
+      const fallbackLegends: AIPhotoLegend[] = uploadedImages.map((img, i) => ({
+        photoIndex: i,
+        legenda: '',
+        item_rdc: '',
+        previewUrl: img.previewUrl,
+      }));
+      setAiPhotoLegends(fallbackLegends);
+      setAiAnalysisComplete(true);
+      
       toast({
-        title: 'Erro na análise',
-        description: error.message || 'Não foi possível analisar as fotos',
+        title: 'Análise falhou',
+        description: 'Preencha as irregularidades manualmente.',
         variant: 'destructive',
       });
     } finally {
