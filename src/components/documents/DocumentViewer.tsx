@@ -441,7 +441,14 @@ _Enviado via FISCALIZ®_`;
 
     // iOS/Safari costuma bloquear popups disparados após awaits.
     // Abrimos uma aba/janela IMEDIATAMENTE no clique e depois só atualizamos a URL.
-    const waWindow = window.open('about:blank', '_blank');
+    // IMPORTANTE: usar noopener para evitar bloqueio de navegação por COOP no Safari.
+    const waWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
+    // Fallback extra: garantir que não existe ligação com a janela de origem.
+    try {
+      if (waWindow) waWindow.opener = null;
+    } catch {
+      // ignore
+    }
 
     try {
       const isResend = isLocked;
@@ -458,7 +465,8 @@ _Enviado via FISCALIZ®_`;
       }
 
       if (waWindow) {
-        waWindow.location.href = whatsappUrl;
+        // assign() reduz casos de bloqueio vs set href em alguns navegadores
+        waWindow.location.assign(whatsappUrl);
       } else {
         // Fallback quando popup é bloqueado
         window.location.href = whatsappUrl;
