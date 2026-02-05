@@ -249,8 +249,9 @@ export function DocumentViewer({
     whatsappUrl: string;
     pdfUrl: string | null;
   }> => {
-    // Limpar número de telefone (pode estar vazio para reenvio)
-    const cleanPhone = whatsapp ? whatsapp.replace(/\D/g, '') : '';
+    // Limpar número de telefone (no reenvio pode vir de document.sent_to)
+    const phoneSource = whatsapp || (typeof document.sent_to === 'string' ? document.sent_to : '');
+    const cleanPhone = phoneSource ? phoneSource.replace(/\D/g, '') : '';
     const phoneWithCountry = cleanPhone
       ? (cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`)
       : '';
@@ -438,9 +439,17 @@ _Enviado via FISCALIZ®_`;
   const handleSendViaWhatsApp = async () => {
     setIsGeneratingPDF(true);
 
+    // iOS/Safari costuma bloquear popups disparados após awaits.
+    // Abrimos uma aba/janela IMEDIATAMENTE no clique e depois só atualizamos a URL.
+    const waWindow = window.open('about:blank', '_blank');
+
     try {
       const isResend = isLocked;
       const { phoneWithCountry, whatsappUrl, pdfUrl } = await prepareWhatsAppSend();
+
+       if (!phoneWithCountry) {
+         throw new Error('Informe um número de WhatsApp válido para reenviar.');
+       }
 
       // No mobile, abrir o WhatsApp pode cancelar fetch pendente (gerando "Load failed").
       // Então, no envio (não reenvio), primeiro atualizamos o status no backend.
@@ -448,7 +457,12 @@ _Enviado via FISCALIZ®_`;
         await onSendDocument('whatsapp', phoneWithCountry || whatsapp);
       }
 
-      window.open(whatsappUrl, '_blank');
+      if (waWindow) {
+        waWindow.location.href = whatsappUrl;
+      } else {
+        // Fallback quando popup é bloqueado
+        window.location.href = whatsappUrl;
+      }
 
       toast({
         title: pdfUrl ? '✅ PDF gerado com sucesso!' : 'WhatsApp aberto',
@@ -459,6 +473,12 @@ _Enviado via FISCALIZ®_`;
     } catch (error: any) {
       console.error('[PDF Generation] Error:', error);
       setShowPDFPreview(false);
+      // Se abriu uma aba em branco e deu erro, tentar fechar
+      try {
+        waWindow?.close();
+      } catch {
+        // ignore
+      }
       toast({
         title: 'Erro ao gerar PDF',
         description: error?.message || 'Tente novamente ou use a opção de impressão.',
