@@ -701,7 +701,9 @@ export default function CreateDocument() {
       let finalAiPhotoLegends: Array<{ photoIndex: number; legenda: string; item_rdc: string; }> = [];
       
       if (method === 'ai') {
-        if (uploadedUrls.length === 0) {
+        // Check for photos: uploaded URLs, pending images, or already analyzed photos in legends
+        const hasPhotos = uploadedUrls.length > 0 || uploadedImages.length > 0 || aiPhotoLegends.length > 0;
+        if (!hasPhotos) {
           throw new Error('Adicione pelo menos 1 foto para análise.');
         }
         
