@@ -29,6 +29,8 @@ import { useToast } from '@/hooks/use-toast';
 
 type EntryMethod = 'cnpj' | 'ocr' | 'manual' | 'geo' | 'documento_anterior';
 
+const DRAFT_STORAGE_KEY = 'fiscaliz_draft_establishment';
+
 export default function EstablishmentEntry() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -47,11 +49,61 @@ export default function EstablishmentEntry() {
   const [documentoAnteriorImage, setDocumentoAnteriorImage] = useState<string | null>(null);
   const [previousDocuments, setPreviousDocuments] = useState<any[]>([]);
   const [loadingDocuments, setLoadingDocuments] = useState(false);
+  const [draftLoaded, setDraftLoaded] = useState(false);
   
   const alvaraInputRef = useRef<HTMLInputElement>(null);
   const alvaraCameraRef = useRef<HTMLInputElement>(null);
   const docAnteriorInputRef = useRef<HTMLInputElement>(null);
   const docAnteriorCameraRef = useRef<HTMLInputElement>(null);
+
+  // Load draft from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed.motivo === motivo) {
+          if (parsed.method) setMethod(parsed.method);
+          if (parsed.cnpj) setCnpj(parsed.cnpj);
+          if (parsed.establishment) setEstablishment(parsed.establishment);
+          toast({
+            title: 'Rascunho restaurado',
+            description: 'Dados anteriores foram recuperados',
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[AutoSave] Error loading draft:', error);
+    }
+    setDraftLoaded(true);
+  }, [motivo, toast]);
+
+  // Save draft to localStorage when data changes
+  useEffect(() => {
+    if (!draftLoaded) return; // Don't save before loading
+    
+    try {
+      const draftData = {
+        savedAt: new Date().toISOString(),
+        motivo,
+        method,
+        cnpj,
+        establishment,
+      };
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
+    } catch (error) {
+      console.error('[AutoSave] Error saving draft:', error);
+    }
+  }, [motivo, method, cnpj, establishment, draftLoaded]);
+
+  // Clear draft when navigating to next step
+  const clearEstablishmentDraft = () => {
+    try {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    } catch (error) {
+      console.error('[AutoSave] Error clearing draft:', error);
+    }
+  };
 
   // Load previous documents when selecting that method
   useEffect(() => {
@@ -594,6 +646,8 @@ export default function EstablishmentEntry() {
 
   const handleProceed = () => {
     if (establishment) {
+      // Clear draft before navigating to next step
+      clearEstablishmentDraft();
       // Navigate to document type selection
       navigate(`/nova-acao/tipo-documento?motivo=${motivo}&establishment=${encodeURIComponent(JSON.stringify(establishment))}`);
     }
