@@ -257,20 +257,12 @@ Retorne um JSON: {"item_rdc": "4.X.X", "justificativa": "breve explicação"}`;
       });
     }
 
-    const userPrompt = `Analise RAPIDAMENTE as ${photos.length} fotos de fiscalização sanitária de um estabelecimento${establishmentType ? ` do tipo ${establishmentType}` : ''}.
+    const userPrompt = `${photos.length} fotos de fiscalização${establishmentType ? ` (${establishmentType})` : ''}.
 
-IMPORTANTE: Seja RÁPIDO e OBJETIVO. Para cada foto:
-- Se identificar irregularidade clara: descreva brevemente e cite o item da RDC 216/2004
-- Se NÃO identificar irregularidade clara: retorne descrição vazia (o fiscal vai preencher)
+Para CADA foto, retorne: foto (1-${photos.length}), description (máx 50 chars ou vazio), severity, legalBasis (RDC 216/2004), recommendation, deadline.
 
-Retorne um JSON com:
-1. "nonConformities": array com uma entrada para CADA FOTO analisada
-   - Cada entrada deve ter: foto (número da foto 1 a ${photos.length}), description (máx 60 chars OU vazio se não identificado), severity, legalBasis, recommendation, deadline
-2. "generalObservations": observações gerais (máx 200 chars)
-3. "confidence": nível de confiança da análise (0.0 a 1.0)
-
-RETORNE RAPIDAMENTE. Não demore mais que necessário.
-Retorne APENAS o JSON, sem markdown.`;
+JSON: {"nonConformities":[...], "generalObservations":"", "confidence":0.9}
+Sem markdown.`;
 
     const parts: any[] = [{ type: "text", text: userPrompt }];
     for (const url of photos.slice(0, 50)) {
@@ -279,9 +271,9 @@ Retorne APENAS o JSON, sem markdown.`;
 
     console.log(`[analyze-photos] Analyzing ${photos.length} photos for document type: ${documentType}`);
 
-    // Add 30s timeout using AbortController
+    // Add 15s timeout using AbortController - faster fallback
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     let aiResp: Response;
     try {
@@ -307,29 +299,15 @@ Retorne APENAS o JSON, sem markdown.`;
       
       // Timeout or network error - return fallback for all photos
       if (fetchError.name === 'AbortError') {
-        console.log(`[analyze-photos] Timeout after 30s, returning fallback for ${photos.length} photos`);
-        
-        const fallbackNonConformities = photos.map((_, idx) => ({
-          foto: idx + 1,
-          description: "",
-          severity: "média",
-          legalBasis: "",
-          recommendation: "Preencher manualmente",
-          deadline: "7 dias",
-        }));
+        console.log(`[analyze-photos] Timeout after 15s, returning fallback for ${photos.length} photos`);
         
         return new Response(JSON.stringify({
-          text: "Análise excedeu tempo limite. Preencha as irregularidades manualmente.",
-          photoAnalysis: fallbackNonConformities.map(nc => ({
-            foto: nc.foto,
-            legenda: nc.description,
+          text: "Análise excedeu tempo limite. Preencha manualmente.",
+          photoAnalysis: photos.map((_, idx) => ({
+            foto: idx + 1,
+            legenda: "",
             item_rdc: "",
           })),
-          analysisResult: {
-            nonConformities: fallbackNonConformities,
-            generalObservations: "Tempo limite excedido. Complete manualmente.",
-            confidence: 0,
-          },
           timedOut: true,
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
