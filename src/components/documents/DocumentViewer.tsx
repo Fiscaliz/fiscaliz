@@ -25,7 +25,8 @@ import {
   Printer,
   Clock,
   Trash2,
-  Loader2
+  Loader2,
+  ExternalLink
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -436,27 +437,35 @@ _Enviado via FISCALIZ®_`;
     return { phoneWithCountry, whatsappUrl, pdfUrl };
   };
 
+  // Estado para guardar a URL do WhatsApp pronta para abertura manual (fallback)
+  const [pendingWhatsAppUrl, setPendingWhatsAppUrl] = useState<string | null>(null);
+
   const handleSendViaWhatsApp = async () => {
     setIsGeneratingPDF(true);
+    setPendingWhatsAppUrl(null);
 
-    // iOS/Safari costuma bloquear popups disparados após awaits.
-    // Abrimos uma aba/janela IMEDIATAMENTE no clique e depois só atualizamos a URL.
-    // IMPORTANTE: usar noopener para evitar bloqueio de navegação por COOP no Safari.
-    const waWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
-    // Fallback extra: garantir que não existe ligação com a janela de origem.
-    try {
-      if (waWindow) waWindow.opener = null;
-    } catch {
-      // ignore
+    // Em iOS/Safari, abrir janela com blank e depois tentar navegar após async longo
+    // frequentemente falha. Vamos tentar abrir, mas ter um fallback robusto.
+    let waWindow: Window | null = null;
+    
+    // Apenas tentar abrir popup imediato em desktop ou Android
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (!isIOS) {
+      waWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
+      try {
+        if (waWindow) waWindow.opener = null;
+      } catch {
+        // ignore
+      }
     }
 
     try {
       const isResend = isLocked;
       const { phoneWithCountry, whatsappUrl, pdfUrl } = await prepareWhatsAppSend();
 
-       if (!phoneWithCountry) {
-         throw new Error('Informe um número de WhatsApp válido para reenviar.');
-       }
+      if (!phoneWithCountry) {
+        throw new Error('Informe um número de WhatsApp válido para reenviar.');
+      }
 
       // No mobile, abrir o WhatsApp pode cancelar fetch pendente (gerando "Load failed").
       // Então, no envio (não reenvio), primeiro atualizamos o status no backend.
@@ -464,20 +473,37 @@ _Enviado via FISCALIZ®_`;
         await onSendDocument('whatsapp', phoneWithCountry || whatsapp);
       }
 
-      if (waWindow) {
-        // assign() reduz casos de bloqueio vs set href em alguns navegadores
-        waWindow.location.assign(whatsappUrl);
-      } else {
-        // Fallback quando popup é bloqueado
-        window.location.href = whatsappUrl;
+      // Tentar navegação automática
+      let navigationSucceeded = false;
+
+      if (waWindow && !waWindow.closed) {
+        try {
+          waWindow.location.assign(whatsappUrl);
+          navigationSucceeded = true;
+        } catch {
+          // Se falhar, fechar a janela órfã
+          try { waWindow.close(); } catch { /* ignore */ }
+        }
       }
 
-      toast({
-        title: pdfUrl ? '✅ PDF gerado com sucesso!' : 'WhatsApp aberto',
-        description: pdfUrl
-          ? 'O documento PDF profissional está pronto. Envie a mensagem no WhatsApp.'
-          : 'Documento preparado como mensagem. Confirme o envio.'
-      });
+      // Em iOS ou se a navegação automática falhou, mostrar toast com ação
+      if (!navigationSucceeded) {
+        // Guardar URL para o botão de fallback
+        setPendingWhatsAppUrl(whatsappUrl);
+        
+        toast({
+          title: pdfUrl ? '✅ PDF gerado com sucesso!' : '✅ Mensagem pronta!',
+          description: 'Toque no botão abaixo para abrir o WhatsApp.',
+          duration: 15000, // Manter visível por mais tempo
+        });
+      } else {
+        toast({
+          title: pdfUrl ? '✅ PDF gerado com sucesso!' : 'WhatsApp aberto',
+          description: pdfUrl
+            ? 'O documento PDF profissional está pronto. Envie a mensagem no WhatsApp.'
+            : 'Documento preparado como mensagem. Confirme o envio.'
+        });
+      }
     } catch (error: any) {
       console.error('[PDF Generation] Error:', error);
       setShowPDFPreview(false);
@@ -494,6 +520,14 @@ _Enviado via FISCALIZ®_`;
       });
     } finally {
       setIsGeneratingPDF(false);
+    }
+  };
+
+  // Função para abrir WhatsApp manualmente (fallback iOS)
+  const handleOpenWhatsAppManually = () => {
+    if (pendingWhatsAppUrl) {
+      window.location.href = pendingWhatsAppUrl;
+      setPendingWhatsAppUrl(null);
     }
   };
 
@@ -2004,6 +2038,19 @@ _Enviado via FISCALIZ®_`;
                 </div>
               </div>
 
+              {/* Botão de fallback para iOS quando a abertura automática falha */}
+              {pendingWhatsAppUrl && (
+                <Button 
+                  onClick={handleOpenWhatsAppManually}
+                  variant="default"
+                  className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white animate-pulse"
+                  size="lg"
+                >
+                  <ExternalLink className="h-5 w-5" />
+                  Abrir WhatsApp Agora
+                </Button>
+              )}
+
               {/* Apagar documento - Só para rascunhos */}
               {canEdit && onDelete && (
                 <Button 
@@ -2050,6 +2097,19 @@ _Enviado via FISCALIZ®_`;
               </>
             )}
           </Button>
+
+          {/* Botão de fallback para iOS quando a abertura automática falha */}
+          {pendingWhatsAppUrl && (
+            <Button 
+              onClick={handleOpenWhatsAppManually}
+              variant="default"
+              className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white animate-pulse"
+              size="lg"
+            >
+              <ExternalLink className="h-5 w-5" />
+              Abrir WhatsApp Agora
+            </Button>
+          )}
           
           <Button 
             onClick={handleGeneratePDF}
