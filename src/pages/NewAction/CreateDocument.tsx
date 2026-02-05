@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { useNavigate, useSearchParams, useBlocker } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
 import { FiscalizWatermark } from '@/components/layout/FiscalizWatermark';
@@ -305,11 +305,6 @@ export default function CreateDocument() {
     };
   }, [saveToLocalStorage, hasUnsavedChanges]);
 
-  // Block navigation when there are unsaved changes
-  const blocker = useBlocker(
-    ({ currentLocation, nextLocation }) =>
-      hasUnsavedChanges && currentLocation.pathname !== nextLocation.pathname
-  );
 
   // Clear draft after successful save
   const clearDraft = useCallback(() => {
@@ -869,37 +864,6 @@ export default function CreateDocument() {
     <AppLayout>
       <FiscalizWatermark />
       
-      {/* Navigation blocker dialog */}
-      {blocker.state === 'blocked' && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <Card className="max-w-md w-full">
-            <CardHeader>
-              <CardTitle className="text-destructive">Sair sem salvar?</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Você tem alterações não salvas neste documento. Se sair agora, perderá todo o trabalho.
-              </p>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => blocker.reset?.()}
-                  className="flex-1"
-                >
-                  Continuar editando
-                </Button>
-                <Button 
-                  variant="destructive" 
-                  onClick={() => blocker.proceed?.()}
-                  className="flex-1"
-                >
-                  Sair mesmo assim
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
       
       <Header 
         title={documentTypeLabels[tipo] || 'Novo Documento'} 
