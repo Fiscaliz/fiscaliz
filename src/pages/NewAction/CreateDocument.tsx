@@ -257,9 +257,20 @@ export default function CreateDocument() {
         if (data.autoInfracaoData) setAutoInfracaoData(data.autoInfracaoData);
         if (data.relatorioTecnicoData) setRelatorioTecnicoData(data.relatorioTecnicoData);
         if (data.aiAnalysisText) setAiAnalysisText(data.aiAnalysisText);
-        if (data.aiPhotoLegends) setAiPhotoLegends(data.aiPhotoLegends);
-        if (data.aiAnalysisComplete) setAiAnalysisComplete(data.aiAnalysisComplete);
         if (data.aiUploadedPhotoUrls) setAiUploadedPhotoUrls(data.aiUploadedPhotoUrls);
+        if (data.aiAnalysisComplete) setAiAnalysisComplete(data.aiAnalysisComplete);
+        
+        // Restore aiPhotoLegends with storage URLs as previewUrl (since blob URLs don't persist)
+        if (data.aiPhotoLegends && data.aiUploadedPhotoUrls) {
+          const restoredLegends = data.aiPhotoLegends.map((legend: AIPhotoLegend, idx: number) => ({
+            ...legend,
+            previewUrl: data.aiUploadedPhotoUrls[idx] || legend.previewUrl,
+          }));
+          setAiPhotoLegends(restoredLegends);
+          console.log('[AutoSave] Restored legends with storage URLs:', restoredLegends.length);
+        } else if (data.aiPhotoLegends) {
+          setAiPhotoLegends(data.aiPhotoLegends);
+        }
         
         setLastAutoSave(new Date(parsed.savedAt));
         
@@ -737,8 +748,25 @@ export default function CreateDocument() {
         : [];
 
       // Prepare attachments (URLs only)
-      // Use newly uploaded URLs, or fall back to AI analysis URLs if available
-      const photoUrlsForAttachments = uploadedUrls.length > 0 ? uploadedUrls : aiUploadedPhotoUrls;
+      // Priority: newly uploaded URLs > AI analysis URLs > extract from legends previewUrl
+      let photoUrlsForAttachments = uploadedUrls.length > 0 ? uploadedUrls : aiUploadedPhotoUrls;
+      
+      // Fallback: if neither has URLs but legends have previewUrls that are storage URLs (not blob:)
+      if (photoUrlsForAttachments.length === 0 && aiPhotoLegends.length > 0) {
+        const storageUrls = aiPhotoLegends
+          .map(l => l.previewUrl)
+          .filter((url): url is string => !!url && !url.startsWith('blob:'));
+        if (storageUrls.length > 0) {
+          photoUrlsForAttachments = storageUrls;
+          console.log('[Save] Using URLs from legends previewUrl:', storageUrls.length);
+        }
+      }
+      
+      console.log('[Save] Photo URLs for attachments:', photoUrlsForAttachments.length, 
+        'uploadedUrls:', uploadedUrls.length, 
+        'aiUploadedPhotoUrls:', aiUploadedPhotoUrls.length,
+        'aiPhotoLegends:', aiPhotoLegends.length);
+      
       const attachments = photoUrlsForAttachments.length > 0
         ? photoUrlsForAttachments.map((url, idx) => ({
             id: `img_${idx}`,
