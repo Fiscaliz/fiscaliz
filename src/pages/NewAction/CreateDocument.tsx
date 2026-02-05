@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useBlocker } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
 import { FiscalizWatermark } from '@/components/layout/FiscalizWatermark';
@@ -270,15 +270,30 @@ export default function CreateDocument() {
     }
   }, [draftKey]);
 
+  // Track if there are unsaved changes
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
+  // Mark as having unsaved changes when form data changes
+  useEffect(() => {
+    if (method || manualContent || selectedItems.length > 0 || aiPhotoLegends.length > 0) {
+      setHasUnsavedChanges(true);
+    }
+  }, [method, manualContent, selectedItems, aiPhotoLegends, certidaoData, visitaFiscalData, autoInfracaoData, relatorioTecnicoData]);
+
   // Set up auto-save interval (every 10 seconds)
   useEffect(() => {
     autoSaveIntervalRef.current = setInterval(() => {
       saveToLocalStorage();
     }, 10000);
 
-    // Also save when user leaves the page
-    const handleBeforeUnload = () => {
+    // Warn user before leaving with unsaved changes
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       saveToLocalStorage();
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = 'Você tem alterações não salvas. Deseja sair mesmo assim?';
+        return e.returnValue;
+      }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
 
@@ -288,12 +303,19 @@ export default function CreateDocument() {
       }
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [saveToLocalStorage]);
+  }, [saveToLocalStorage, hasUnsavedChanges]);
+
+  // Block navigation when there are unsaved changes
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      hasUnsavedChanges && currentLocation.pathname !== nextLocation.pathname
+  );
 
   // Clear draft after successful save
   const clearDraft = useCallback(() => {
     try {
       localStorage.removeItem(`fiscaliz_draft_${draftKey}`);
+      setHasUnsavedChanges(false);
     } catch (error) {
       console.error('[AutoSave] Error clearing draft:', error);
     }
@@ -846,6 +868,39 @@ export default function CreateDocument() {
   return (
     <AppLayout>
       <FiscalizWatermark />
+      
+      {/* Navigation blocker dialog */}
+      {blocker.state === 'blocked' && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <Card className="max-w-md w-full">
+            <CardHeader>
+              <CardTitle className="text-destructive">Sair sem salvar?</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Você tem alterações não salvas neste documento. Se sair agora, perderá todo o trabalho.
+              </p>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => blocker.reset?.()}
+                  className="flex-1"
+                >
+                  Continuar editando
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => blocker.proceed?.()}
+                  className="flex-1"
+                >
+                  Sair mesmo assim
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+      
       <Header 
         title={documentTypeLabels[tipo] || 'Novo Documento'} 
         subtitle={establishment?.nome_fantasia || establishment?.razao_social || 'Criar documento'}
