@@ -280,11 +280,11 @@ export default function CreateDocument() {
     }
   }, [method, manualContent, selectedItems, aiPhotoLegends, certidaoData, visitaFiscalData, autoInfracaoData, relatorioTecnicoData]);
 
-  // Set up auto-save interval (every 10 seconds)
+  // Set up auto-save interval (every 5 seconds)
   useEffect(() => {
     autoSaveIntervalRef.current = setInterval(() => {
       saveToLocalStorage();
-    }, 10000);
+    }, 5000);
 
     // Warn user before leaving with unsaved changes
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
