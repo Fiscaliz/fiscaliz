@@ -24,12 +24,9 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
   BarChart,
   Bar,
-  Legend
+  Cell,
 } from 'recharts';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -350,7 +347,7 @@ export default function Dashboard() {
               />
             </div>
             
-            {/* Documents by Type Chart */}
+            {/* Documents by Type Chart - Horizontal Bar */}
             {pieChartData.length > 0 ? (
               <Card>
                 <CardHeader className="pb-2">
@@ -362,26 +359,19 @@ export default function Dashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[220px]">
+                  <div className="h-[260px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={pieChartData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={45}
-                          outerRadius={85}
-                          paddingAngle={2}
-                          dataKey="value"
-                          label={({ value }) => `${value}`}
-                        >
+                      <BarChart data={pieChartData} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis type="number" allowDecimals={false} />
+                        <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11 }} />
+                        <Tooltip />
+                        <Bar dataKey="value" name="Quantidade" radius={[0, 6, 6, 0]}>
                           {pieChartData.map((_, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </PieChart>
+                        </Bar>
+                      </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </CardContent>
@@ -432,6 +422,20 @@ export default function Dashboard() {
                 value={divisionStats.totalActions.toString()}
                 subtitle="este mês"
                 color="bg-info/15 text-info"
+              />
+              <StatCard 
+                icon={Trash2}
+                label="Inutilizados"
+                value={`${divisionStats.totalInutilizadoKg.toFixed(1)} kg`}
+                subtitle="este mês"
+                color="bg-destructive/15 text-destructive"
+              />
+              <StatCard 
+                icon={Package}
+                label="Apreensões"
+                value={divisionStats.totalApreensoes.toString()}
+                subtitle="este mês"
+                color="bg-warning/15 text-warning"
               />
             </div>
             
@@ -516,35 +520,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* Additional Metrics */}
-            <div className="grid grid-cols-2 gap-3 pb-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-xl p-2.5 bg-destructive/15">
-                      <Trash2 className="h-5 w-5 text-destructive" />
-                    </div>
-                    <div>
-                      <p className="text-h2 font-bold">{divisionStats.totalInutilizadoKg.toFixed(1)} kg</p>
-                      <p className="text-caption text-muted-foreground">Inutilizados</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-xl p-2.5 bg-warning/15">
-                      <Package className="h-5 w-5 text-warning" />
-                    </div>
-                    <div>
-                      <p className="text-h2 font-bold">{divisionStats.totalApreensoes}</p>
-                      <p className="text-caption text-muted-foreground">Apreensões</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <div className="pb-4" />
           </TabsContent>
         </Tabs>
       </div>
