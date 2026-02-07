@@ -1347,10 +1347,10 @@ export default function MonthlyReport() {
                       )}
                     </td>
                     <td className="text-center font-medium">{os.riskPoints}</td>
-                    <td className={editingPreview && !os.isCertidao ? 'editable-field' : ''}>
-                      {os.isCertidao ? (
+                    <td className={!os.isCertidao && !os.isRelatorioAtividade && !report?.is_locked ? 'editable-field' : ''}>
+                      {os.isCertidao || os.isRelatorioAtividade ? (
                         <span className="text-xs text-gray-500">-</span>
-                      ) : editingPreview ? (
+                      ) : !report?.is_locked ? (
                         <select
                           value={os.difficultyGrade}
                           onChange={(e) => updateOsGrade(os.key, parseInt(e.target.value) as 1 | 2, os.difficultyJustifications)}
@@ -1363,9 +1363,9 @@ export default function MonthlyReport() {
                         `×${os.difficultyGrade}`
                       )}
                     </td>
-                    <td className={editingPreview && os.difficultyGrade === 2 && !os.isCertidao ? 'editable-field text-xs' : 'text-xs'}>
-                      {os.difficultyGrade === 2 && !os.isCertidao ? (
-                        editingPreview ? (
+                    <td className={os.difficultyGrade === 2 && !os.isCertidao && !os.isRelatorioAtividade && !report?.is_locked ? 'editable-field text-xs' : 'text-xs'}>
+                      {os.difficultyGrade === 2 && !os.isCertidao && !os.isRelatorioAtividade ? (
+                        !report?.is_locked ? (
                           <div className="space-y-1">
                             {DIFFICULTY_JUSTIFICATIONS.map(j => (
                               <label key={j.id} className="flex items-center gap-1 cursor-pointer">
