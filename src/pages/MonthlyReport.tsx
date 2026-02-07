@@ -1400,7 +1400,16 @@ export default function MonthlyReport() {
           {/* Assinatura */}
           <div className="mt-16 text-center">
             <div className="w-72 mx-auto">
-              <div className="border-t border-black mb-2 mt-12" />
+              {profile?.signature_url && (
+                <div className="flex justify-center mb-1">
+                  <img 
+                    src={profile.signature_url} 
+                    alt="Assinatura do auditor" 
+                    style={{ maxHeight: '60px', maxWidth: '200px', objectFit: 'contain' }}
+                  />
+                </div>
+              )}
+              <div className="border-t border-black mb-2" />
               <p className="font-bold">{profile?.full_name}</p>
               <p className="text-sm">Matrícula: {profile?.registration_number}</p>
               <p className="text-xs text-gray-600">{profile?.division || 'Auditor Fiscal'}</p>
