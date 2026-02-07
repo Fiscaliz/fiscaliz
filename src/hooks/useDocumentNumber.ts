@@ -67,7 +67,7 @@ export function generateDocumentNumberFormat(
   const docPrefix = DOCUMENT_TYPE_PREFIX[documentType] || 'DOC';
   const sequence = formatSequentialNumber(sequenceNumber);
   
-  return `${fiscalPrefix}-${docPrefix}-${sequence}`;
+  return `${docPrefix}-${fiscalPrefix}-${sequence}`;
 }
 
 /**
