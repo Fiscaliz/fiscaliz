@@ -112,11 +112,11 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
         </div>
         
         <div className="relative z-10">
-          <div className="mx-auto mb-6 flex h-36 w-36 items-center justify-center rounded-3xl bg-primary-foreground/10 backdrop-blur-md p-4 shadow-lg">
+          <div className="mx-auto mb-6 flex h-40 w-40 items-center justify-center rounded-3xl bg-white/20 backdrop-blur-md p-3 shadow-xl border border-white/30">
             <img 
               src={fiscalizLogo} 
               alt="Fiscaliz" 
-              className="h-full w-full object-contain drop-shadow-lg"
+              className="h-full w-full object-contain"
             />
           </div>
           <h1 className="text-display text-primary-foreground">FISCALIZ</h1>
