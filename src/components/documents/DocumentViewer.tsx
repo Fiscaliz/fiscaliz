@@ -2233,15 +2233,15 @@ _Enviado via FISCALIZ®_`;
                         onSendDocument('sefiz');
                       } else {
                         toast({
-                          title: "SEFIZ",
-                          description: "Integração com SEFIZ em desenvolvimento",
+                          title: "SIFIZ",
+                          description: "Integração com SIFIZ em desenvolvimento",
                         });
                       }
                     }}
                     className="gap-1 text-xs h-auto py-3 flex-col"
                   >
                     <FileText className="h-4 w-4" />
-                    Via SEFIZ
+                    Via SIFIZ
                   </Button>
                   <Button 
                     variant="default" 
