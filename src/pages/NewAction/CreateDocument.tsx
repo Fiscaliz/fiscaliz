@@ -246,7 +246,11 @@ export default function CreateDocument() {
   const [replicaData, setReplicaData] = useState<ReplicaData>({
     documentoOrigem: '',
     numeroProcesso: '',
+    folhasDefesa: '',
+    descricaoInfracao: '',
+    capitulacaoLegal: '',
     resumoDefesa: '',
+    pontosDefesa: [],
     analiseDefesa: '',
     conclusao: '',
     fundamentacaoLegal: '',
