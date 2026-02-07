@@ -59,6 +59,7 @@ import { NotificacaoForm, formatNotificacaoContent, type NotificacaoData } from 
 import { ReplicaForm, formatReplicaContent, type ReplicaData } from '@/components/documents/ReplicaForm';
 import { TransportModeSelector } from '@/components/documents/TransportModeSelector';
 import { clearDraftByKey } from '@/hooks/useAutoSaveDraft';
+import { DenunciaResponseForm } from '@/components/documents/DenunciaResponseForm';
 
 type UploadedImage = {
   id: string;
@@ -134,6 +135,9 @@ export default function CreateDocument() {
   const [aiAnalysisText, setAiAnalysisText] = useState('');
   const [aiUploadedPhotoUrls, setAiUploadedPhotoUrls] = useState<string[]>([]); // URLs from AI analysis upload
   const [showSaveConfirmDialog, setShowSaveConfirmDialog] = useState(false);
+  const [showDenunciaResponse, setShowDenunciaResponse] = useState(false);
+  const [savedDocumentId, setSavedDocumentId] = useState<string | null>(null);
+  const [savedDocumentNumber, setSavedDocumentNumber] = useState<string | null>(null);
   const [transportMode, setTransportMode] = useState<'MPL' | 'CO'>('MPL');
   const [certidaoData, setCertidaoData] = useState({
     selectedOptions: [] as string[],
@@ -1085,11 +1089,17 @@ export default function CreateDocument() {
 
       toast({
         title: 'Documento salvo!',
-        description: `${documentTypeLabels[tipo]} criado com sucesso. Clique para visualizar.`,
+        description: `${documentTypeLabels[tipo]} criado com sucesso.`,
       });
 
-      // Navigate to document detail to view/edit/send
-      navigate(`/documento/${newDoc.id}`);
+      // Se motivo é denúncia, abre formulário de resposta antes de navegar
+      if (motivo === 'investigativa' || motivo === 'denuncia') {
+        setSavedDocumentId(newDoc.id);
+        setSavedDocumentNumber(documentNumber);
+        setShowDenunciaResponse(true);
+      } else {
+        navigate(`/documento/${newDoc.id}`);
+      }
     } catch (error: any) {
       console.error('Error saving document:', error);
       toast({
@@ -2537,6 +2547,20 @@ export default function CreateDocument() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Formulário de resposta de denúncia */}
+      <DenunciaResponseForm
+        open={showDenunciaResponse}
+        onClose={() => {
+          setShowDenunciaResponse(false);
+          if (savedDocumentId) {
+            navigate(`/documento/${savedDocumentId}`);
+          }
+        }}
+        documentId={savedDocumentId || ''}
+        establishmentName={establishment?.nome_fantasia || establishment?.razao_social}
+        documentNumber={savedDocumentNumber || undefined}
+      />
     </AppLayout>
   );
 }
