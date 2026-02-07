@@ -14,8 +14,12 @@ import {
   Trash2,
   Activity,
   Target,
-  TableIcon
+  TableIcon,
+  ChevronLeft,
+  ChevronRight,
+  Calendar
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -81,6 +85,10 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('individual');
   
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth()); // 0-indexed
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  
   const [myDocuments, setMyDocuments] = useState<any[]>([]);
   const [myActions, setMyActions] = useState<any[]>([]);
   const [myTasks, setMyTasks] = useState<any[]>([]);
@@ -89,38 +97,67 @@ export default function Dashboard() {
   const [divisionDocuments, setDivisionDocuments] = useState<any[]>([]);
   const [divisionActions, setDivisionActions] = useState<any[]>([]);
 
+  const isCurrentMonth = selectedMonth === now.getMonth() && selectedYear === now.getFullYear();
+
+  const goToPrevMonth = () => {
+    if (selectedMonth === 0) {
+      setSelectedMonth(11);
+      setSelectedYear(y => y - 1);
+    } else {
+      setSelectedMonth(m => m - 1);
+    }
+  };
+
+  const goToNextMonth = () => {
+    if (isCurrentMonth) return;
+    if (selectedMonth === 11) {
+      setSelectedMonth(0);
+      setSelectedYear(y => y + 1);
+    } else {
+      setSelectedMonth(m => m + 1);
+    }
+  };
+
+  const getMonthRange = () => {
+    const start = new Date(selectedYear, selectedMonth, 1);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(selectedYear, selectedMonth + 1, 1);
+    end.setHours(0, 0, 0, 0);
+    return { start, end };
+  };
+
   useEffect(() => {
     if (user) {
       loadMyStats();
     }
-  }, [user]);
+  }, [user, selectedMonth, selectedYear]);
 
   useEffect(() => {
     if (activeTab === 'division') {
       loadDivisionStats();
     }
-  }, [activeTab]);
+  }, [activeTab, selectedMonth, selectedYear]);
 
   const loadMyStats = async () => {
     if (!user) return;
     setLoading(true);
 
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
+    const { start, end } = getMonthRange();
 
     const [docsRes, actionsRes, tasksRes] = await Promise.all([
       supabase
         .from('fiscal_documents')
         .select('*, establishments(*)')
         .eq('user_id', user.id)
-        .gte('created_at', startOfMonth.toISOString())
+        .gte('created_at', start.toISOString())
+        .lt('created_at', end.toISOString())
         .order('created_at', { ascending: false }),
       supabase
         .from('fiscal_actions')
         .select('*, establishments(*)')
         .eq('user_id', user.id)
-        .gte('created_at', startOfMonth.toISOString())
+        .gte('created_at', start.toISOString())
+        .lt('created_at', end.toISOString())
         .order('created_at', { ascending: false }),
       supabase
         .from('tasks')
@@ -139,19 +176,19 @@ export default function Dashboard() {
   };
 
   const loadDivisionStats = async () => {
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
+    const { start, end } = getMonthRange();
 
     const [docsRes, actionsRes] = await Promise.all([
       supabase
         .from('fiscal_documents')
         .select('document_type, created_at, total_weight_kg, establishments(bairro)')
-        .gte('created_at', startOfMonth.toISOString()),
+        .gte('created_at', start.toISOString())
+        .lt('created_at', end.toISOString()),
       supabase
         .from('fiscal_actions')
         .select('reason, created_at, establishments(bairro)')
-        .gte('created_at', startOfMonth.toISOString()),
+        .gte('created_at', start.toISOString())
+        .lt('created_at', end.toISOString()),
     ]);
 
     if (docsRes.data) setDivisionDocuments(docsRes.data);
@@ -252,6 +289,22 @@ export default function Dashboard() {
       <BrandHeader />
       
       <div className="-mt-5 rounded-t-[2rem] bg-background px-5 pt-6 space-y-5">
+        {/* Month Selector */}
+        <div className="flex items-center justify-center gap-3">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goToPrevMonth}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex items-center gap-2 min-w-[180px] justify-center">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span className="font-semibold text-sm capitalize">
+              {format(new Date(selectedYear, selectedMonth, 1), 'MMMM yyyy', { locale: ptBR })}
+            </span>
+          </div>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goToNextMonth} disabled={isCurrentMonth}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 h-12 p-1 bg-muted/50 rounded-xl">
             <TabsTrigger value="individual" className="text-body font-semibold rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-premium-sm">
@@ -268,7 +321,7 @@ export default function Dashboard() {
               <CardHeader className="pb-2 bg-warning/20">
                 <CardTitle className="text-body font-bold flex items-center gap-2">
                   <TableIcon className="h-5 w-5 text-warning" />
-                  DOCUMENTOS EMITIDOS - {format(new Date(), 'MMMM yyyy', { locale: ptBR }).toUpperCase()}
+                  DOCUMENTOS EMITIDOS - {format(new Date(selectedYear, selectedMonth, 1), 'MMMM yyyy', { locale: ptBR }).toUpperCase()}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
