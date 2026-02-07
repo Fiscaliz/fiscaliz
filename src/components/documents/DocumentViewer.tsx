@@ -955,12 +955,12 @@ _Enviado via FISCALIZ®_`;
                   </td>
                   
                   {/* Textos centralizados */}
-                  <td style={{ verticalAlign: 'middle', textAlign: 'center', padding: '0 16px' }}>
-                    <div style={{ fontSize: '14pt', fontWeight: 'bold', color: '#111' }}>PREFEITURA DE GOIÂNIA</div>
-                    <div style={{ fontSize: '12pt', fontWeight: 'bold', color: '#111' }}>SECRETARIA MUNICIPAL DE SAÚDE</div>
-                    <div style={{ fontSize: '10pt', color: '#333' }}>DIRETORIA DE VIGILÂNCIA SANITÁRIA E AMBIENTAL</div>
-                    <div style={{ fontSize: '8pt', color: '#555', marginTop: '4px' }}>Av. Universitária esq. c/ 1ª Avenida, s/nº - Setor Universitário - CEP: 74605-010</div>
-                    <div style={{ fontSize: '8pt', color: '#555' }}>Email: visagoianiaalimentos@gmail.com</div>
+                  <td style={{ verticalAlign: 'middle', textAlign: 'center', padding: '0 12px' }}>
+                    <div style={{ fontSize: '11pt', fontWeight: 'bold', color: '#111', whiteSpace: 'nowrap', lineHeight: '1.3' }}>PREFEITURA DE GOIÂNIA</div>
+                    <div style={{ fontSize: '10pt', fontWeight: 'bold', color: '#111', whiteSpace: 'nowrap', lineHeight: '1.3' }}>SECRETARIA MUNICIPAL DE SAÚDE</div>
+                    <div style={{ fontSize: '8.5pt', fontWeight: '600', color: '#222', whiteSpace: 'nowrap', lineHeight: '1.3' }}>DIRETORIA DE VIGILÂNCIA SANITÁRIA E AMBIENTAL</div>
+                    <div style={{ fontSize: '7pt', color: '#555', marginTop: '3px', whiteSpace: 'nowrap', lineHeight: '1.4' }}>Av. Universitária esq. c/ 1ª Avenida, s/nº - Setor Universitário - CEP: 74605-010</div>
+                    <div style={{ fontSize: '7pt', color: '#555', whiteSpace: 'nowrap', lineHeight: '1.4' }}>Email: visagoianiaalimentos@gmail.com</div>
                   </td>
                   
                   {/* Logo SUS à direita - largura fixa */}
