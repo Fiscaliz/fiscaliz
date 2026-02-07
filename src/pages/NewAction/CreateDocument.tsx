@@ -118,6 +118,7 @@ export default function CreateDocument() {
   const [selectedChecklist, setSelectedChecklist] = useState<string | null>(null);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+  const [categoryObservations, setCategoryObservations] = useState<Record<string, string>>({});
   const [manualContent, setManualContent] = useState('');
   const [deadlineDays, setDeadlineDays] = useState('');
   const [saving, setSaving] = useState(false);
@@ -289,6 +290,7 @@ export default function CreateDocument() {
       method,
       selectedChecklist,
       selectedItems,
+      categoryObservations,
       manualContent,
       deadlineDays,
       otrosContent,
@@ -310,7 +312,7 @@ export default function CreateDocument() {
       tipo,
     };
   }, [
-    method, selectedChecklist, selectedItems, manualContent, deadlineDays,
+    method, selectedChecklist, selectedItems, categoryObservations, manualContent, deadlineDays,
     otrosContent, observations, dengueInspection, documentDate, documentTime,
     transportMode, certidaoData, visitaFiscalData, autoInfracaoData,
     relatorioTecnicoData, aiAnalysisText, aiPhotoLegends, aiAnalysisComplete,
@@ -350,6 +352,7 @@ export default function CreateDocument() {
         if (data.method) setMethod(data.method);
         if (data.selectedChecklist) setSelectedChecklist(data.selectedChecklist);
         if (data.selectedItems) setSelectedItems(data.selectedItems);
+        if (data.categoryObservations) setCategoryObservations(data.categoryObservations);
         if (data.manualContent) setManualContent(data.manualContent);
         if (data.deadlineDays) setDeadlineDays(data.deadlineDays);
         if (data.otrosContent) setOtrosContent(data.otrosContent);
@@ -551,6 +554,28 @@ export default function CreateDocument() {
       return formatReplicaContent(replicaData);
     }
     if (method === 'checklist' && currentChecklist) {
+      const isRoteiro = currentChecklist.id === 'hipermercado';
+      if (isRoteiro) {
+        // Group by category with observations
+        const cats = getAllCategories(currentChecklist);
+        const lines: string[] = [];
+        let idx = 1;
+        cats.forEach(cat => {
+          const catItems = currentChecklist.items.filter(i => i.category === cat && selectedItems.includes(i.id));
+          if (catItems.length > 0) {
+            lines.push(`\n[${cat}]`);
+            catItems.forEach(item => {
+              lines.push(`${idx}. ${item.text}`);
+              idx++;
+            });
+            const obs = categoryObservations[cat];
+            if (obs?.trim()) {
+              lines.push(`Observações: ${obs.trim()}`);
+            }
+          }
+        });
+        return lines.join('\n');
+      }
       const selectedItemsData = currentChecklist.items.filter(item => selectedItems.includes(item.id));
       return selectedItemsData.map((item, idx) => `${idx + 1}. ${item.text}`).join('\n');
     }
@@ -1027,6 +1052,9 @@ export default function CreateDocument() {
           document_date: documentDate,
           document_time: documentTime,
           transport_mode: transportMode,
+          ...(method === 'checklist' && Object.keys(categoryObservations).some(k => categoryObservations[k]?.trim()) && {
+            category_observations: categoryObservations,
+          }),
           ...(method === 'ai' && finalAiPhotoLegends.length > 0 && {
             photoLegends: finalAiPhotoLegends,
           }),
@@ -1933,6 +1961,19 @@ export default function CreateDocument() {
                             </div>
                           </label>
                         ))}
+                        {currentChecklist.id === 'hipermercado' && (
+                          <div className="mt-3 pt-3 border-t">
+                            <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                              Observações — {category}
+                            </label>
+                            <textarea
+                              className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              placeholder="Anotações do fiscal para este bloco..."
+                              value={categoryObservations[category] || ''}
+                              onChange={(e) => setCategoryObservations(prev => ({ ...prev, [category]: e.target.value }))}
+                            />
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
