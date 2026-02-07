@@ -4,7 +4,8 @@ import {
   FileText, 
   BarChart3, 
   User,
-  Scale
+  Scale,
+  ClipboardList
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -12,6 +13,7 @@ const navItems = [
   { to: '/', icon: Home, label: 'Início' },
   { to: '/nova-acao', icon: FileText, label: 'Ação' },
   { to: '/consultar-ia', icon: Scale, label: 'Consultar' },
+  { to: '/relatorios-mensais', icon: ClipboardList, label: 'Relatórios' },
   { to: '/dashboard', icon: BarChart3, label: 'Dashboard' },
   { to: '/perfil', icon: User, label: 'Perfil' },
 ];
@@ -26,7 +28,7 @@ export function BottomNav() {
             to={item.to}
             className={({ isActive }) =>
               cn(
-                'flex flex-col items-center justify-center gap-1 py-2 px-4 min-w-[60px] text-center transition-all duration-300 rounded-2xl',
+                'flex flex-col items-center justify-center gap-1 py-2 px-3 min-w-[52px] text-center transition-all duration-300 rounded-2xl',
                 isActive
                   ? 'text-primary'
                   : 'text-muted-foreground hover:text-foreground'
