@@ -5,9 +5,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { 
-  Ban, Camera, X, FolderOpen, Calendar, Clock
+  Ban, Camera, X, FolderOpen, Calendar, Clock, ClipboardList, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useState } from 'react';
+import { checklistTemplates } from '@/data/checklists';
 
 export interface InterdicaoData {
   tipoInterdicao: 'total' | 'parcial' | '';
@@ -15,7 +17,9 @@ export interface InterdicaoData {
   motivoInterdicao: string;
   fundamentacaoLegal: string;
   condicoesDesinterdicao: string;
-  lacreNumero: string;
+  usarChecklistDesinterdicao: boolean;
+  checklistDesinterdicaoId: string;
+  osNumero: string;
   observacoes: string;
   documentDate: string;
   documentTime: string;
@@ -44,6 +48,8 @@ const motivosInterdicao = [
 export function InterdicaoForm({
   value, onChange, photos, onAddPhoto, onCapturePhoto, onRemovePhoto,
 }: InterdicaoFormProps) {
+  const [showChecklistPicker, setShowChecklistPicker] = useState(false);
+
   const updateField = <K extends keyof InterdicaoData>(field: K, val: InterdicaoData[K]) => {
     onChange({ ...value, [field]: val });
   };
@@ -95,6 +101,21 @@ export function InterdicaoForm({
         </CardContent>
       </Card>
 
+      {/* Nº de O.S. (para interdição total) */}
+      {value.tipoInterdicao === 'total' && (
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-4 space-y-2">
+            <Label className="text-sm font-medium">Nº da O.S. (Ordem de Serviço)</Label>
+            <Input
+              placeholder="Número da Ordem de Serviço"
+              value={value.osNumero}
+              onChange={(e) => updateField('osNumero', e.target.value)}
+              className="text-sm"
+            />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Áreas Interditadas (se parcial) */}
       {value.tipoInterdicao === 'parcial' && (
         <Card className="border-0 shadow-sm">
@@ -138,14 +159,78 @@ export function InterdicaoForm({
             <Label className="text-xs">Fundamentação Legal</Label>
             <Input placeholder="Ex: LM 8741/08 Art. 81 Inc. XVI" value={value.fundamentacaoLegal} onChange={(e) => updateField('fundamentacaoLegal', e.target.value)} className="text-sm" />
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Nº do Lacre (se aplicável)</Label>
-            <Input placeholder="Número do lacre de interdição" value={value.lacreNumero} onChange={(e) => updateField('lacreNumero', e.target.value)} className="text-sm" />
-          </div>
-          <div className="space-y-1">
+
+          {/* Condições para Desinterdição */}
+          <div className="space-y-2">
             <Label className="text-xs">Condições para Desinterdição</Label>
-            <Textarea placeholder="Descreva as condições necessárias para a desinterdição..." value={value.condicoesDesinterdicao} onChange={(e) => updateField('condicoesDesinterdicao', e.target.value)} className="min-h-[80px] text-sm" />
+            
+            {/* Opção: usar checklist */}
+            <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <Checkbox
+                  checked={value.usarChecklistDesinterdicao}
+                  onCheckedChange={(checked) => {
+                    updateField('usarChecklistDesinterdicao', checked as boolean);
+                    if (!checked) updateField('checklistDesinterdicaoId', '');
+                  }}
+                  className="mt-0.5"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <ClipboardList className="h-4 w-4 text-primary" />
+                    <span className="font-medium text-sm">Usar Checklist como condição</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Vincular um checklist sanitário como requisito para desinterdição
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            {value.usarChecklistDesinterdicao && (
+              <div className="space-y-2 pl-2">
+                <button
+                  type="button"
+                  onClick={() => setShowChecklistPicker(!showChecklistPicker)}
+                  className="w-full flex items-center justify-between p-3 rounded-lg border text-sm"
+                >
+                  <span>{value.checklistDesinterdicaoId ? checklistTemplates.find(c => c.id === value.checklistDesinterdicaoId)?.name || 'Selecionar...' : 'Selecionar checklist...'}</span>
+                  {showChecklistPicker ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+                {showChecklistPicker && (
+                  <div className="space-y-1">
+                    {checklistTemplates.map(template => (
+                      <button
+                        key={template.id}
+                        type="button"
+                        onClick={() => {
+                          updateField('checklistDesinterdicaoId', template.id);
+                          setShowChecklistPicker(false);
+                        }}
+                        className={cn(
+                          'w-full text-left p-3 rounded-lg border text-sm transition-colors',
+                          value.checklistDesinterdicaoId === template.id ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'
+                        )}
+                      >
+                        <p className="font-medium">{template.name}</p>
+                        <p className="text-xs text-muted-foreground">{template.items.length} itens</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!value.usarChecklistDesinterdicao && (
+              <Textarea 
+                placeholder="Descreva as condições necessárias para a desinterdição..." 
+                value={value.condicoesDesinterdicao} 
+                onChange={(e) => updateField('condicoesDesinterdicao', e.target.value)} 
+                className="min-h-[80px] text-sm" 
+              />
+            )}
           </div>
+
           <div className="space-y-1">
             <Label className="text-xs">Observações</Label>
             <Textarea placeholder="Observações adicionais..." value={value.observacoes} onChange={(e) => updateField('observacoes', e.target.value)} className="min-h-[60px] text-sm" />
@@ -204,11 +289,16 @@ export function InterdicaoForm({
 export function formatInterdicaoContent(data: InterdicaoData): string {
   const lines: string[] = ['TERMO DE INTERDIÇÃO', ''];
   lines.push(`Tipo: Interdição ${data.tipoInterdicao === 'total' ? 'TOTAL' : 'PARCIAL'}`);
+  if (data.tipoInterdicao === 'total' && data.osNumero) lines.push(`O.S. nº: ${data.osNumero}`);
   if (data.tipoInterdicao === 'parcial' && data.areasInterditadas) lines.push(`Áreas: ${data.areasInterditadas}`);
   if (data.motivoInterdicao) lines.push(`Motivo: ${data.motivoInterdicao}`);
   if (data.fundamentacaoLegal) lines.push(`Fundamentação Legal: ${data.fundamentacaoLegal}`);
-  if (data.lacreNumero) lines.push(`Lacre nº: ${data.lacreNumero}`);
-  if (data.condicoesDesinterdicao) lines.push(`Condições para Desinterdição: ${data.condicoesDesinterdicao}`);
+  if (data.usarChecklistDesinterdicao && data.checklistDesinterdicaoId) {
+    const checklist = checklistTemplates.find(c => c.id === data.checklistDesinterdicaoId);
+    lines.push(`Condições para Desinterdição: Atendimento integral ao ${checklist?.name || 'checklist'}`);
+  } else if (data.condicoesDesinterdicao) {
+    lines.push(`Condições para Desinterdição: ${data.condicoesDesinterdicao}`);
+  }
   if (data.observacoes) lines.push(`Observações: ${data.observacoes}`);
   return lines.join('\n');
 }

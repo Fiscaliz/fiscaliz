@@ -17,9 +17,13 @@ import {
   ChevronDown,
   ChevronUp,
   Search,
-  FolderOpen
+  FolderOpen,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { 
   checklistTemplates, 
   legislationDatabase, 
@@ -45,7 +49,7 @@ export interface AutoInfracaoData {
 interface AutoInfracaoFormProps {
   value: AutoInfracaoData;
   onChange: (data: AutoInfracaoData) => void;
-  photos: { id: string; previewUrl: string }[];
+  photos: { id: string; previewUrl: string; file?: File }[];
   onAddPhoto: () => void;
   onCapturePhoto?: () => void;
   onRemovePhoto: (index: number) => void;
@@ -70,12 +74,14 @@ export function AutoInfracaoForm({
   onRemovePhoto,
   photosRequired = true 
 }: AutoInfracaoFormProps) {
+  const { toast } = useToast();
   const [novaInfracao, setNovaInfracao] = useState('');
   const [novoDispositivo, setNovoDispositivo] = useState('');
   const [showChecklist, setShowChecklist] = useState(false);
   const [selectedChecklist, setSelectedChecklist] = useState<string | null>(null);
   const [checklistSearch, setChecklistSearch] = useState('');
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [aiAnalyzing, setAiAnalyzing] = useState(false);
 
   const addInfracao = () => {
     if (!novaInfracao.trim() || !novoDispositivo.trim()) return;
@@ -110,6 +116,81 @@ export function AutoInfracaoForm({
 
   const updateField = <K extends keyof AutoInfracaoData>(field: K, fieldValue: AutoInfracaoData[K]) => {
     onChange({ ...value, [field]: fieldValue });
+  };
+
+  // AI analysis of photos to auto-generate infractions
+  const handleAIAnalysis = async () => {
+    if (photos.length === 0) {
+      toast({ title: 'Adicione fotos primeiro', variant: 'destructive' });
+      return;
+    }
+    setAiAnalyzing(true);
+    try {
+      // Upload photos to storage for AI analysis
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Não autenticado');
+
+      const uploadedUrls: string[] = [];
+      const tempId = crypto.randomUUID();
+      
+      for (const photo of photos) {
+        if (photo.file) {
+          const fileExt = photo.file.name?.split('.').pop() || 'jpg';
+          const fileName = `${user.id}/ai_auto_${tempId}_${photo.id}.${fileExt}`;
+          const { error: uploadError } = await supabase.storage
+            .from('fiscal-photos')
+            .upload(fileName, photo.file, { upsert: true });
+          if (uploadError) throw uploadError;
+          const { data: urlData } = supabase.storage.from('fiscal-photos').getPublicUrl(fileName);
+          if (urlData?.publicUrl) uploadedUrls.push(urlData.publicUrl);
+        } else if (photo.previewUrl && !photo.previewUrl.startsWith('blob:')) {
+          uploadedUrls.push(photo.previewUrl);
+        }
+      }
+
+      if (uploadedUrls.length === 0) {
+        throw new Error('Nenhuma foto pôde ser enviada para análise');
+      }
+
+      const { data, error } = await supabase.functions.invoke('analyze-photos', {
+        body: { documentType: 'auto_infracao', photos: uploadedUrls },
+      });
+      if (error) throw error;
+
+      const photoAnalysis = data?.photoAnalysis as Array<{
+        foto: number; legenda: string; item_rdc: string;
+      }> | undefined;
+
+      if (photoAnalysis && photoAnalysis.length > 0) {
+        const newInfracoes: InfracaoItem[] = photoAnalysis
+          .filter(pa => pa.legenda?.trim())
+          .map((pa, idx) => {
+            const legislacaoRef = pa.item_rdc 
+              ? legislationDatabase.find(l => l.code.toLowerCase().includes(pa.item_rdc.toLowerCase()))
+              : undefined;
+            return {
+              id: `ai_inf_${Date.now()}_${idx}`,
+              descricao: pa.legenda,
+              dispositivo: pa.item_rdc || 'Legislação não identificada',
+              dispositivoCompleto: legislacaoRef,
+            };
+          });
+
+        if (newInfracoes.length > 0) {
+          onChange({ ...value, infracoes: [...value.infracoes, ...newInfracoes] });
+          toast({ title: 'Análise concluída', description: `${newInfracoes.length} infração(ões) identificada(s) pela IA. Revise antes de salvar.` });
+        } else {
+          toast({ title: 'Nenhuma infração identificada', description: 'Adicione manualmente.' });
+        }
+      } else {
+        toast({ title: 'Análise sem resultados', description: 'Adicione infrações manualmente.', variant: 'destructive' });
+      }
+    } catch (error: any) {
+      console.error('AI analysis error:', error);
+      toast({ title: 'Erro na análise', description: error.message || 'Tente novamente', variant: 'destructive' });
+    } finally {
+      setAiAnalyzing(false);
+    }
   };
 
   // Toggle item selection from checklist
@@ -269,6 +350,23 @@ export function AutoInfracaoForm({
               Galeria
             </Button>
           </div>
+
+          {/* Botão Análise por IA */}
+          {photos.length > 0 && (
+            <Button
+              variant="default"
+              size="sm"
+              className="w-full h-12 bg-gradient-to-r from-primary to-secondary text-primary-foreground"
+              onClick={handleAIAnalysis}
+              disabled={aiAnalyzing}
+            >
+              {aiAnalyzing ? (
+                <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Analisando...</>
+              ) : (
+                <><Sparkles className="h-5 w-5 mr-2" /> Identificar Infrações por IA</>
+              )}
+            </Button>
+          )}
 
           {photosRequired && photos.length === 0 && (
             <p className="text-xs text-destructive">

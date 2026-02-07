@@ -207,10 +207,9 @@ export default function CreateDocument() {
   });
   const [apreensaoData, setApreensaoData] = useState<ApreensaoData>({
     produtos: [],
-    fundamentacaoLegal: '',
-    localDeposito: '',
-    prazoRetirada: '',
-    responsavelGuarda: '',
+    lacreNumero: '',
+    destinacao: 'Os produtos lacrados serão enviados para sede da Vigilância Sanitária de Goiânia para posterior Inutilização.',
+    fielDepositario: true,
     observacoes: '',
     documentDate: new Date().toISOString().split('T')[0],
     documentTime: new Date().toTimeString().slice(0, 5),
@@ -221,7 +220,9 @@ export default function CreateDocument() {
     motivoInterdicao: '',
     fundamentacaoLegal: '',
     condicoesDesinterdicao: '',
-    lacreNumero: '',
+    usarChecklistDesinterdicao: false,
+    checklistDesinterdicaoId: '',
+    osNumero: '',
     observacoes: '',
     documentDate: new Date().toISOString().split('T')[0],
     documentTime: new Date().toTimeString().slice(0, 5),
@@ -1078,7 +1079,7 @@ export default function CreateDocument() {
         action_date: documentDate || new Date().toISOString().split('T')[0],
         total_weight_kg: isInutilizacao ? inutilizacaoData.produtos.reduce((sum, p) => sum + (parseFloat(p.pesoKg) || 0), 0) : null,
         is_partial_interdiction: isInterdicao ? interdicaoData.tipoInterdicao === 'parcial' : null,
-        seal_number: isApreensao ? apreensaoData.produtos.map(p => p.lacre).filter(Boolean).join(', ') : (isInterdicao ? interdicaoData.lacreNumero : null),
+        seal_number: isApreensao ? apreensaoData.lacreNumero : null,
       };
 
       const { data: newDoc, error: docError } = await supabase
@@ -1429,7 +1430,7 @@ export default function CreateDocument() {
             <AutoInfracaoForm
               value={autoInfracaoData}
               onChange={setAutoInfracaoData}
-              photos={uploadedImages.map(img => ({ id: img.id, previewUrl: img.previewUrl }))}
+              photos={uploadedImages.map(img => ({ id: img.id, previewUrl: img.previewUrl, file: img.file }))}
               onAddPhoto={() => autoInfracaoFileInputRef.current?.click()}
               onCapturePhoto={() => document.getElementById('autoInfracaoCameraInput')?.click()}
               onRemovePhoto={removeImage}
@@ -1629,7 +1630,7 @@ export default function CreateDocument() {
               onRemovePhoto={removeImage}
             />
             <TransportModeSelector value={transportMode} onChange={setTransportMode} />
-            <Button className="w-full" onClick={handleSave} disabled={inutilizacaoData.produtos.length === 0 || uploadedImages.length === 0 || saving}>
+            <Button className="w-full" onClick={handleSave} disabled={inutilizacaoData.produtos.length === 0 || saving}>
               {saving ? 'Salvando...' : 'Salvar Inutilização'}
             </Button>
           </>
@@ -1660,7 +1661,7 @@ export default function CreateDocument() {
               onRemovePhoto={removeImage}
             />
             <TransportModeSelector value={transportMode} onChange={setTransportMode} />
-            <Button className="w-full" onClick={handleSave} disabled={apreensaoData.produtos.length === 0 || uploadedImages.length === 0 || saving}>
+            <Button className="w-full" onClick={handleSave} disabled={apreensaoData.produtos.length === 0 || saving}>
               {saving ? 'Salvando...' : 'Salvar Apreensão'}
             </Button>
           </>
