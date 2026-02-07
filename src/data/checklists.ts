@@ -910,8 +910,13 @@ export const checklistTemplates: ChecklistTemplate[] = [
       { id: 'den9', text: 'Evitar acúmulo de lixo e materiais inservíveis nas dependências', category: 'Controle de Vetores', legislation: 'LM 9904/2016' },
       { id: 'den10', text: 'Manter piscinas e espelhos d\'água tratados ou cobertos', category: 'Controle de Vetores', legislation: 'LM 9904/2016' },
     ]
-  }
+  },
+  // Referência ao checklist de Panificadora exportado separadamente
 ];
+
+
+
+
 
 export const getChecklistByType = (typeId: string): ChecklistTemplate | undefined => {
   return checklistTemplates.find(c => c.id === typeId);
@@ -944,3 +949,78 @@ export const generateTermoFromItems = (items: ChecklistItem[], legislationBase?:
 
   return text.trim();
 };
+
+// ============= CHECKLIST PANIFICADORAS E CONFEITARIAS =============
+// Fonte: Modelo oficial PREFEITURA DE GOIÂNIA - INSPEÇÃO DE PANIFICADORAS E CONFEITARIAS (60 itens)
+export const checklistPanificadora: ChecklistTemplate = {
+  id: 'panificadora',
+  name: 'Panificadora / Confeitaria',
+  description: 'Inspeção de panificadoras e confeitarias - 60 itens',
+  icon: 'Croissant',
+  legislationBase: 'RDC 216/2004, LM 8741/08 Art. 81, Portaria SMS nº 0322/2008',
+  items: [
+    { id: 'pan1', text: 'Apresentar Alvará de Autorização Sanitária', category: 'Documentação', legislation: 'LM 8741/2008 Art. 81, I' },
+    { id: 'pan2', text: 'Apresentar caderneta de Inspeção Sanitária', category: 'Documentação', legislation: 'LM 8741/2008 Art. 81, §1º' },
+    { id: 'pan3', text: 'Apresentar projeto Arquitetônico aprovado pela DVISAM (para aberturas, reforma, graves problemas de fluxo)', category: 'Documentação', legislation: 'Portaria Municipal SMS nº 0322/2008' },
+    { id: 'pan4', text: 'Apresentar e implantar o Manual de Boas Práticas (BPF) e os respectivos POP\'S', category: 'Documentação', legislation: 'RDC 216/2004 itens 4.11.1 e 4.11.4' },
+    { id: 'pan5', text: 'Apresentar comprovante de treinamento dos manipuladores em Boas Práticas de Fabricação de Alimentos', category: 'Documentação', legislation: 'RDC 216/2004 item 4.6.7' },
+    { id: 'pan6', text: 'Apresentar comprovante de higienização da caixa de água a cada seis meses', category: 'Documentação', legislation: 'RDC 216/2004 itens 4.4.4 e 4.11.7; Proibida utilização de água proveniente de fonte alternativa' },
+    { id: 'pan7', text: 'Apresentar comprovante do controle integrado de Pragas e vetores', category: 'Documentação', legislation: 'RDC 216/2004 itens 4.3.2 e 4.11.6' },
+    { id: 'pan8', text: 'Apresentar comprovante de manutenção e troca dos filtros dos equipamentos de climatização', category: 'Documentação', legislation: 'RDC 216/2004 item 4.1.11' },
+    { id: 'pan9', text: 'Apresentar certificado do Corpo de Bombeiros', category: 'Documentação', legislation: '' },
+    { id: 'pan10', text: 'Apresentar certificado de vistoria do veículo platão (entrega)', category: 'Documentação', legislation: 'LM 8741/08 art. 81 inc. III' },
+    { id: 'pan11', text: 'Apresentar planilhas diárias de controle de temperatura: dos alimentos recebidos, dos alimentos preparados, dos armazenados ou aguardando transporte e dos equipamentos de exposição ao consumo', category: 'Documentação', legislation: 'RDC 216/2004 itens 4.7.3, 4.9.2, 4.10.3' },
+    { id: 'pan12', text: 'Possuir localização adequada, livre de lixo, roedores, insetos. Com acesso adequado, não comum a residência', category: 'Estrutura', legislation: 'LM 8741/2008 Art. 81 inc. XIX; RDC 216/04 item 4.1.1' },
+    { id: 'pan13', text: 'Possuir local adequado para armazenamento externo do lixo, protegido de chuva, sol, pessoas estranhas, animais, livre de odores ou incômodos à vizinhança', category: 'Estrutura', legislation: 'RDC 216/2004 item 4.5.3; Portaria Municipal SMS 0322/2008 Art. 5º "g"' },
+    { id: 'pan14', text: 'Recipientes de coleta interna devem ser apropriados, de acordo com a quantidade de lixo produzido, providos de tampa acionada a pedal, com uso de sacos plásticos', category: 'Estrutura', legislation: 'RDC 216/2004 item 4.5.2' },
+    { id: 'pan15', text: 'PISO, PAREDES, DIVISÓRIAS, FORRO E TETO: lisos; impermeáveis; laváveis; íntegros; conservados; sem rachaduras, trincas; goteiras; vazamentos; infiltrações; bolores; descascamentos, dentre outros', category: 'Estrutura', legislation: 'RDC 216/2004 item 4.1.3' },
+    { id: 'pan16', text: 'Ralos e grelhas com sistema de fechamento (escamoteável) e ligados à rede de esgoto', category: 'Estrutura', legislation: 'RDC 216/2004 item 4.1.5' },
+    { id: 'pan17', text: 'Instalações elétricas embutidas, protegidas em tubulações limpas e íntegras', category: 'Estrutura', legislation: 'RDC 216/2004 item 4.1.5' },
+    { id: 'pan18', text: 'Retirar móveis, utensílios e outros objetos alheios à atividade e/ou em desuso', category: 'Estrutura', legislation: 'RDC 216/2004 item 4.1.7' },
+    { id: 'pan19', text: 'Depósito de alimentos de acordo com o ramo e volume de produção, sem comunicação direta com banheiro e vestiário. Limpo e organizado', category: 'Estrutura', legislation: 'RDC 216/2004 itens 4.1.1, 4.1.12, 4.2.1' },
+    { id: 'pan20', text: 'Estrados, prateleiras e outros com superfícies limpas, impermeáveis e laváveis, com distanciamento de piso e paredes', category: 'Armazenamento', legislation: 'RDC 216/2004 item 4.7.6' },
+    { id: 'pan21', text: 'Sala climatizada para manipulação/fabricação de tortas, doces, fatiamento de frios com planilha de controle de temperatura', category: 'Estrutura', legislation: 'RDC 216/04 item 4.5.4' },
+    { id: 'pan22', text: 'Sanitários: organizados, conservados, portas dotadas de fechamento automático; com papel higiênico, papel toalha, sabão líquido, assento no vaso sanitário e lixeiras com tampa a pedal', category: 'Higiene', legislation: 'RDC 216/2004 item 4.1.13' },
+    { id: 'pan23', text: 'Vestiários: com armários para guardar objetos pessoais e portas dotadas de fechamento automático', category: 'Higiene', legislation: 'RDC 216/2004 itens 4.6.3, 4.1.12' },
+    { id: 'pan24', text: 'Caixa de gordura: localizada fora da área de manipulação, íntegra, com capacidade à demanda, tampas ajustadas. Na impossibilidade de ser fora da área produtiva, realizar perfeita vedação', category: 'Estrutura', legislation: 'RDC 216/2004 item 4.2.2' },
+    { id: 'pan25', text: 'Depósito de carvão ou lenha fora da área de manipulação', category: 'Estrutura', legislation: 'RDC 216/2004 item 4.1.2' },
+    { id: 'pan26', text: 'Balcões expositores com barreiras de proteção que previnam a contaminação dos alimentos expostos em decorrência da proximidade ou da ação do consumidor e de outras fontes; mantidos em condições higiênico-sanitárias apropriadas', category: 'Equipamentos', legislation: 'RDC 216/2004 item 4.10.4' },
+    { id: 'pan27', text: 'Estufas e/ou balcões expositores que garantam as temperaturas especificadas para a conservação dos alimentos: acima de 60°C para alimentos quentes e abaixo de 5°C para alimentos frios', category: 'Equipamentos', legislation: 'RDC 216/2004 item 4.10.3' },
+    { id: 'pan28', text: 'Proibido o uso de cestas de vime, madeira, palha, telas de filó ou qualquer outro material que não seja liso, lavável e impermeável', category: 'Equipamentos', legislation: 'RDC 216/04 itens 4.10.4, 4.1.17' },
+    { id: 'pan29', text: 'Área de produção: Fluxo deve ser linear (racional) evitando contaminação cruzada', category: 'Produção', legislation: 'RDC 216/2004 item 4.1.1' },
+    { id: 'pan30', text: 'Área de produção: Sem comunicação direta com banheiros e vestiários', category: 'Produção', legislation: 'RDC 216/2004 item 4.1.12' },
+    { id: 'pan31', text: 'Área de produção: Portas e janelas ajustadas aos batentes. Portas dotadas de fechamento automático e demais aberturas providas de telas milimétricas (produção e depósito)', category: 'Produção', legislation: 'RDC 216/2004 item 4.1.4' },
+    { id: 'pan32', text: 'Área de produção: Iluminação adequada à atividade desenvolvida, com luminárias limpas e protegidas contra quedas e explosões', category: 'Produção', legislation: 'RDC 216/04 item 4.1.8' },
+    { id: 'pan33', text: 'Área de produção: Ventilação adequada garantindo conforto térmico, ambiente livre de fungos, bolores, fumaças e condensação de vapores, com sistema de exaustão', category: 'Produção', legislation: 'RDC 216/2004 item 4.1.10' },
+    { id: 'pan34', text: 'Área de produção: Pias: água corrente, material resistente, impermeável, bem conservadas, em posição estratégica em relação ao fluxo, com capacidade proporcional à demanda, providas de cartazes indicando a finalidade das mesmas', category: 'Produção', legislation: 'Portaria 1288/95 capítulo III art 7º item IX' },
+    { id: 'pan35', text: 'Área de produção: Lavatórios exclusivos para a higienização das mãos, em adequado estado de conservação, em pontos estratégicos, dotados de papel toalha, sabonete líquido antisséptico e lixeira com tampa a pedal', category: 'Produção', legislation: 'RDC 216/2004 item 4.1.14' },
+    { id: 'pan36', text: 'Equipamentos, móveis e utensílios: lisos, impermeáveis, resistentes aos procedimentos de higienização, não absorventes (proibido madeira), proporcionais à demanda, mantidos limpos', category: 'Equipamentos', legislation: 'RDC 216/2004 itens 4.1.15 e 4.1.17' },
+    { id: 'pan37', text: 'Instalações, equipamentos, móveis e utensílios mantidos em condições higiênico-sanitárias apropriadas', category: 'Equipamentos', legislation: 'RDC 216/2004 item 4.2.1' },
+    { id: 'pan38', text: 'Possuir filtro de água que atenda a demanda, sendo vedada a utilização de filtros de barro', category: 'Equipamentos', legislation: 'RDC 216/2004 item 4.4.1' },
+    { id: 'pan39', text: 'Utensílios e equipamentos protegidos e ordenados em local próprio, em armários ou prateleiras impermeáveis', category: 'Equipamentos', legislation: 'RDC 216/04 item 4.2.1' },
+    { id: 'pan40', text: 'Equipamentos de refrigeração: íntegros, capacidade compatível com a demanda, limpos, organizados, separados por tipo de produto e em perfeito funcionamento', category: 'Equipamentos', legislation: 'RDC 216/2004 itens 4.10.3 e 4.1.16; LM 8741/2008 Art. 81, XVI "b"' },
+    { id: 'pan41', text: 'Alimentos preparados, armazenados, aguardando transporte, congelados, devem estar identificados e protegidos contra contaminantes (identificação mínima: designação do produto, data de preparo e validade)', category: 'Alimentos', legislation: 'RDC 216/2004 itens 4.8.18 e/ou 4.9.1' },
+    { id: 'pan42', text: 'Os ingredientes e matérias primas usados nas preparações, após o uso devem ser adequadamente embalados, acondicionados, identificados e armazenados', category: 'Alimentos', legislation: 'RDC 216/2004 item 4.8.6' },
+    { id: 'pan43', text: 'Gelo que entra em contato com os alimentos: origem comprovada, fabricado com água potável, manipulado e armazenado de maneira protegida contra contaminantes', category: 'Alimentos', legislation: 'RDC 216/2004 item 4.4.2' },
+    { id: 'pan44', text: 'Descongelamento efetuado a 5°C ou em forno de micro-ondas. Vedado degelo de perecíveis à temperatura ambiente. Proibido recongelar', category: 'Alimentos', legislation: 'RDC 216/04 itens 4.8.3, 4.8.4' },
+    { id: 'pan45', text: 'Não fornecer ao consumidor ou utilizar na preparação de outros produtos alimentícios restos de alimentos, bem como sobras não monitoradas e registradas', category: 'Alimentos', legislation: 'LM 8741/2008 Art. 81 inc. XII' },
+    { id: 'pan46', text: 'Não preparar, transportar, armazenar, expor ao consumo, comercializar alimentos com micro-organismos patogênicos ou substâncias prejudiciais à saúde (*a), deteriorados ou alterados (*b), com aditivos proibidos ou nocivos à saúde (*c); com sujidade ou substâncias estranhas à sua composição natural (*d); de procedência clandestina ou sem comprovação de origem e qualidade (*e); sem o devido registro (*f); sem observação das condições necessárias à sua produção e/ou conservação (*g)', category: 'Alimentos', legislation: 'LM 8741/2008 Art. 81, inc. XVI' },
+    { id: 'pan47', text: 'Todos os alimentos expostos à venda deverão estar devidamente rotulados (doces, tortas, entre outros)', category: 'Alimentos', legislation: 'LM 8741/2008 Art. 81, inc. X' },
+    { id: 'pan48', text: 'Frutas, legumes e verduras: higienizadas com procedimentos e produtos validados pelo Ministério da Saúde', category: 'Alimentos', legislation: 'RDC 216/2004 item 4.8.19' },
+    { id: 'pan49', text: 'Não manipular ou armazenar alimentos em áreas externas ou adjacentes não destinadas a esse fim e nem reformar equipamentos ou área física juntamente com manipulação', category: 'Alimentos', legislation: 'RDC 216/2004 item 4.1.2' },
+    { id: 'pan50', text: 'Óleo de fritura: sem alteração de suas características (cor, odor, formação de espuma); não utilizar no preparo de outros alimentos. Após o uso: armazenar em recipientes rígidos; fora da área de manipulação, e ser vendido para empresas especializadas', category: 'Alimentos', legislation: 'RDC 216/2004 item 4.8.1' },
+    { id: 'pan51', text: 'Escovas e esponjas devem estar em bom estado de conservação e higiene', category: 'Higiene', legislation: 'RDC 216/2004 item 4.2.6' },
+    { id: 'pan52', text: 'Não utilizar panos convencionais, como panos de prato, para secagem das mãos e utensílios', category: 'Higiene', legislation: 'RDC 216/2004 item 4.1.14' },
+    { id: 'pan53', text: 'Controlar rigorosamente a validade dos alimentos', category: 'Alimentos', legislation: 'LM 8741/2008 Art. 81, inc. XII' },
+    { id: 'pan54', text: 'Produtos saneantes utilizados deverão estar regularizados pelo Ministério da Saúde', category: 'Higiene', legislation: 'RDC 216/2004 item 4.2.5' },
+    { id: 'pan55', text: 'Armazenar os produtos de limpeza em local específico e longe dos alimentos', category: 'Armazenamento', legislation: 'RDC 216/2004 item 4.2.5' },
+    { id: 'pan56', text: 'Manipuladores de alimentos: ausência de feridas, infecções cutâneas e outras doenças infecto contagiosas', category: 'Pessoal', legislation: 'RDC 216/2004 item 4.6.2' },
+    { id: 'pan57', text: 'Manipuladores de alimentos: asseio pessoal; não praticar atos que possam contaminar os alimentos; não usar barba; unhas devem ser curtas e sem esmalte; não usar adornos, perfume, maquiagem', category: 'Pessoal', legislation: 'RDC 216/2004 itens 4.6.3, 4.6.5' },
+    { id: 'pan58', text: 'Manipuladores: não realizar atividade de recebimento de dinheiro concomitantemente com manipulação de alimentos', category: 'Pessoal', legislation: 'RDC 216/2004 item 4.6.5' },
+    { id: 'pan59', text: 'Uso de uniformes, cor clara, compatíveis à atividade, conservados e limpos; e protetor para cabelos. Uso obrigatório de Equipamentos de Proteção Individual (EPI)', category: 'Pessoal', legislation: 'Portaria SESGO 1288/95 art. 7º XVI; RDC 216/2004 item 4.6.3' },
+    { id: 'pan60', text: 'Lavar cuidadosamente as mãos de maneira eficiente', category: 'Pessoal', legislation: 'RDC 216/2004 item 4.6.4' },
+  ]
+};
+
+// Adicionar panificadora ao array de templates
+checklistTemplates.push(checklistPanificadora);
