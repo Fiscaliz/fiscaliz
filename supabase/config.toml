@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.send-fiscal-document]
 verify_jwt = false
+
+[functions.consult-legislation]
+verify_jwt = false

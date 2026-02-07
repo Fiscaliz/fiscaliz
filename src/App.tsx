@@ -27,6 +27,7 @@ import MonthlyReports from "./pages/MonthlyReports";
 import DocumentDetail from "./pages/DocumentDetail";
 import Documents from "./pages/Documents";
 import PDFRedirect from "./pages/PDFRedirect";
+import ConsultAI from "./pages/ConsultAI";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -129,6 +130,11 @@ const App = () => (
               </ProtectedRoute>
             } />
             
+            <Route path="/consultar-ia" element={
+              <ProtectedRoute>
+                <ConsultAI />
+              </ProtectedRoute>
+            } />
             {/* Public PDF redirect route - no auth required */}
             <Route path="/pdf/:fileName" element={<PDFRedirect />} />
             
