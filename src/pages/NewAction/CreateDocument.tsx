@@ -207,7 +207,7 @@ export default function CreateDocument() {
   });
   const [apreensaoData, setApreensaoData] = useState<ApreensaoData>({
     produtos: [],
-    lacreNumero: '',
+    lacreNumeros: [''],
     destinacao: 'Os produtos lacrados serão enviados para sede da Vigilância Sanitária de Goiânia para posterior Inutilização.',
     fielDepositario: true,
     observacoes: '',
@@ -1079,7 +1079,7 @@ export default function CreateDocument() {
         action_date: documentDate || new Date().toISOString().split('T')[0],
         total_weight_kg: isInutilizacao ? inutilizacaoData.produtos.reduce((sum, p) => sum + (parseFloat(p.pesoKg) || 0), 0) : null,
         is_partial_interdiction: isInterdicao ? interdicaoData.tipoInterdicao === 'parcial' : null,
-        seal_number: isApreensao ? apreensaoData.lacreNumero : null,
+        seal_number: isApreensao ? apreensaoData.lacreNumeros.filter(l => l.trim()).join(', ') : null,
       };
 
       const { data: newDoc, error: docError } = await supabase
