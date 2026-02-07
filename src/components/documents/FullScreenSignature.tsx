@@ -215,11 +215,11 @@ export function FullScreenSignature({
           return;
         }
 
-        const { data: urlData } = supabase.storage
+        const { data: signedData } = await supabase.storage
           .from('fiscal-photos')
-          .getPublicUrl(fileName);
+          .createSignedUrl(fileName, 3600);
 
-        onSave(urlData.publicUrl);
+        onSave(signedData?.signedUrl || fileName);
         onClose();
         
         toast({

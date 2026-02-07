@@ -19,24 +19,25 @@ export default function PDFRedirect() {
       return;
     }
 
-    // Construir o caminho completo do arquivo
-    const filePath = `${userId}/${fileName}`;
-    
-    // Obter URL pública do storage
-    const { data } = supabase.storage
-      .from('fiscal-photos')
-      .getPublicUrl(filePath);
-    
-    if (data?.publicUrl) {
-      setStatus('redirecting');
-      // Pequeno delay para mostrar a tela de loading
-      setTimeout(() => {
-        window.location.href = data.publicUrl;
-      }, 500);
-    } else {
-      setStatus('error');
-      setErrorMessage('Documento não encontrado.');
-    }
+    const fetchSignedUrl = async () => {
+      const filePath = `${userId}/${fileName}`;
+      
+      const { data, error } = await supabase.storage
+        .from('fiscal-photos')
+        .createSignedUrl(filePath, 3600);
+      
+      if (data?.signedUrl) {
+        setStatus('redirecting');
+        setTimeout(() => {
+          window.location.href = data.signedUrl;
+        }, 500);
+      } else {
+        setStatus('error');
+        setErrorMessage(error?.message || 'Documento não encontrado. Faça login para acessar.');
+      }
+    };
+
+    fetchSignedUrl();
   }, [fileName, userId]);
 
   return (

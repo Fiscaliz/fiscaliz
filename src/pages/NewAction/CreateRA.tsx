@@ -57,12 +57,12 @@ export default function CreateRA() {
         
         if (uploadError) throw uploadError;
         
-        const { data: urlData } = supabase.storage
+        const { data: signedData } = await supabase.storage
           .from('fiscal-photos')
-          .getPublicUrl(fileName);
+          .createSignedUrl(fileName, 3600);
         
-        if (urlData?.publicUrl) {
-          uploadedUrls.push(urlData.publicUrl);
+        if (signedData?.signedUrl) {
+          uploadedUrls.push(signedData.signedUrl);
         }
       } catch (error) {
         console.error('Error uploading photo:', error);

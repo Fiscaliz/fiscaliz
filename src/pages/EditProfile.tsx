@@ -128,8 +128,8 @@ export default function EditProfile() {
       return;
     }
 
-    const { data: urlData } = supabase.storage.from('fiscal-photos').getPublicUrl(fileName);
-    setSignatureUrl(urlData.publicUrl);
+    const { data: signedData } = await supabase.storage.from('fiscal-photos').createSignedUrl(fileName, 3600);
+    setSignatureUrl(signedData?.signedUrl || fileName);
     setShowSignaturePad(false);
     toast({ title: 'Rubrica salva!', description: 'Clique em Salvar para confirmar as alterações.' });
   };
@@ -315,11 +315,11 @@ export default function EditProfile() {
                     
                     if (uploadError) throw uploadError;
                     
-                    const { data: urlData } = supabase.storage
+                    const { data: signedData } = await supabase.storage
                       .from('fiscal-photos')
-                      .getPublicUrl(fileName);
+                      .createSignedUrl(fileName, 3600);
                     
-                    setSignatureUrl(urlData.publicUrl);
+                    setSignatureUrl(signedData?.signedUrl || fileName);
                     toast({ 
                       title: 'Imagem de assinatura carregada!',
                       description: 'Clique em Salvar para confirmar as alterações.'

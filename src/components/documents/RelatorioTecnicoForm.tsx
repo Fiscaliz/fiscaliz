@@ -205,8 +205,8 @@ export function RelatorioTecnicoForm({
           throw uploadError;
         }
 
-        const { data: urlData } = supabase.storage.from('fiscal-photos').getPublicUrl(fileName);
-        return urlData?.publicUrl;
+        const { data: signedData } = await supabase.storage.from('fiscal-photos').createSignedUrl(fileName, 3600);
+        return signedData?.signedUrl;
       });
 
       // Wait for all uploads to complete in parallel
