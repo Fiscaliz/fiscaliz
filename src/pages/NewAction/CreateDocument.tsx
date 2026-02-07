@@ -185,6 +185,8 @@ export default function CreateDocument() {
     isAnalyzing: false,
   });
   const [coletaAmostraData, setColetaAmostraData] = useState<ColetaAmostraData>({
+    categoriaProduto: 'ALIMENTO',
+    produtos: [],
     amostras: [],
     laboratorio: '',
     motivoColeta: '',

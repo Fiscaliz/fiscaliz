@@ -17,33 +17,58 @@ import {
   Tag,
   Hash,
   Thermometer,
-  Building2
+  Building2,
+  Package,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export interface AmostraItem {
+// ============= Tipos =============
+
+export interface InvolucroItem {
+  numero: string;
+  lacreNumero: string;
+  unidades: string;
+  destino: 'LABORATÓRIO' | 'CONTRA PROVA' | '';
+}
+
+export interface ProdutoColetaData {
   id: string;
-  produto: string;
+  nome: string;
   marca: string;
+  natureza: string;
+  apresentacao: string;
+  dataFabricacao: string;
+  dataValidade: string;
   lote: string;
-  fabricacao: string;
-  validade: string;
-  quantidade: string;
-  unidade: string;
+  numeroRegistro: string;
+  volumePeso: string;
   temperatura: string;
-  lacre: string;
+  fabricante: string;
+  fabricanteCnpj: string;
+  fabricanteEndereco: string;
+  fabricanteLocalidade: string;
+  fabricanteMunicipio: string;
+  fabricanteUf: string;
+  fundamentacaoLegal: string;
+  tipoAnalise: string;
+  quantidadeInvolucros: string;
+  involucros: InvolucroItem[];
   observacoes: string;
 }
 
 export interface ColetaAmostraData {
-  amostras: AmostraItem[];
+  categoriaProduto: string;
+  produtos: ProdutoColetaData[];
+  documentDate: string;
+  documentTime: string;
+  // Legacy fields for backward compat
+  amostras: any[];
   laboratorio: string;
   motivoColeta: string;
   procedimentoColeta: string;
   condicaoArmazenamento: string;
   responsavelEntrega: string;
-  documentDate: string;
-  documentTime: string;
 }
 
 interface ColetaAmostraFormProps {
@@ -55,38 +80,55 @@ interface ColetaAmostraFormProps {
   onRemovePhoto: (index: number) => void;
 }
 
-const motivosColeta = [
-  'Programação rotineira de monitoramento',
-  'Denúncia de consumidor',
-  'Investigação de surto alimentar',
-  'Suspeita de irregularidade na composição',
-  'Verificação de rotulagem',
-  'Recoleta após resultado insatisfatório',
-  'Operação conjunta',
+// ============= Constantes =============
+
+const categoriasProduto = [
+  'ALIMENTO',
+  'MEDICAMENTO',
+  'CORRELATO',
+  'QUÍMICO',
+  'SANEANTE DOMISSANITÁRIO',
+  'OUTROS',
 ];
 
-const laboratorios = [
-  'LACEN-GO (Laboratório Central de Saúde Pública)',
-  'INCQS/FIOCRUZ',
-  'Laboratório Municipal',
-  'Laboratório credenciado - outro',
+const tiposAnalise = [
+  'Análise de Orientação',
+  'Análise Fiscal',
+  'Análise de Controle',
+  'Análise Prévia',
+  'Análise de Contraprova',
 ];
 
-const unidades = ['g', 'kg', 'mL', 'L', 'unidade(s)'];
-
-const createEmptyAmostra = (): AmostraItem => ({
-  id: `amostra_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-  produto: '',
+const createEmptyProduto = (): ProdutoColetaData => ({
+  id: `prod_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+  nome: '',
   marca: '',
+  natureza: '',
+  apresentacao: '',
+  dataFabricacao: '',
+  dataValidade: '',
   lote: '',
-  fabricacao: '',
-  validade: '',
-  quantidade: '',
-  unidade: 'g',
+  numeroRegistro: '',
+  volumePeso: '',
   temperatura: '',
-  lacre: '',
+  fabricante: '',
+  fabricanteCnpj: '',
+  fabricanteEndereco: '',
+  fabricanteLocalidade: '',
+  fabricanteMunicipio: '',
+  fabricanteUf: '',
+  fundamentacaoLegal: '',
+  tipoAnalise: '',
+  quantidadeInvolucros: '1',
+  involucros: [
+    { numero: '01', lacreNumero: '', unidades: '', destino: 'LABORATÓRIO' },
+    { numero: '02', lacreNumero: '', unidades: '', destino: '' },
+    { numero: '03', lacreNumero: '', unidades: '', destino: 'CONTRA PROVA' },
+  ],
   observacoes: '',
 });
+
+// ============= Componente =============
 
 export function ColetaAmostraForm({
   value,
@@ -96,199 +138,181 @@ export function ColetaAmostraForm({
   onCapturePhoto,
   onRemovePhoto,
 }: ColetaAmostraFormProps) {
-  const [expandedAmostra, setExpandedAmostra] = useState<string | null>(
-    value.amostras.length > 0 ? value.amostras[0].id : null
+  const [expandedProduto, setExpandedProduto] = useState<string | null>(
+    value.produtos?.length > 0 ? value.produtos[0].id : null
   );
 
   const updateField = <K extends keyof ColetaAmostraData>(field: K, fieldValue: ColetaAmostraData[K]) => {
     onChange({ ...value, [field]: fieldValue });
   };
 
-  const addAmostra = () => {
-    const nova = createEmptyAmostra();
-    updateField('amostras', [...value.amostras, nova]);
-    setExpandedAmostra(nova.id);
+  const addProduto = () => {
+    const novo = createEmptyProduto();
+    updateField('produtos', [...(value.produtos || []), novo]);
+    setExpandedProduto(novo.id);
   };
 
-  const removeAmostra = (id: string) => {
-    updateField('amostras', value.amostras.filter(a => a.id !== id));
-    if (expandedAmostra === id) setExpandedAmostra(null);
+  const removeProduto = (id: string) => {
+    updateField('produtos', (value.produtos || []).filter(p => p.id !== id));
+    if (expandedProduto === id) setExpandedProduto(null);
   };
 
-  const updateAmostra = (id: string, field: keyof AmostraItem, val: string) => {
-    updateField('amostras', value.amostras.map(a =>
-      a.id === id ? { ...a, [field]: val } : a
+  const updateProduto = (id: string, field: keyof ProdutoColetaData, val: any) => {
+    updateField('produtos', (value.produtos || []).map(p =>
+      p.id === id ? { ...p, [field]: val } : p
     ));
   };
 
+  const updateInvolucro = (produtoId: string, idx: number, field: keyof InvolucroItem, val: string) => {
+    const produto = (value.produtos || []).find(p => p.id === produtoId);
+    if (!produto) return;
+    const newInvolucros = [...produto.involucros];
+    newInvolucros[idx] = { ...newInvolucros[idx], [field]: val };
+    updateProduto(produtoId, 'involucros', newInvolucros);
+  };
+
+  const produtos = value.produtos || [];
+
   return (
     <div className="space-y-4">
-      {/* Informações do documento */}
+      {/* Header */}
       <Card className="border-0 shadow-sm border-l-4 border-l-secondary">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
             <Beaker className="h-5 w-5 text-secondary mt-0.5" />
             <div>
-              <p className="font-semibold text-sm text-secondary">Termo de Coleta de Amostra</p>
+              <p className="font-semibold text-sm text-secondary">Termo de Coleta para Análise</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Documento para coleta oficial de amostras para análise laboratorial. 
-                Preencha os dados de cada produto coletado.
+                Formulário oficial conforme modelo da Prefeitura de Goiânia - Coordenação de Fiscalização de Alimentos.
               </p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Motivo da Coleta */}
+      {/* Categoria do Produto */}
       <Card className="border-0 shadow-sm">
         <CardContent className="p-4 space-y-3">
           <div className="flex items-center gap-2">
             <FlaskConical className="h-4 w-4 text-primary" />
-            <Label className="text-sm font-medium">Motivo da Coleta</Label>
+            <Label className="text-sm font-medium">Categoria do Produto</Label>
           </div>
-          <div className="space-y-2">
-            {motivosColeta.map((motivo) => (
-              <label
-                key={motivo}
+          <div className="flex flex-wrap gap-2">
+            {categoriasProduto.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => updateField('categoriaProduto', cat)}
                 className={cn(
-                  'flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all text-sm',
-                  value.motivoColeta === motivo
-                    ? 'bg-primary/10 border border-primary/30'
-                    : 'hover:bg-muted/50'
+                  'px-3 py-1.5 rounded-lg text-xs font-medium border transition-all',
+                  value.categoriaProduto === cat
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-background border-border hover:bg-muted/50'
                 )}
               >
-                <input
-                  type="radio"
-                  name="motivoColeta"
-                  checked={value.motivoColeta === motivo}
-                  onChange={() => updateField('motivoColeta', motivo)}
-                  className="accent-primary"
-                />
-                <span>{motivo}</span>
-              </label>
+                {cat}
+              </button>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Laboratório Destino */}
-      <Card className="border-0 shadow-sm">
-        <CardContent className="p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-primary" />
-            <Label className="text-sm font-medium">Laboratório de Destino</Label>
-          </div>
-          <div className="space-y-2">
-            {laboratorios.map((lab) => (
-              <label
-                key={lab}
-                className={cn(
-                  'flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all text-sm',
-                  value.laboratorio === lab
-                    ? 'bg-primary/10 border border-primary/30'
-                    : 'hover:bg-muted/50'
-                )}
-              >
-                <input
-                  type="radio"
-                  name="laboratorio"
-                  checked={value.laboratorio === lab}
-                  onChange={() => updateField('laboratorio', lab)}
-                  className="accent-primary"
-                />
-                <span>{lab}</span>
-              </label>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Lista de Amostras */}
+      {/* Lista de Produtos */}
       <Card className="border-0 shadow-sm">
         <CardContent className="p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Tag className="h-4 w-4 text-primary" />
-              <Label className="text-sm font-medium">Amostras Coletadas</Label>
+              <Package className="h-4 w-4 text-primary" />
+              <Label className="text-sm font-medium">Produtos Coletados</Label>
             </div>
-            <span className="text-xs text-muted-foreground">{value.amostras.length} amostra(s)</span>
+            <span className="text-xs text-muted-foreground">{produtos.length} produto(s)</span>
           </div>
 
-          {value.amostras.map((amostra, idx) => (
+          {produtos.map((produto, idx) => (
             <Card
-              key={amostra.id}
+              key={produto.id}
               className={cn(
                 'border shadow-none transition-all',
-                expandedAmostra === amostra.id ? 'border-primary/50' : 'border-border'
+                expandedProduto === produto.id ? 'border-primary/50' : 'border-border'
               )}
             >
               <CardContent className="p-3 space-y-3">
-                {/* Header */}
+                {/* Header do Produto */}
                 <div className="flex items-center justify-between">
                   <button
                     type="button"
                     className="flex items-center gap-2 text-sm font-medium"
-                    onClick={() => setExpandedAmostra(expandedAmostra === amostra.id ? null : amostra.id)}
+                    onClick={() => setExpandedProduto(expandedProduto === produto.id ? null : produto.id)}
                   >
                     <Beaker className="h-4 w-4 text-secondary" />
-                    <span>Amostra {idx + 1}</span>
-                    {amostra.produto && (
-                      <span className="text-xs text-muted-foreground">- {amostra.produto}</span>
+                    <span>Produto {idx + 1}</span>
+                    {produto.nome && (
+                      <span className="text-xs text-muted-foreground">- {produto.nome}</span>
                     )}
                   </button>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-destructive hover:text-destructive"
-                    onClick={() => removeAmostra(amostra.id)}
+                    onClick={() => removeProduto(produto.id)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
 
-                {expandedAmostra === amostra.id && (
-                  <div className="space-y-3 pt-2 border-t">
-                    {/* Produto */}
+                {expandedProduto === produto.id && (
+                  <div className="space-y-4 pt-2 border-t">
+                    {/* 2- IDENTIFICAÇÃO DO PRODUTO */}
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">2- Identificação do Produto</p>
+                    
                     <div className="space-y-1">
-                      <Label className="text-xs">Produto / Descrição *</Label>
+                      <Label className="text-xs">Nome do Produto *</Label>
                       <Input
-                        placeholder="Ex: Leite integral UHT, Linguiça toscana..."
-                        value={amostra.produto}
-                        onChange={(e) => updateAmostra(amostra.id, 'produto', e.target.value)}
+                        placeholder="Ex: Espetinho de frango com bacon"
+                        value={produto.nome}
+                        onChange={(e) => updateProduto(produto.id, 'nome', e.target.value)}
                         className="text-sm"
                       />
                     </div>
 
-                    {/* Marca e Lote */}
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
                         <Label className="text-xs">Marca</Label>
                         <Input
-                          placeholder="Marca do produto"
-                          value={amostra.marca}
-                          onChange={(e) => updateAmostra(amostra.id, 'marca', e.target.value)}
+                          placeholder="Marca"
+                          value={produto.marca}
+                          onChange={(e) => updateProduto(produto.id, 'marca', e.target.value)}
                           className="text-sm"
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">Lote</Label>
+                        <Label className="text-xs">Natureza</Label>
                         <Input
-                          placeholder="Nº do lote"
-                          value={amostra.lote}
-                          onChange={(e) => updateAmostra(amostra.id, 'lote', e.target.value)}
+                          placeholder="Ex: Carne de frango"
+                          value={produto.natureza}
+                          onChange={(e) => updateProduto(produto.id, 'natureza', e.target.value)}
                           className="text-sm"
                         />
                       </div>
                     </div>
 
-                    {/* Fabricação e Validade */}
+                    <div className="space-y-1">
+                      <Label className="text-xs">Apresentação</Label>
+                      <Input
+                        placeholder="Ex: Assado, Congelado, In natura..."
+                        value={produto.apresentacao}
+                        onChange={(e) => updateProduto(produto.id, 'apresentacao', e.target.value)}
+                        className="text-sm"
+                      />
+                    </div>
+
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
                         <Label className="text-xs">Data Fabricação</Label>
                         <Input
                           type="date"
-                          value={amostra.fabricacao}
-                          onChange={(e) => updateAmostra(amostra.id, 'fabricacao', e.target.value)}
+                          value={produto.dataFabricacao}
+                          onChange={(e) => updateProduto(produto.id, 'dataFabricacao', e.target.value)}
                           className="text-sm"
                         />
                       </div>
@@ -296,74 +320,209 @@ export function ColetaAmostraForm({
                         <Label className="text-xs">Data Validade</Label>
                         <Input
                           type="date"
-                          value={amostra.validade}
-                          onChange={(e) => updateAmostra(amostra.id, 'validade', e.target.value)}
+                          value={produto.dataValidade}
+                          onChange={(e) => updateProduto(produto.id, 'dataValidade', e.target.value)}
                           className="text-sm"
                         />
                       </div>
                     </div>
 
-                    {/* Quantidade e Unidade */}
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                       <div className="space-y-1">
-                        <Label className="text-xs">Quantidade</Label>
+                        <Label className="text-xs">Lote</Label>
                         <Input
-                          type="number"
-                          placeholder="Qtd"
-                          value={amostra.quantidade}
-                          onChange={(e) => updateAmostra(amostra.id, 'quantidade', e.target.value)}
+                          placeholder="Lote"
+                          value={produto.lote}
+                          onChange={(e) => updateProduto(produto.id, 'lote', e.target.value)}
                           className="text-sm"
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">Unidade</Label>
-                        <select
-                          value={amostra.unidade}
-                          onChange={(e) => updateAmostra(amostra.id, 'unidade', e.target.value)}
-                          className="flex h-12 w-full rounded-xl border border-border/60 bg-background px-4 py-3 text-sm"
-                        >
-                          {unidades.map(u => (
-                            <option key={u} value={u}>{u}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Temperatura e Lacre */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <Label className="text-xs flex items-center gap-1">
-                          <Thermometer className="h-3 w-3" />
-                          Temperatura (°C)
-                        </Label>
+                        <Label className="text-xs">Nº Reg.</Label>
                         <Input
-                          placeholder="Ex: 5.2"
-                          value={amostra.temperatura}
-                          onChange={(e) => updateAmostra(amostra.id, 'temperatura', e.target.value)}
+                          placeholder="Nº Registro"
+                          value={produto.numeroRegistro}
+                          onChange={(e) => updateProduto(produto.id, 'numeroRegistro', e.target.value)}
                           className="text-sm"
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs flex items-center gap-1">
-                          <Hash className="h-3 w-3" />
-                          Nº do Lacre
-                        </Label>
+                        <Label className="text-xs">Volume/Peso</Label>
                         <Input
-                          placeholder="Nº lacre"
-                          value={amostra.lacre}
-                          onChange={(e) => updateAmostra(amostra.id, 'lacre', e.target.value)}
+                          placeholder="Ex: 152g"
+                          value={produto.volumePeso}
+                          onChange={(e) => updateProduto(produto.id, 'volumePeso', e.target.value)}
                           className="text-sm"
                         />
                       </div>
                     </div>
 
-                    {/* Observações da amostra */}
                     <div className="space-y-1">
-                      <Label className="text-xs">Observações da Amostra</Label>
+                      <Label className="text-xs flex items-center gap-1">
+                        <Thermometer className="h-3 w-3" />
+                        Temperatura (°C)
+                      </Label>
+                      <Input
+                        placeholder="Ex: 68°C"
+                        value={produto.temperatura}
+                        onChange={(e) => updateProduto(produto.id, 'temperatura', e.target.value)}
+                        className="text-sm"
+                      />
+                    </div>
+
+                    {/* Fabricante */}
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pt-2">Fabricante</p>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Nome/Razão Social</Label>
+                        <Input
+                          placeholder="Fabricante"
+                          value={produto.fabricante}
+                          onChange={(e) => updateProduto(produto.id, 'fabricante', e.target.value)}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">CNPJ</Label>
+                        <Input
+                          placeholder="CNPJ"
+                          value={produto.fabricanteCnpj}
+                          onChange={(e) => updateProduto(produto.id, 'fabricanteCnpj', e.target.value)}
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs">Endereço</Label>
+                      <Input
+                        placeholder="Endereço do fabricante"
+                        value={produto.fabricanteEndereco}
+                        onChange={(e) => updateProduto(produto.id, 'fabricanteEndereco', e.target.value)}
+                        className="text-sm"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Localidade/Setor</Label>
+                        <Input
+                          value={produto.fabricanteLocalidade}
+                          onChange={(e) => updateProduto(produto.id, 'fabricanteLocalidade', e.target.value)}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Município</Label>
+                        <Input
+                          value={produto.fabricanteMunicipio}
+                          onChange={(e) => updateProduto(produto.id, 'fabricanteMunicipio', e.target.value)}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">UF</Label>
+                        <Input
+                          maxLength={2}
+                          value={produto.fabricanteUf}
+                          onChange={(e) => updateProduto(produto.id, 'fabricanteUf', e.target.value.toUpperCase())}
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Fundamentação Legal */}
+                    <div className="space-y-1">
+                      <Label className="text-xs flex items-center gap-1">
+                        <FileText className="h-3 w-3" />
+                        Fundamentação Legal
+                      </Label>
+                      <Input
+                        placeholder="Ex: Lei Federal 6437/77 - Surto 02/26 (Ficha anexa)"
+                        value={produto.fundamentacaoLegal}
+                        onChange={(e) => updateProduto(produto.id, 'fundamentacaoLegal', e.target.value)}
+                        className="text-sm"
+                      />
+                    </div>
+
+                    {/* Tipo de Análise */}
+                    <div className="space-y-2">
+                      <Label className="text-xs">Tipo de Análise</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {tiposAnalise.map((tipo) => (
+                          <button
+                            key={tipo}
+                            type="button"
+                            onClick={() => updateProduto(produto.id, 'tipoAnalise', tipo)}
+                            className={cn(
+                              'px-2.5 py-1 rounded text-xs border transition-all',
+                              produto.tipoAnalise === tipo
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : 'bg-background border-border hover:bg-muted/50'
+                            )}
+                          >
+                            {tipo}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Invólucros */}
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pt-2">Invólucros</p>
+
+                    {produto.involucros.map((inv, invIdx) => (
+                      <div key={invIdx} className="grid grid-cols-4 gap-2 items-end">
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Invólucro {inv.numero}</Label>
+                          <div className="text-xs font-medium text-muted-foreground bg-muted/50 rounded px-2 py-2.5">
+                            Nº {inv.numero}
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] flex items-center gap-1">
+                            <Hash className="h-2.5 w-2.5" />
+                            Lacre Nº
+                          </Label>
+                          <Input
+                            placeholder="Nº lacre"
+                            value={inv.lacreNumero}
+                            onChange={(e) => updateInvolucro(produto.id, invIdx, 'lacreNumero', e.target.value)}
+                            className="text-sm h-9"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Unidades</Label>
+                          <Input
+                            type="number"
+                            placeholder="Qtd"
+                            value={inv.unidades}
+                            onChange={(e) => updateInvolucro(produto.id, invIdx, 'unidades', e.target.value)}
+                            className="text-sm h-9"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Destino</Label>
+                          <select
+                            value={inv.destino}
+                            onChange={(e) => updateInvolucro(produto.id, invIdx, 'destino', e.target.value)}
+                            className="flex h-9 w-full rounded-lg border border-border/60 bg-background px-2 text-[11px]"
+                          >
+                            <option value="">-</option>
+                            <option value="LABORATÓRIO">Laboratório</option>
+                            <option value="CONTRA PROVA">Contra Prova</option>
+                          </select>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Observações */}
+                    <div className="space-y-1">
+                      <Label className="text-xs">Observações</Label>
                       <Textarea
                         placeholder="Condições do produto, aparência, embalagem..."
-                        value={amostra.observacoes}
-                        onChange={(e) => updateAmostra(amostra.id, 'observacoes', e.target.value)}
+                        value={produto.observacoes}
+                        onChange={(e) => updateProduto(produto.id, 'observacoes', e.target.value)}
                         className="min-h-[60px] text-sm"
                       />
                     </div>
@@ -373,53 +532,10 @@ export function ColetaAmostraForm({
             </Card>
           ))}
 
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={addAmostra}
-          >
+          <Button variant="outline" className="w-full" onClick={addProduto}>
             <Plus className="h-4 w-4 mr-2" />
-            Adicionar Amostra
+            Adicionar Produto
           </Button>
-        </CardContent>
-      </Card>
-
-      {/* Procedimento de Coleta */}
-      <Card className="border-0 shadow-sm">
-        <CardContent className="p-4 space-y-3">
-          <Label className="text-sm font-medium">Procedimento de Coleta</Label>
-          <Textarea
-            placeholder="Descreva o procedimento de coleta utilizado (método, equipamentos, acondicionamento)..."
-            value={value.procedimentoColeta}
-            onChange={(e) => updateField('procedimentoColeta', e.target.value)}
-            className="min-h-[80px] text-sm"
-          />
-        </CardContent>
-      </Card>
-
-      {/* Condição de Armazenamento */}
-      <Card className="border-0 shadow-sm">
-        <CardContent className="p-4 space-y-3">
-          <Label className="text-sm font-medium">Condição de Armazenamento no Local</Label>
-          <Textarea
-            placeholder="Descreva as condições de armazenamento encontradas (temperatura, higiene, organização)..."
-            value={value.condicaoArmazenamento}
-            onChange={(e) => updateField('condicaoArmazenamento', e.target.value)}
-            className="min-h-[60px] text-sm"
-          />
-        </CardContent>
-      </Card>
-
-      {/* Responsável pela Entrega */}
-      <Card className="border-0 shadow-sm">
-        <CardContent className="p-4 space-y-3">
-          <Label className="text-sm font-medium">Responsável pela Entrega das Amostras</Label>
-          <Input
-            placeholder="Nome do responsável que entregou as amostras"
-            value={value.responsavelEntrega}
-            onChange={(e) => updateField('responsavelEntrega', e.target.value)}
-            className="text-sm"
-          />
         </CardContent>
       </Card>
 
@@ -456,21 +572,11 @@ export function ColetaAmostraForm({
           )}
 
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onCapturePhoto || onAddPhoto}
-              className="flex-1 h-12"
-            >
+            <Button variant="outline" size="sm" onClick={onCapturePhoto || onAddPhoto} className="flex-1 h-12">
               <Camera className="h-5 w-5 mr-2" />
               Capturar
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onAddPhoto}
-              className="flex-1 h-12"
-            >
+            <Button variant="outline" size="sm" onClick={onAddPhoto} className="flex-1 h-12">
               <FolderOpen className="h-5 w-5 mr-2" />
               Galeria
             </Button>
@@ -513,43 +619,52 @@ export function ColetaAmostraForm({
   );
 }
 
+// ============= Formatação para conteúdo =============
+
 export function formatColetaAmostraContent(data: ColetaAmostraData): string {
   const lines: string[] = [];
   
-  lines.push('TERMO DE COLETA DE AMOSTRA');
+  lines.push('TERMO DE COLETA PARA ANÁLISE');
   lines.push('');
   
-  if (data.motivoColeta) {
-    lines.push(`Motivo da Coleta: ${data.motivoColeta}`);
-  }
-  if (data.laboratorio) {
-    lines.push(`Laboratório de Destino: ${data.laboratorio}`);
+  if (data.categoriaProduto) {
+    lines.push(`Categoria: ${data.categoriaProduto}`);
   }
   lines.push('');
 
-  data.amostras.forEach((amostra, idx) => {
-    lines.push(`--- AMOSTRA ${idx + 1} ---`);
-    if (amostra.produto) lines.push(`Produto: ${amostra.produto}`);
-    if (amostra.marca) lines.push(`Marca: ${amostra.marca}`);
-    if (amostra.lote) lines.push(`Lote: ${amostra.lote}`);
-    if (amostra.fabricacao) lines.push(`Fabricação: ${amostra.fabricacao}`);
-    if (amostra.validade) lines.push(`Validade: ${amostra.validade}`);
-    if (amostra.quantidade) lines.push(`Quantidade: ${amostra.quantidade} ${amostra.unidade}`);
-    if (amostra.temperatura) lines.push(`Temperatura: ${amostra.temperatura}°C`);
-    if (amostra.lacre) lines.push(`Lacre nº: ${amostra.lacre}`);
-    if (amostra.observacoes) lines.push(`Observações: ${amostra.observacoes}`);
+  (data.produtos || []).forEach((produto, idx) => {
+    lines.push(`--- PRODUTO ${idx + 1} ---`);
+    if (produto.nome) lines.push(`Nome: ${produto.nome}`);
+    if (produto.marca) lines.push(`Marca: ${produto.marca}`);
+    if (produto.natureza) lines.push(`Natureza: ${produto.natureza}`);
+    if (produto.apresentacao) lines.push(`Apresentação: ${produto.apresentacao}`);
+    if (produto.dataFabricacao) lines.push(`Fabricação: ${produto.dataFabricacao}`);
+    if (produto.dataValidade) lines.push(`Validade: ${produto.dataValidade}`);
+    if (produto.lote) lines.push(`Lote: ${produto.lote}`);
+    if (produto.numeroRegistro) lines.push(`Nº Registro: ${produto.numeroRegistro}`);
+    if (produto.volumePeso) lines.push(`Volume/Peso: ${produto.volumePeso}`);
+    if (produto.temperatura) lines.push(`Temperatura: ${produto.temperatura}`);
+    
+    if (produto.fabricante) {
+      lines.push(`Fabricante: ${produto.fabricante}`);
+      if (produto.fabricanteCnpj) lines.push(`CNPJ Fabricante: ${produto.fabricanteCnpj}`);
+      if (produto.fabricanteEndereco) lines.push(`Endereço: ${produto.fabricanteEndereco}`);
+      const loc = [produto.fabricanteLocalidade, produto.fabricanteMunicipio, produto.fabricanteUf].filter(Boolean).join(', ');
+      if (loc) lines.push(`Local: ${loc}`);
+    }
+    
+    if (produto.fundamentacaoLegal) lines.push(`Fundamentação Legal: ${produto.fundamentacaoLegal}`);
+    if (produto.tipoAnalise) lines.push(`Tipo de Análise: ${produto.tipoAnalise}`);
+    
+    produto.involucros.forEach(inv => {
+      if (inv.lacreNumero || inv.unidades) {
+        lines.push(`Invólucro ${inv.numero}: Lacre nº ${inv.lacreNumero || 'N/A'} | ${inv.unidades || '-'} unidade(s) | Destino: ${inv.destino || '-'}`);
+      }
+    });
+
+    if (produto.observacoes) lines.push(`Observações: ${produto.observacoes}`);
     lines.push('');
   });
-
-  if (data.procedimentoColeta) {
-    lines.push(`Procedimento de Coleta: ${data.procedimentoColeta}`);
-  }
-  if (data.condicaoArmazenamento) {
-    lines.push(`Condição de Armazenamento: ${data.condicaoArmazenamento}`);
-  }
-  if (data.responsavelEntrega) {
-    lines.push(`Responsável pela Entrega: ${data.responsavelEntrega}`);
-  }
 
   return lines.join('\n');
 }
