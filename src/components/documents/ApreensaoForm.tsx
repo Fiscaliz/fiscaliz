@@ -26,7 +26,7 @@ export interface ProdutoApreendido {
 
 export interface ApreensaoData {
   produtos: ProdutoApreendido[];
-  lacreNumero: string;
+  lacreNumeros: string[];
   destinacao: string;
   fielDepositario: boolean;
   observacoes: string;
@@ -152,19 +152,36 @@ export function ApreensaoForm({
         </Card>
       )}
 
-      {/* Número do Lacre */}
+      {/* Lacres */}
       <Card className="border-0 shadow-sm">
-        <CardContent className="p-4 space-y-2">
-          <Label className="text-sm font-medium flex items-center gap-2">
-            <Hash className="h-4 w-4 text-warning" />
-            Nº do Lacre
-          </Label>
-          <Input 
-            placeholder="Número do lacre de apreensão" 
-            value={value.lacreNumero} 
-            onChange={(e) => updateField('lacreNumero', e.target.value)} 
-            className="text-sm border-warning/50" 
-          />
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <Hash className="h-4 w-4 text-warning" />
+              Lacres
+            </Label>
+            <span className="text-xs text-muted-foreground">{value.lacreNumeros.length} lacre(s)</span>
+          </div>
+          {value.lacreNumeros.map((lacre, idx) => (
+            <div key={idx} className="flex gap-2 items-center">
+              <Input
+                placeholder={`Nº do lacre ${idx + 1}`}
+                value={lacre}
+                onChange={(e) => {
+                  const updated = [...value.lacreNumeros];
+                  updated[idx] = e.target.value;
+                  updateField('lacreNumeros', updated);
+                }}
+                className="text-sm border-warning/50 flex-1"
+              />
+              <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive" onClick={() => updateField('lacreNumeros', value.lacreNumeros.filter((_, i) => i !== idx))}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+          <Button variant="outline" size="sm" className="w-full" onClick={() => updateField('lacreNumeros', [...value.lacreNumeros, ''])}>
+            <Plus className="h-4 w-4 mr-2" /> Adicionar Lacre
+          </Button>
         </CardContent>
       </Card>
 
@@ -355,7 +372,8 @@ export function ApreensaoForm({
 export function formatApreensaoContent(data: ApreensaoData): string {
   const lines: string[] = ['TERMO DE APREENSÃO', ''];
   
-  if (data.lacreNumero) lines.push(`Lacre nº: ${data.lacreNumero}`);
+  const lacresPreenchidos = data.lacreNumeros.filter(l => l.trim());
+  if (lacresPreenchidos.length > 0) lines.push(`Lacre(s) nº: ${lacresPreenchidos.join(', ')}`);
   lines.push(`Total de produtos apreendidos: ${data.produtos.length}`);
   lines.push('');
 
