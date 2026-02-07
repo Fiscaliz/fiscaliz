@@ -191,8 +191,22 @@ export default function MonthlyReport() {
   // OS (campos manuais que ainda são necessários)
   const [osNumber, setOsNumber] = useState('');
   const [daysToWork, setDaysToWork] = useState('');
-  const [osProgramadas, setOsProgramadas] = useState(''); // OS a Cumprir (Pontos Programados) - campo separado
   const [pfeDays, setPfeDays] = useState('');
+  
+  // Redução de Carga Horária
+  const [reducaoCargaHoraria, setReducaoCargaHoraria] = useState(false);
+  const [reducaoPercentual, setReducaoPercentual] = useState('');
+  
+  // OS a Cumprir calculado automaticamente: dias × 6, com redução se aplicável
+  const osProgramadas = useMemo(() => {
+    const dias = parseInt(daysToWork) || 0;
+    const base = dias * 6;
+    if (reducaoCargaHoraria && reducaoPercentual) {
+      const pct = parseFloat(reducaoPercentual) || 0;
+      return Math.floor(base * (1 - pct / 100));
+    }
+    return base;
+  }, [daysToWork, reducaoCargaHoraria, reducaoPercentual]);
   
   // Campos editáveis na prévia (valores calculados que podem ser ajustados)
   const [editedMplDays, setEditedMplDays] = useState<number | null>(null);
@@ -384,6 +398,9 @@ export default function MonthlyReport() {
 
   // OS Cumprida é igual aos pontos gerados (totalWithGrade) baseado nas OS agrupadas
   const osCumprida = totalPoints.totalWithGrade;
+  
+  // Meta atingida?
+  const metaAtingida = osProgramadas > 0 && osCumprida >= osProgramadas;
 
   // Valores finais (editados ou calculados)
   const finalMplDays = editedMplDays ?? calculatedStats.mplDays;
@@ -457,6 +474,16 @@ export default function MonthlyReport() {
       setLicenseEndDate(data.license_end_date ? new Date(data.license_end_date) : undefined);
       setLicenseAttachment(data.license_attachment_url || null);
       
+      // Carregar redução de carga horária do internal_activities
+      const internalAct = data.internal_activities as any;
+      if (internalAct?.reducao_carga_horaria) {
+        setReducaoCargaHoraria(true);
+        setReducaoPercentual(internalAct.reducao_percentual?.toString() || '');
+      } else {
+        setReducaoCargaHoraria(false);
+        setReducaoPercentual('');
+      }
+      
       if (data.documents_summary) {
         setDocumentSummary(data.documents_summary as unknown as DocumentSummary);
       }
@@ -482,6 +509,8 @@ export default function MonthlyReport() {
     setEditedCoDays(null);
     setEditedFieldDays(null);
     setEditedInternalDays(null);
+    setReducaoCargaHoraria(false);
+    setReducaoPercentual('');
   };
 
   const loadDocumentStats = async () => {
@@ -748,6 +777,10 @@ export default function MonthlyReport() {
         license_attachment_url: licenseAttachment,
         documents_summary: JSON.parse(JSON.stringify(documentSummary)),
         total_fiscalizations: Object.values(documentSummary).reduce((a, b) => a + b, 0),
+        internal_activities: {
+          reducao_carga_horaria: reducaoCargaHoraria,
+          reducao_percentual: reducaoCargaHoraria ? (parseFloat(reducaoPercentual) || 0) : null,
+        },
       };
 
       if (report?.id) {
@@ -970,20 +1003,18 @@ export default function MonthlyReport() {
                 <tr><td>Dias a Cumprir no Período</td><td>{daysToWork || 0}</td></tr>
                 <tr>
                   <td>OS a Cumprir (Pontos Programados)</td>
-                  <td className={editingPreview ? 'editable-field' : ''}>
-                    {editingPreview ? (
-                      <input
-                        type="number"
-                        value={osProgramadas}
-                        onChange={(e) => setOsProgramadas(e.target.value)}
-                        className="editable-input w-16"
-                      />
-                    ) : osProgramadas}
+                  <td className={metaAtingida ? '' : ''} style={metaAtingida ? { backgroundColor: '#dcfce7', fontWeight: 'bold' } : {}}>
+                    {osProgramadas}
+                    {reducaoCargaHoraria && reducaoPercentual && (
+                      <span style={{ fontSize: '8pt', color: '#666', marginLeft: '4px' }}>
+                        (Red. {reducaoPercentual}%)
+                      </span>
+                    )}
                   </td>
                 </tr>
                 <tr>
                   <td>OS Cumprida (Pontos Gerados)</td>
-                  <td className="font-bold">{osCumprida}</td>
+                  <td className="font-bold" style={metaAtingida ? { backgroundColor: '#dcfce7' } : {}}>{osCumprida}</td>
                 </tr>
                 <tr>
                   <td>Fiscalização em Área</td>
@@ -1198,17 +1229,30 @@ export default function MonthlyReport() {
             <div className="section-title">TABELA DE PONTOS - CUMPRIMENTO DA OS MENSAL</div>
             
             {/* Resumo de OS */}
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-xs">
+            <div className="mb-4 p-3 rounded text-xs" style={{ 
+              backgroundColor: metaAtingida ? '#dcfce7' : '#eff6ff',
+              border: metaAtingida ? '2px solid #22c55e' : '1px solid #bfdbfe'
+            }}>
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="font-bold text-blue-900">OS a Cumprir (Programadas):</p>
-                  <p className="text-lg font-bold text-blue-700">{osProgramadas} pontos</p>
+                  <p className="font-bold" style={{ color: metaAtingida ? '#166534' : '#1e3a5f' }}>OS a Cumprir (Programadas):</p>
+                  <p className="text-lg font-bold" style={{ color: metaAtingida ? '#15803d' : '#1d4ed8' }}>
+                    {osProgramadas} pontos
+                    {reducaoCargaHoraria && reducaoPercentual && (
+                      <span style={{ fontSize: '9pt', fontWeight: 'normal', marginLeft: '4px' }}>
+                        (Red. {reducaoPercentual}%)
+                      </span>
+                    )}
+                  </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-green-900">OS Cumprida (Geradas):</p>
-                  <p className="text-lg font-bold text-green-700">{osCumprida} pontos</p>
+                  <p className="font-bold" style={{ color: metaAtingida ? '#166534' : '#14532d' }}>OS Cumprida (Geradas):</p>
+                  <p className="text-lg font-bold" style={{ color: metaAtingida ? '#15803d' : '#15803d' }}>{osCumprida} pontos</p>
                 </div>
               </div>
+              {metaAtingida && (
+                <p className="text-center mt-2 font-bold" style={{ color: '#15803d' }}>✅ META ATINGIDA</p>
+              )}
             </div>
 
             {/* Legenda de Risco - Tabela Anvisa */}
@@ -1802,27 +1846,72 @@ export default function MonthlyReport() {
                   </div>
                 </div>
                 
-                {/* OS a Cumprir e OS Cumprida */}
+                {/* OS a Cumprir (calculado automaticamente) e OS Cumprida */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="osProgramadas">OS a Cumprir (Pontos)</Label>
-                    <Input
-                      id="osProgramadas"
-                      type="number"
-                      value={osProgramadas}
-                      onChange={(e) => setOsProgramadas(e.target.value)}
-                      placeholder="Pontos programados"
-                      disabled={isLocked}
-                      className="mt-1"
-                    />
+                    <Label>OS a Cumprir (Pontos)</Label>
+                    <div className={cn(
+                      "mt-1 p-2 rounded-lg text-center",
+                      metaAtingida ? "bg-success/15 border-2 border-success" : "bg-muted/50"
+                    )}>
+                      <span className={cn("text-lg font-bold", metaAtingida ? "text-success" : "text-foreground")}>{osProgramadas}</span>
+                      <p className="text-[10px] text-muted-foreground">
+                        {daysToWork ? `${daysToWork} dias × 6${reducaoCargaHoraria && reducaoPercentual ? ` - ${reducaoPercentual}%` : ''}` : 'Preencha dias a cumprir'}
+                      </p>
+                    </div>
                   </div>
                   <div>
                     <Label>OS Cumprida (Pontos)</Label>
-                    <div className="mt-1 p-2 bg-success/10 rounded-lg text-center">
-                      <span className="text-lg font-bold text-success">{osCumprida}</span>
+                    <div className={cn(
+                      "mt-1 p-2 rounded-lg text-center",
+                      metaAtingida ? "bg-success/15 border-2 border-success" : "bg-muted/50"
+                    )}>
+                      <span className={cn("text-lg font-bold", metaAtingida ? "text-success" : "text-foreground")}>{osCumprida}</span>
                       <p className="text-[10px] text-muted-foreground">Calculado automaticamente</p>
                     </div>
                   </div>
+                </div>
+
+                {/* Redução de Carga Horária */}
+                <div className={cn(
+                  "p-4 rounded-lg border-2 transition-all",
+                  reducaoCargaHoraria ? "border-primary bg-primary/5" : "border-muted"
+                )}>
+                  <div 
+                    className="flex items-center gap-3 cursor-pointer"
+                    onClick={() => !isLocked && setReducaoCargaHoraria(!reducaoCargaHoraria)}
+                  >
+                    <Checkbox 
+                      checked={reducaoCargaHoraria}
+                      disabled={isLocked}
+                    />
+                    <span className="font-medium text-sm">Redução de Carga Horária</span>
+                  </div>
+                  
+                  {reducaoCargaHoraria && (
+                    <div className="mt-3 pl-7">
+                      <Label htmlFor="reducaoPercentual" className="text-xs">Percentual de Redução (%)</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Input
+                          id="reducaoPercentual"
+                          type="number"
+                          value={reducaoPercentual}
+                          onChange={(e) => setReducaoPercentual(e.target.value)}
+                          placeholder="Ex: 20"
+                          disabled={isLocked}
+                          className="w-24"
+                          min="1"
+                          max="100"
+                        />
+                        <span className="text-sm text-muted-foreground">%</span>
+                      </div>
+                      {daysToWork && reducaoPercentual && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Cálculo: {daysToWork} × 6 = {(parseInt(daysToWork) || 0) * 6} → com {reducaoPercentual}% de redução = <strong>{osProgramadas}</strong>
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
                 
                 <div>
