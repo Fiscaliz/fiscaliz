@@ -38,6 +38,7 @@ import { ptBR } from 'date-fns/locale';
 import { BRASAO_GOIANIA_SVG, SUS_LOGO_SVG, FISCALIZ_LOGO } from '@/lib/logos';
 import { SignatureCanvas } from './SignatureCanvas';
 import { FullScreenSignature } from './FullScreenSignature';
+import { ColetaAmostraPDF } from './ColetaAmostraPDF';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
@@ -921,6 +922,45 @@ _Enviado via FISCALIZ®_`;
   const formatDateFull = (dateStr: string) => {
     return format(new Date(dateStr), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
   };
+
+  // PDF Preview - Layout específico para Coleta de Amostra
+  const isColetaAmostra = document.document_type === 'coleta_amostra';
+
+  if (showPDFPreview && isColetaAmostra) {
+    return (
+      <div ref={pdfPreviewRef} className="min-h-screen bg-white text-black print:text-black pdf-preview-container" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11pt' }}>
+        <style>{`
+          @media print {
+            body { margin: 0; padding: 0; }
+            .no-print { display: none !important; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          }
+          @media screen {
+            .pdf-preview-container { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; overflow: auto; }
+          }
+        `}</style>
+        <ColetaAmostraPDF
+          document={document}
+          documentDate={documentDate}
+          documentTime={documentTime}
+          contributorSignatureUrl={contributorSignatureUrl}
+          prepostoName={prepostoName}
+          prepostoCpf={prepostoCpf}
+        />
+        {/* Botões (ocultos na impressão) */}
+        <div className="no-print fixed bottom-4 right-4 flex gap-2">
+          <Button variant="outline" onClick={() => setShowPDFPreview(false)}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar
+          </Button>
+          <Button onClick={() => window.print()}>
+            <Printer className="h-4 w-4 mr-2" />
+            Imprimir PDF
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // PDF Preview - Layout oficial igual ao modelo de Certidão
   if (showPDFPreview) {
