@@ -4,14 +4,14 @@ import {
   FileText, 
   BarChart3, 
   User,
-  ClipboardList
+  Scale
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { to: '/', icon: Home, label: 'Início' },
   { to: '/nova-acao', icon: FileText, label: 'Ação' },
-  { to: '/relatorios-mensais', icon: ClipboardList, label: 'Relatórios' },
+  { to: '/consultar-ia', icon: Scale, label: 'Consultar' },
   { to: '/dashboard', icon: BarChart3, label: 'Dashboard' },
   { to: '/perfil', icon: User, label: 'Perfil' },
 ];
