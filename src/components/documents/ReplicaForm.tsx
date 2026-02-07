@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageSquare, Calendar, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { MessageSquare, Calendar, Clock, Camera, FolderOpen, X, FileText } from 'lucide-react';
 
 export interface ReplicaData {
   documentoOrigem: string;
@@ -18,6 +20,10 @@ export interface ReplicaData {
 interface ReplicaFormProps {
   value: ReplicaData;
   onChange: (data: ReplicaData) => void;
+  defesaPhotos?: { id: string; previewUrl: string }[];
+  onAddDefesaPhoto?: () => void;
+  onCaptureDefesaPhoto?: () => void;
+  onRemoveDefesaPhoto?: (index: number) => void;
 }
 
 const conclusaoOptions = [
@@ -26,7 +32,7 @@ const conclusaoOptions = [
   { id: 'procedente', label: 'Defesa PROCEDENTE - Cancelamento da penalidade' },
 ];
 
-export function ReplicaForm({ value, onChange }: ReplicaFormProps) {
+export function ReplicaForm({ value, onChange, defesaPhotos = [], onAddDefesaPhoto, onCaptureDefesaPhoto, onRemoveDefesaPhoto }: ReplicaFormProps) {
   const updateField = <K extends keyof ReplicaData>(field: K, val: ReplicaData[K]) => {
     onChange({ ...value, [field]: val });
   };
@@ -64,13 +70,76 @@ export function ReplicaForm({ value, onChange }: ReplicaFormProps) {
         </CardContent>
       </Card>
 
-      {/* Resumo e Análise da Defesa */}
+      {/* Resumo da Defesa com Upload de Foto */}
       <Card className="border-0 shadow-sm">
         <CardContent className="p-4 space-y-3">
-          <div className="space-y-1">
+          <div className="flex items-center justify-between">
             <Label className="text-sm font-medium">Resumo da Defesa Apresentada</Label>
-            <Textarea placeholder="Resuma os argumentos apresentados pelo autuado em sua defesa..." value={value.resumoDefesa} onChange={(e) => updateField('resumoDefesa', e.target.value)} className="min-h-[100px] text-sm" />
+            {defesaPhotos.length > 0 && (
+              <span className="text-xs text-muted-foreground">{defesaPhotos.length} foto(s)</span>
+            )}
           </div>
+
+          <p className="text-xs text-muted-foreground">
+            Fotografe ou anexe a peça de defesa para consulta rápida, e resuma os argumentos abaixo.
+          </p>
+
+          {/* Fotos da defesa */}
+          {defesaPhotos.length > 0 && (
+            <div className="grid grid-cols-3 gap-2">
+              {defesaPhotos.map((photo, idx) => (
+                <div key={photo.id} className="relative aspect-[3/4] rounded-lg overflow-hidden border border-border">
+                  <img src={photo.previewUrl} alt={`Defesa ${idx + 1}`} className="w-full h-full object-cover" />
+                  {onRemoveDefesaPhoto && (
+                    <button
+                      onClick={() => onRemoveDefesaPhoto(idx)}
+                      className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {(onAddDefesaPhoto || onCaptureDefesaPhoto) && (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onCaptureDefesaPhoto || onAddDefesaPhoto}
+                className="flex-1 h-10"
+                type="button"
+              >
+                <Camera className="h-4 w-4 mr-2" />
+                Fotografar Defesa
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onAddDefesaPhoto}
+                className="flex-1 h-10"
+                type="button"
+              >
+                <FolderOpen className="h-4 w-4 mr-2" />
+                Anexar Arquivo
+              </Button>
+            </div>
+          )}
+
+          <Textarea 
+            placeholder="Resuma os argumentos apresentados pelo autuado em sua defesa..." 
+            value={value.resumoDefesa} 
+            onChange={(e) => updateField('resumoDefesa', e.target.value)} 
+            className="min-h-[100px] text-sm" 
+          />
+        </CardContent>
+      </Card>
+
+      {/* Análise Técnica */}
+      <Card className="border-0 shadow-sm">
+        <CardContent className="p-4 space-y-3">
           <div className="space-y-1">
             <Label className="text-sm font-medium">Análise Técnica da Defesa *</Label>
             <Textarea placeholder="Analise ponto a ponto os argumentos da defesa, fundamentando tecnicamente cada resposta..." value={value.analiseDefesa} onChange={(e) => updateField('analiseDefesa', e.target.value)} className="min-h-[150px] text-sm" />

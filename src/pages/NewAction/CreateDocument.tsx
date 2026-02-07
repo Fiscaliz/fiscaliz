@@ -268,6 +268,9 @@ export default function CreateDocument() {
   const apreensaoCameraRef = useRef<HTMLInputElement>(null);
   const interdicaoFileInputRef = useRef<HTMLInputElement>(null);
   const interdicaoCameraRef = useRef<HTMLInputElement>(null);
+  const replicaDefesaFileInputRef = useRef<HTMLInputElement>(null);
+  const replicaDefesaCameraRef = useRef<HTMLInputElement>(null);
+  const [defesaPhotos, setDefesaPhotos] = useState<{ id: string; file: File; previewUrl: string }[]>([]);
 
   // Auto-save state
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
@@ -1752,7 +1755,43 @@ export default function CreateDocument() {
                 </div>
               </CardContent>
             </Card>
-            <ReplicaForm value={replicaData} onChange={setReplicaData} />
+            <input ref={replicaDefesaFileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => {
+              if (e.target.files) {
+                const newPhotos = Array.from(e.target.files).map(file => ({
+                  id: `defesa_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+                  file,
+                  previewUrl: URL.createObjectURL(file),
+                }));
+                setDefesaPhotos(prev => [...prev, ...newPhotos]);
+              }
+              e.target.value = '';
+            }} />
+            <input ref={replicaDefesaCameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => {
+              if (e.target.files) {
+                const newPhotos = Array.from(e.target.files).map(file => ({
+                  id: `defesa_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+                  file,
+                  previewUrl: URL.createObjectURL(file),
+                }));
+                setDefesaPhotos(prev => [...prev, ...newPhotos]);
+              }
+              e.target.value = '';
+            }} />
+            <ReplicaForm 
+              value={replicaData} 
+              onChange={setReplicaData}
+              defesaPhotos={defesaPhotos.map(p => ({ id: p.id, previewUrl: p.previewUrl }))}
+              onAddDefesaPhoto={() => replicaDefesaFileInputRef.current?.click()}
+              onCaptureDefesaPhoto={() => replicaDefesaCameraRef.current?.click()}
+              onRemoveDefesaPhoto={(idx) => {
+                setDefesaPhotos(prev => {
+                  const updated = [...prev];
+                  URL.revokeObjectURL(updated[idx].previewUrl);
+                  updated.splice(idx, 1);
+                  return updated;
+                });
+              }}
+            />
             <Button className="w-full" onClick={handleSave} disabled={!replicaData.analiseDefesa.trim() || saving}>
               {saving ? 'Salvando...' : 'Salvar Réplica'}
             </Button>
