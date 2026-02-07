@@ -193,6 +193,13 @@ export default function MonthlyReport() {
   const [daysToWork, setDaysToWork] = useState('');
   const [pfeDays, setPfeDays] = useState('');
   
+  // PFE detalhado: lista de plantões com data e período
+  interface PFEEntry {
+    date: string; // YYYY-MM-DD
+    period: '12' | '24'; // 12h dia de semana, 24h fim de semana/feriado
+  }
+  const [pfeEntries, setPfeEntries] = useState<PFEEntry[]>([]);
+  
   // Redução de Carga Horária
   const [reducaoCargaHoraria, setReducaoCargaHoraria] = useState(false);
   const [reducaoPercentual, setReducaoPercentual] = useState('');
@@ -469,7 +476,13 @@ export default function MonthlyReport() {
       setOsNumber(data.os_number || '');
       setDaysToWork(data.days_to_work?.toString() || '');
       setPfeDays(data.pfe_days?.toString() || '');
-      setSelectedLicenseType(data.license_type || null);
+      // Carregar PFE entries
+      const internalActData = data.internal_activities as any;
+      if (internalActData?.pfe_entries && Array.isArray(internalActData.pfe_entries)) {
+        setPfeEntries(internalActData.pfe_entries);
+      } else {
+        setPfeEntries([]);
+      }
       setLicenseStartDate(data.license_start_date ? new Date(data.license_start_date) : undefined);
       setLicenseEndDate(data.license_end_date ? new Date(data.license_end_date) : undefined);
       setLicenseAttachment(data.license_attachment_url || null);
@@ -499,6 +512,7 @@ export default function MonthlyReport() {
     setOsNumber('');
     setDaysToWork('');
     setPfeDays('');
+    setPfeEntries([]);
     setSelectedLicenseType(null);
     setLicenseStartDate(undefined);
     setLicenseEndDate(undefined);
@@ -691,9 +705,15 @@ export default function MonthlyReport() {
         // Escala (Plantão Fiscal1 como padrão)
         const scale = content.scale || 'Plantão Fiscal1';
         
-        // Número do documento
+        // Número do documento - formato simplificado: "VF 8776"
         const docAbbrev = documentTypeAbbreviation[doc.document_type] || 'DOC';
-        const documentNumber = doc.document_number || docAbbrev;
+        // Extrair apenas o número sequencial do document_number (ex: JA977-TI-000001 → 1, ou TI-000042 → 42)
+        let seqNum = '';
+        if (doc.document_number) {
+          const match = doc.document_number.match(/(\d+)$/);
+          seqNum = match ? String(parseInt(match[1], 10)) : doc.document_number;
+        }
+        const documentNumber = seqNum ? `${docAbbrev} ${seqNum}` : docAbbrev;
         
         return {
           id: doc.id,
@@ -777,10 +797,11 @@ export default function MonthlyReport() {
         license_attachment_url: licenseAttachment,
         documents_summary: JSON.parse(JSON.stringify(documentSummary)),
         total_fiscalizations: Object.values(documentSummary).reduce((a, b) => a + b, 0),
-        internal_activities: {
+        internal_activities: JSON.parse(JSON.stringify({
           reducao_carga_horaria: reducaoCargaHoraria,
           reducao_percentual: reducaoCargaHoraria ? (parseFloat(reducaoPercentual) || 0) : null,
-        },
+          pfe_entries: pfeEntries,
+        })),
       };
 
       if (report?.id) {
@@ -1042,7 +1063,18 @@ export default function MonthlyReport() {
                     ) : finalInternalDays}
                   </td>
                 </tr>
-                <tr><td>Plantão Fiscal Especial (PFE)</td><td>{pfeDays || 0}</td></tr>
+                <tr><td>Plantão Fiscal Especial (PFE)</td><td>{pfeDays || pfeEntries.length || 0}</td></tr>
+                {pfeEntries.length > 0 && pfeEntries.map((pfe, idx) => {
+                  const pfeDate = pfe.date ? format(new Date(pfe.date + 'T12:00:00'), 'dd/MM/yyyy') : '-';
+                  const dayOfWeek = pfe.date ? new Date(pfe.date + 'T12:00:00').getDay() : 1;
+                  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                  return (
+                    <tr key={`pfe-${idx}`} style={{ fontSize: '9pt', color: '#444' }}>
+                      <td style={{ paddingLeft: '20px' }}>↳ PFE {idx + 1}: {pfeDate} ({isWeekend ? 'Fim de Semana' : 'Dia de Semana'})</td>
+                      <td>{pfe.period}h</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -1101,7 +1133,7 @@ export default function MonthlyReport() {
                   <th style={{ width: '50px', textAlign: 'center' }}>Niv.Gr.</th>
                   <th>Estabelecimento/Descrição</th>
                   <th style={{ width: '45px', textAlign: 'center' }}>Cód.</th>
-                  <th style={{ width: '100px' }}>Atividade Econômica/Tipo de Ação</th>
+                  <th style={{ width: '100px' }}>Atividade Econômica</th>
                   <th style={{ width: '80px', textAlign: 'center' }}>Doc.Em.</th>
                   
                 </tr>
@@ -1924,15 +1956,76 @@ export default function MonthlyReport() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="pfeDays">Plantão Fiscal Especial (PFE)</Label>
-                  <Input
-                    id="pfeDays"
-                    type="number"
-                    value={pfeDays}
-                    onChange={(e) => setPfeDays(e.target.value)}
-                    disabled={isLocked}
-                    className="mt-1"
-                  />
+                  <Label>Plantão Fiscal Especial (PFE)</Label>
+                  <p className="text-xs text-muted-foreground mb-2">Adicione cada plantão com data e período.</p>
+                  
+                  {pfeEntries.map((pfe, idx) => {
+                    const dayOfWeek = pfe.date ? new Date(pfe.date + 'T12:00:00').getDay() : 1;
+                    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                    return (
+                      <div key={idx} className="flex items-center gap-2 mb-2">
+                        <Input
+                          type="date"
+                          value={pfe.date}
+                          onChange={(e) => {
+                            const newEntries = [...pfeEntries];
+                            const newDate = e.target.value;
+                            const newDay = newDate ? new Date(newDate + 'T12:00:00').getDay() : 1;
+                            const autoWeekend = newDay === 0 || newDay === 6;
+                            newEntries[idx] = { date: newDate, period: autoWeekend ? '24' : '12' };
+                            setPfeEntries(newEntries);
+                            setPfeDays(newEntries.length.toString());
+                          }}
+                          disabled={isLocked}
+                          className="flex-1"
+                        />
+                        <select
+                          value={pfe.period}
+                          onChange={(e) => {
+                            const newEntries = [...pfeEntries];
+                            newEntries[idx] = { ...pfe, period: e.target.value as '12' | '24' };
+                            setPfeEntries(newEntries);
+                          }}
+                          disabled={isLocked}
+                          className="border rounded-md px-2 py-2 text-sm bg-background w-24"
+                        >
+                          <option value="12">12h</option>
+                          <option value="24">24h</option>
+                        </select>
+                        <Badge variant="outline" className="text-[10px] whitespace-nowrap">
+                          {isWeekend ? 'FDS' : 'Sem.'}
+                        </Badge>
+                        {!isLocked && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-destructive"
+                            onClick={() => {
+                              const newEntries = pfeEntries.filter((_, i) => i !== idx);
+                              setPfeEntries(newEntries);
+                              setPfeDays(newEntries.length.toString());
+                            }}
+                          >
+                            ×
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                  
+                  {!isLocked && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-1"
+                      onClick={() => {
+                        setPfeEntries([...pfeEntries, { date: '', period: '12' }]);
+                        setPfeDays((pfeEntries.length + 1).toString());
+                      }}
+                    >
+                      + Adicionar PFE
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
