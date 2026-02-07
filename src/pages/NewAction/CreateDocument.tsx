@@ -50,6 +50,13 @@ import { DocumentCommonFields } from '@/components/documents/DocumentCommonField
 import { VisitaFiscalForm, formatVisitaFiscalContent, type VisitaFiscalData } from '@/components/documents/VisitaFiscalForm';
 import { AutoInfracaoForm, formatAutoInfracaoContent, type AutoInfracaoData } from '@/components/documents/AutoInfracaoForm';
 import { RelatorioTecnicoForm, formatRelatorioTecnicoContent, type RelatorioTecnicoData } from '@/components/documents/RelatorioTecnicoForm';
+import { ColetaAmostraForm, formatColetaAmostraContent, type ColetaAmostraData } from '@/components/documents/ColetaAmostraForm';
+import { InutilizacaoForm, formatInutilizacaoContent, type InutilizacaoData } from '@/components/documents/InutilizacaoForm';
+import { ApreensaoForm, formatApreensaoContent, type ApreensaoData } from '@/components/documents/ApreensaoForm';
+import { InterdicaoForm, formatInterdicaoContent, type InterdicaoData } from '@/components/documents/InterdicaoForm';
+import { AdvertenciaForm, formatAdvertenciaContent, type AdvertenciaData } from '@/components/documents/AdvertenciaForm';
+import { NotificacaoForm, formatNotificacaoContent, type NotificacaoData } from '@/components/documents/NotificacaoForm';
+import { ReplicaForm, formatReplicaContent, type ReplicaData } from '@/components/documents/ReplicaForm';
 import { TransportModeSelector } from '@/components/documents/TransportModeSelector';
 import { clearDraftByKey } from '@/hooks/useAutoSaveDraft';
 
@@ -173,6 +180,72 @@ export default function CreateDocument() {
     aiAnalysisResult: '',
     isAnalyzing: false,
   });
+  const [coletaAmostraData, setColetaAmostraData] = useState<ColetaAmostraData>({
+    amostras: [],
+    laboratorio: '',
+    motivoColeta: '',
+    procedimentoColeta: '',
+    condicaoArmazenamento: '',
+    responsavelEntrega: '',
+    documentDate: new Date().toISOString().split('T')[0],
+    documentTime: new Date().toTimeString().slice(0, 5),
+  });
+  const [inutilizacaoData, setInutilizacaoData] = useState<InutilizacaoData>({
+    produtos: [],
+    metodoInutilizacao: '',
+    localInutilizacao: '',
+    testemunhas: '',
+    justificativa: '',
+    documentDate: new Date().toISOString().split('T')[0],
+    documentTime: new Date().toTimeString().slice(0, 5),
+  });
+  const [apreensaoData, setApreensaoData] = useState<ApreensaoData>({
+    produtos: [],
+    fundamentacaoLegal: '',
+    localDeposito: '',
+    prazoRetirada: '',
+    responsavelGuarda: '',
+    observacoes: '',
+    documentDate: new Date().toISOString().split('T')[0],
+    documentTime: new Date().toTimeString().slice(0, 5),
+  });
+  const [interdicaoData, setInterdicaoData] = useState<InterdicaoData>({
+    tipoInterdicao: '',
+    areasInterditadas: '',
+    motivoInterdicao: '',
+    fundamentacaoLegal: '',
+    condicoesDesinterdicao: '',
+    lacreNumero: '',
+    observacoes: '',
+    documentDate: new Date().toISOString().split('T')[0],
+    documentTime: new Date().toTimeString().slice(0, 5),
+  });
+  const [advertenciaData, setAdvertenciaData] = useState<AdvertenciaData>({
+    irregularidades: [],
+    prazo: '',
+    fundamentacaoLegal: '',
+    orientacoes: '',
+    documentDate: new Date().toISOString().split('T')[0],
+    documentTime: new Date().toTimeString().slice(0, 5),
+  });
+  const [notificacaoData, setNotificacaoData] = useState<NotificacaoData>({
+    assunto: '',
+    conteudo: '',
+    fundamentacaoLegal: '',
+    prazoResposta: '',
+    documentDate: new Date().toISOString().split('T')[0],
+    documentTime: new Date().toTimeString().slice(0, 5),
+  });
+  const [replicaData, setReplicaData] = useState<ReplicaData>({
+    documentoOrigem: '',
+    numeroProcesso: '',
+    resumoDefesa: '',
+    analiseDefesa: '',
+    conclusao: '',
+    fundamentacaoLegal: '',
+    documentDate: new Date().toISOString().split('T')[0],
+    documentTime: new Date().toTimeString().slice(0, 5),
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const aiFileInputRef = useRef<HTMLInputElement>(null);
   const aiCameraInputRef = useRef<HTMLInputElement>(null);
@@ -181,6 +254,14 @@ export default function CreateDocument() {
   const autoInfracaoFileInputRef = useRef<HTMLInputElement>(null);
   const relatorioTecnicoFileInputRef = useRef<HTMLInputElement>(null);
   const relatorioTecnicoCameraRef = useRef<HTMLInputElement>(null);
+  const coletaFileInputRef = useRef<HTMLInputElement>(null);
+  const coletaCameraRef = useRef<HTMLInputElement>(null);
+  const inutilizacaoFileInputRef = useRef<HTMLInputElement>(null);
+  const inutilizacaoCameraRef = useRef<HTMLInputElement>(null);
+  const apreensaoFileInputRef = useRef<HTMLInputElement>(null);
+  const apreensaoCameraRef = useRef<HTMLInputElement>(null);
+  const interdicaoFileInputRef = useRef<HTMLInputElement>(null);
+  const interdicaoCameraRef = useRef<HTMLInputElement>(null);
 
   // Auto-save state
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
@@ -346,6 +427,14 @@ export default function CreateDocument() {
   const isVisitaFiscal = tipo === 'visita_fiscal';
   const isAutoInfracao = tipo === 'auto_infracao';
   const isRelatorioTecnico = tipo === 'relatorio_tecnico';
+  const isColetaAmostra = tipo === 'coleta_amostra';
+  const isInutilizacao = tipo === 'inutilizacao';
+  const isApreensao = tipo === 'apreensao';
+  const isInterdicao = tipo === 'interdicao';
+  const isAdvertencia = tipo === 'advertencia';
+  const isNotificacao = tipo === 'notificacao';
+  const isReplica = tipo === 'replica';
+  const hasSpecificForm = isCertidao || isVisitaFiscal || isAutoInfracao || isRelatorioTecnico || isColetaAmostra || isInutilizacao || isApreensao || isInterdicao || isAdvertencia || isNotificacao || isReplica;
   const availableMethods = isCertidao ? certidaoMethods : creationMethods;
   const currentChecklist = useMemo(() => {
     return checklistTemplates.find(c => c.id === selectedChecklist);
@@ -425,6 +514,27 @@ export default function CreateDocument() {
     }
     if (isRelatorioTecnico) {
       return formatRelatorioTecnicoContent(relatorioTecnicoData);
+    }
+    if (isColetaAmostra) {
+      return formatColetaAmostraContent(coletaAmostraData);
+    }
+    if (isInutilizacao) {
+      return formatInutilizacaoContent(inutilizacaoData);
+    }
+    if (isApreensao) {
+      return formatApreensaoContent(apreensaoData);
+    }
+    if (isInterdicao) {
+      return formatInterdicaoContent(interdicaoData);
+    }
+    if (isAdvertencia) {
+      return formatAdvertenciaContent(advertenciaData);
+    }
+    if (isNotificacao) {
+      return formatNotificacaoContent(notificacaoData);
+    }
+    if (isReplica) {
+      return formatReplicaContent(replicaData);
     }
     if (method === 'checklist' && currentChecklist) {
       const selectedItemsData = currentChecklist.items.filter(item => selectedItems.includes(item.id));
@@ -829,6 +939,71 @@ export default function CreateDocument() {
           equipe: relatorioTecnicoData.equipe,
           transport_mode: transportMode,
         };
+      } else if (isColetaAmostra) {
+        contentObj = {
+          text: content,
+          method: 'coleta_amostra',
+          coleta_amostra_data: coletaAmostraData,
+          document_date: coletaAmostraData.documentDate,
+          document_time: coletaAmostraData.documentTime,
+          transport_mode: transportMode,
+        };
+      } else if (isInutilizacao) {
+        contentObj = {
+          text: content,
+          method: 'inutilizacao',
+          inutilizacao_data: inutilizacaoData,
+          document_date: inutilizacaoData.documentDate,
+          document_time: inutilizacaoData.documentTime,
+          transport_mode: transportMode,
+          total_weight_kg: inutilizacaoData.produtos.reduce((sum, p) => sum + (parseFloat(p.pesoKg) || 0), 0),
+        };
+      } else if (isApreensao) {
+        contentObj = {
+          text: content,
+          method: 'apreensao',
+          apreensao_data: apreensaoData,
+          document_date: apreensaoData.documentDate,
+          document_time: apreensaoData.documentTime,
+          transport_mode: transportMode,
+        };
+      } else if (isInterdicao) {
+        contentObj = {
+          text: content,
+          method: 'interdicao',
+          interdicao_data: interdicaoData,
+          document_date: interdicaoData.documentDate,
+          document_time: interdicaoData.documentTime,
+          transport_mode: transportMode,
+          is_partial: interdicaoData.tipoInterdicao === 'parcial',
+        };
+      } else if (isAdvertencia) {
+        contentObj = {
+          text: content,
+          method: 'advertencia',
+          advertencia_data: advertenciaData,
+          document_date: advertenciaData.documentDate,
+          document_time: advertenciaData.documentTime,
+          transport_mode: transportMode,
+        };
+      } else if (isNotificacao) {
+        contentObj = {
+          text: content,
+          method: 'notificacao',
+          notificacao_data: notificacaoData,
+          document_date: notificacaoData.documentDate,
+          document_time: notificacaoData.documentTime,
+          transport_mode: transportMode,
+        };
+      } else if (isReplica) {
+        contentObj = {
+          text: content,
+          method: 'replica',
+          replica_data: replicaData,
+          document_date: replicaData.documentDate,
+          document_time: replicaData.documentTime,
+          transport_mode: transportMode,
+        };
       } else {
         contentObj = {
           text: content,
@@ -838,7 +1013,6 @@ export default function CreateDocument() {
           document_date: documentDate,
           document_time: documentTime,
           transport_mode: transportMode,
-          // Store AI photo legends for termo_intimacao when using AI method
           ...(method === 'ai' && finalAiPhotoLegends.length > 0 && {
             photoLegends: finalAiPhotoLegends,
           }),
@@ -861,6 +1035,13 @@ export default function CreateDocument() {
           category: 'Irregularidade',
           legislation: irr.dispositivo,
         }));
+      } else if (isAdvertencia) {
+        finalIrregularities = advertenciaData.irregularidades.map(item => ({
+          id: item.id,
+          text: item.descricao,
+          category: 'Advertência',
+          legislation: item.dispositivo,
+        }));
       }
 
       // Obter número sequencial do documento (se aplicável)
@@ -882,10 +1063,13 @@ export default function CreateDocument() {
         content: contentObj,
         irregularities: finalIrregularities,
         attachments,
-        deadline_days: tipo === 'termo_intimacao' ? parsedDeadlineDays : null,
+        deadline_days: tipo === 'termo_intimacao' ? parsedDeadlineDays : (isAdvertencia && advertenciaData.prazo ? parseInt(advertenciaData.prazo) : null),
         deadline_date: tipo === 'termo_intimacao' ? deadlineDate.toISOString().split('T')[0] : null,
-        priority: motivo === 'denuncia' || motivo === 'surto' || isAutoInfracao ? 'high' : 'medium',
+        priority: motivo === 'denuncia' || motivo === 'surto' || isAutoInfracao || isInterdicao ? 'high' : 'medium',
         action_date: documentDate || new Date().toISOString().split('T')[0],
+        total_weight_kg: isInutilizacao ? inutilizacaoData.produtos.reduce((sum, p) => sum + (parseFloat(p.pesoKg) || 0), 0) : null,
+        is_partial_interdiction: isInterdicao ? interdicaoData.tipoInterdicao === 'parcial' : null,
+        seal_number: isApreensao ? apreensaoData.produtos.map(p => p.lacre).filter(Boolean).join(', ') : (isInterdicao ? interdicaoData.lacreNumero : null),
       };
 
       const { data: newDoc, error: docError } = await supabase
@@ -1374,8 +1558,197 @@ export default function CreateDocument() {
           </>
         )}
 
-        {/* Method Selection - for non-certidao, non-visita_fiscal, non-auto_infracao and non-relatorio_tecnico types */}
-        {!method && !isCertidao && !isVisitaFiscal && !isAutoInfracao && !isRelatorioTecnico && (
+        {/* Coleta de Amostra Form */}
+        {isColetaAmostra && (
+          <>
+            <Card className="border-0 shadow-sm bg-secondary/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-secondary" />
+                  <div>
+                    <p className="font-medium">{establishment?.nome_fantasia || establishment?.razao_social}</p>
+                    <p className="text-sm text-muted-foreground">{establishment?.endereco}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <input ref={coletaFileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleImageUpload(e, false)} />
+            <input ref={coletaCameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleImageUpload(e, false)} />
+            <ColetaAmostraForm
+              value={coletaAmostraData}
+              onChange={setColetaAmostraData}
+              photos={uploadedImages.map(img => ({ id: img.id, previewUrl: img.previewUrl }))}
+              onAddPhoto={() => coletaFileInputRef.current?.click()}
+              onCapturePhoto={() => coletaCameraRef.current?.click()}
+              onRemovePhoto={removeImage}
+            />
+            <TransportModeSelector value={transportMode} onChange={setTransportMode} />
+            <Button className="w-full" onClick={handleSave} disabled={coletaAmostraData.amostras.length === 0 || saving}>
+              {saving ? 'Salvando...' : 'Salvar Coleta de Amostra'}
+            </Button>
+          </>
+        )}
+
+        {/* Inutilização Form */}
+        {isInutilizacao && (
+          <>
+            <Card className="border-0 shadow-sm bg-destructive/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-destructive" />
+                  <div>
+                    <p className="font-medium">{establishment?.nome_fantasia || establishment?.razao_social}</p>
+                    <p className="text-sm text-muted-foreground">{establishment?.endereco}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <input ref={inutilizacaoFileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleImageUpload(e, false)} />
+            <input ref={inutilizacaoCameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleImageUpload(e, false)} />
+            <InutilizacaoForm
+              value={inutilizacaoData}
+              onChange={setInutilizacaoData}
+              photos={uploadedImages.map(img => ({ id: img.id, previewUrl: img.previewUrl }))}
+              onAddPhoto={() => inutilizacaoFileInputRef.current?.click()}
+              onCapturePhoto={() => inutilizacaoCameraRef.current?.click()}
+              onRemovePhoto={removeImage}
+            />
+            <TransportModeSelector value={transportMode} onChange={setTransportMode} />
+            <Button className="w-full" onClick={handleSave} disabled={inutilizacaoData.produtos.length === 0 || uploadedImages.length === 0 || saving}>
+              {saving ? 'Salvando...' : 'Salvar Inutilização'}
+            </Button>
+          </>
+        )}
+
+        {/* Apreensão Form */}
+        {isApreensao && (
+          <>
+            <Card className="border-0 shadow-sm bg-warning/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-warning" />
+                  <div>
+                    <p className="font-medium">{establishment?.nome_fantasia || establishment?.razao_social}</p>
+                    <p className="text-sm text-muted-foreground">{establishment?.endereco}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <input ref={apreensaoFileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleImageUpload(e, false)} />
+            <input ref={apreensaoCameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleImageUpload(e, false)} />
+            <ApreensaoForm
+              value={apreensaoData}
+              onChange={setApreensaoData}
+              photos={uploadedImages.map(img => ({ id: img.id, previewUrl: img.previewUrl }))}
+              onAddPhoto={() => apreensaoFileInputRef.current?.click()}
+              onCapturePhoto={() => apreensaoCameraRef.current?.click()}
+              onRemovePhoto={removeImage}
+            />
+            <TransportModeSelector value={transportMode} onChange={setTransportMode} />
+            <Button className="w-full" onClick={handleSave} disabled={apreensaoData.produtos.length === 0 || uploadedImages.length === 0 || saving}>
+              {saving ? 'Salvando...' : 'Salvar Apreensão'}
+            </Button>
+          </>
+        )}
+
+        {/* Interdição Form */}
+        {isInterdicao && (
+          <>
+            <Card className="border-0 shadow-sm bg-destructive/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-destructive" />
+                  <div>
+                    <p className="font-medium">{establishment?.nome_fantasia || establishment?.razao_social}</p>
+                    <p className="text-sm text-muted-foreground">{establishment?.endereco}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <input ref={interdicaoFileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleImageUpload(e, false)} />
+            <input ref={interdicaoCameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleImageUpload(e, false)} />
+            <InterdicaoForm
+              value={interdicaoData}
+              onChange={setInterdicaoData}
+              photos={uploadedImages.map(img => ({ id: img.id, previewUrl: img.previewUrl }))}
+              onAddPhoto={() => interdicaoFileInputRef.current?.click()}
+              onCapturePhoto={() => interdicaoCameraRef.current?.click()}
+              onRemovePhoto={removeImage}
+            />
+            <TransportModeSelector value={transportMode} onChange={setTransportMode} />
+            <Button className="w-full" onClick={handleSave} disabled={!interdicaoData.tipoInterdicao || !interdicaoData.motivoInterdicao || uploadedImages.length === 0 || saving}>
+              {saving ? 'Salvando...' : 'Salvar Interdição'}
+            </Button>
+          </>
+        )}
+
+        {/* Advertência Form */}
+        {isAdvertencia && (
+          <>
+            <Card className="border-0 shadow-sm bg-warning/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-warning" />
+                  <div>
+                    <p className="font-medium">{establishment?.nome_fantasia || establishment?.razao_social}</p>
+                    <p className="text-sm text-muted-foreground">{establishment?.endereco}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <AdvertenciaForm value={advertenciaData} onChange={setAdvertenciaData} />
+            <TransportModeSelector value={transportMode} onChange={setTransportMode} />
+            <Button className="w-full" onClick={handleSave} disabled={advertenciaData.irregularidades.length === 0 || saving}>
+              {saving ? 'Salvando...' : 'Salvar Advertência'}
+            </Button>
+          </>
+        )}
+
+        {/* Notificação Form */}
+        {isNotificacao && (
+          <>
+            <Card className="border-0 shadow-sm bg-info/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-info" />
+                  <div>
+                    <p className="font-medium">{establishment?.nome_fantasia || establishment?.razao_social}</p>
+                    <p className="text-sm text-muted-foreground">{establishment?.endereco}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <NotificacaoForm value={notificacaoData} onChange={setNotificacaoData} />
+            <TransportModeSelector value={transportMode} onChange={setTransportMode} />
+            <Button className="w-full" onClick={handleSave} disabled={!notificacaoData.assunto.trim() || !notificacaoData.conteudo.trim() || saving}>
+              {saving ? 'Salvando...' : 'Salvar Notificação'}
+            </Button>
+          </>
+        )}
+
+        {/* Réplica Form */}
+        {isReplica && (
+          <>
+            <Card className="border-0 shadow-sm bg-muted">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">{establishment?.nome_fantasia || establishment?.razao_social}</p>
+                    <p className="text-sm text-muted-foreground">{establishment?.endereco}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <ReplicaForm value={replicaData} onChange={setReplicaData} />
+            <Button className="w-full" onClick={handleSave} disabled={!replicaData.analiseDefesa.trim() || saving}>
+              {saving ? 'Salvando...' : 'Salvar Réplica'}
+            </Button>
+          </>
+        )}
+
+        {/* Method Selection - for types without specific forms (termo_intimacao only now) */}
+        {!method && !hasSpecificForm && (
           <>
             <Card className="border-0 shadow-sm bg-primary/5">
               <CardContent className="p-4">
