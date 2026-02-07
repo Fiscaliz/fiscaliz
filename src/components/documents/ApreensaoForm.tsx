@@ -4,10 +4,13 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
-  Package, Plus, X, Camera, FolderOpen, Calendar, Clock, Hash, Trash2
+  Package, Plus, X, Camera, FolderOpen, Calendar, Clock, Hash, Trash2, Sparkles, Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export interface ProdutoApreendido {
   id: string;
@@ -17,17 +20,15 @@ export interface ProdutoApreendido {
   quantidade: string;
   unidade: string;
   pesoKg: string;
-  lacre: string;
-  motivo: string;
-  localGuarda: string;
+  naoConformidade: string;
+  dispositivoLegal: string;
 }
 
 export interface ApreensaoData {
   produtos: ProdutoApreendido[];
-  fundamentacaoLegal: string;
-  localDeposito: string;
-  prazoRetirada: string;
-  responsavelGuarda: string;
+  lacreNumero: string;
+  destinacao: string;
+  fielDepositario: boolean;
   observacoes: string;
   documentDate: string;
   documentTime: string;
@@ -42,7 +43,7 @@ interface ApreensaoFormProps {
   onRemovePhoto: (index: number) => void;
 }
 
-const motivosApreensao = [
+const naoConformidades = [
   'Produto sem registro/notificação sanitária',
   'Produto vencido',
   'Produto sem rotulagem adequada',
@@ -63,17 +64,18 @@ const createEmptyProduto = (): ProdutoApreendido => ({
   quantidade: '',
   unidade: 'kg',
   pesoKg: '',
-  lacre: '',
-  motivo: '',
-  localGuarda: '',
+  naoConformidade: '',
+  dispositivoLegal: '',
 });
 
 export function ApreensaoForm({
   value, onChange, photos, onAddPhoto, onCapturePhoto, onRemovePhoto,
 }: ApreensaoFormProps) {
+  const { toast } = useToast();
   const [expandedProduto, setExpandedProduto] = useState<string | null>(
     value.produtos.length > 0 ? value.produtos[0].id : null
   );
+  const [suggestingLegal, setSuggestingLegal] = useState<string | null>(null);
 
   const updateField = <K extends keyof ApreensaoData>(field: K, val: ApreensaoData[K]) => {
     onChange({ ...value, [field]: val });
@@ -96,6 +98,30 @@ export function ApreensaoForm({
     ));
   };
 
+  const handleSuggestLegal = async (produtoId: string, naoConformidade: string) => {
+    if (!naoConformidade.trim()) return;
+    setSuggestingLegal(produtoId);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-photos', {
+        body: {
+          documentType: 'suggest_legal_basis',
+          photos: [],
+          description: `Apreensão de produto - Não conformidade: ${naoConformidade}`,
+        },
+      });
+      if (error) throw error;
+      const suggested = data?.photoAnalysis?.[0]?.item_rdc;
+      if (suggested) {
+        updateProduto(produtoId, 'dispositivoLegal', suggested);
+        toast({ title: 'Dispositivo sugerido', description: suggested });
+      }
+    } catch {
+      toast({ title: 'Erro na sugestão', variant: 'destructive' });
+    } finally {
+      setSuggestingLegal(null);
+    }
+  };
+
   const totalProdutos = value.produtos.length;
 
   return (
@@ -107,7 +133,7 @@ export function ApreensaoForm({
             <div>
               <p className="font-semibold text-sm text-warning">Termo de Apreensão</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Registro de produtos apreendidos e lacrados. Inclua número do lacre para cada produto retido.
+                Registro de produtos apreendidos e lacrados.
               </p>
             </div>
           </div>
@@ -126,6 +152,22 @@ export function ApreensaoForm({
         </Card>
       )}
 
+      {/* Número do Lacre */}
+      <Card className="border-0 shadow-sm">
+        <CardContent className="p-4 space-y-2">
+          <Label className="text-sm font-medium flex items-center gap-2">
+            <Hash className="h-4 w-4 text-warning" />
+            Nº do Lacre
+          </Label>
+          <Input 
+            placeholder="Número do lacre de apreensão" 
+            value={value.lacreNumero} 
+            onChange={(e) => updateField('lacreNumero', e.target.value)} 
+            className="text-sm border-warning/50" 
+          />
+        </CardContent>
+      </Card>
+
       {/* Lista de Produtos */}
       <Card className="border-0 shadow-sm">
         <CardContent className="p-4 space-y-3">
@@ -142,7 +184,6 @@ export function ApreensaoForm({
                     <Package className="h-4 w-4 text-warning" />
                     <span>Produto {idx + 1}</span>
                     {produto.produto && <span className="text-xs text-muted-foreground">- {produto.produto}</span>}
-                    {produto.lacre && <span className="text-xs bg-warning/20 text-warning px-1.5 py-0.5 rounded">Lacre: {produto.lacre}</span>}
                   </button>
                   <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeProduto(produto.id)}>
                     <Trash2 className="h-4 w-4" />
@@ -181,22 +222,35 @@ export function ApreensaoForm({
                         <Input type="number" step="0.1" placeholder="kg" value={produto.pesoKg} onChange={(e) => updateProduto(produto.id, 'pesoKg', e.target.value)} className="text-sm" />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <Label className="text-xs flex items-center gap-1 font-semibold text-warning"><Hash className="h-3 w-3" /> Nº do Lacre *</Label>
-                        <Input placeholder="Número do lacre" value={produto.lacre} onChange={(e) => updateProduto(produto.id, 'lacre', e.target.value)} className="text-sm border-warning/50" />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Local de Guarda</Label>
-                        <Input placeholder="Onde ficará" value={produto.localGuarda} onChange={(e) => updateProduto(produto.id, 'localGuarda', e.target.value)} className="text-sm" />
-                      </div>
-                    </div>
+                    {/* Não Conformidade */}
                     <div className="space-y-1">
-                      <Label className="text-xs">Motivo da Apreensão</Label>
-                      <select value={produto.motivo} onChange={(e) => updateProduto(produto.id, 'motivo', e.target.value)} className="flex h-12 w-full rounded-xl border border-border/60 bg-background px-3 py-3 text-sm">
+                      <Label className="text-xs">Não Conformidade Encontrada *</Label>
+                      <select value={produto.naoConformidade} onChange={(e) => updateProduto(produto.id, 'naoConformidade', e.target.value)} className="flex h-12 w-full rounded-xl border border-border/60 bg-background px-3 py-3 text-sm">
                         <option value="">Selecione...</option>
-                        {motivosApreensao.map(m => <option key={m} value={m}>{m}</option>)}
+                        {naoConformidades.map(m => <option key={m} value={m}>{m}</option>)}
                       </select>
+                    </div>
+                    {/* Dispositivo Legal com IA */}
+                    <div className="space-y-1">
+                      <Label className="text-xs">Dispositivo Legal</Label>
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder="Ex: LM 8741/08 Art. 81 Inc. X" 
+                          value={produto.dispositivoLegal} 
+                          onChange={(e) => updateProduto(produto.id, 'dispositivoLegal', e.target.value)} 
+                          className="text-sm flex-1" 
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-12 px-3"
+                          disabled={!produto.naoConformidade || suggestingLegal === produto.id}
+                          onClick={() => handleSuggestLegal(produto.id, produto.naoConformidade)}
+                        >
+                          {suggestingLegal === produto.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">Selecione a não conformidade e clique ✨ para sugestão por IA</p>
                     </div>
                   </div>
                 )}
@@ -215,21 +269,35 @@ export function ApreensaoForm({
         <CardContent className="p-4 space-y-3">
           <Label className="text-sm font-medium">Dados Gerais da Apreensão</Label>
           <div className="space-y-1">
-            <Label className="text-xs">Fundamentação Legal</Label>
-            <Input placeholder="Ex: LM 8741/08 Art. 81 Inc. X" value={value.fundamentacaoLegal} onChange={(e) => updateField('fundamentacaoLegal', e.target.value)} className="text-sm" />
+            <Label className="text-xs">Destinação</Label>
+            <Textarea 
+              placeholder="Destinação dos produtos apreendidos..." 
+              value={value.destinacao} 
+              onChange={(e) => updateField('destinacao', e.target.value)} 
+              className="min-h-[60px] text-sm" 
+            />
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Local de Depósito</Label>
-            <Input placeholder="Local onde os produtos ficarão sob guarda" value={value.localDeposito} onChange={(e) => updateField('localDeposito', e.target.value)} className="text-sm" />
+
+          {/* Fiel Depositário */}
+          <div className="p-3 rounded-lg bg-warning/10 border border-warning/30">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <Checkbox
+                checked={value.fielDepositario}
+                onCheckedChange={(checked) => updateField('fielDepositario', checked as boolean)}
+                className="mt-0.5"
+              />
+              <div className="flex-1">
+                <span className="font-medium text-sm">Fiel Depositário</span>
+                <p className="text-xs text-muted-foreground mt-1">
+                  O responsável pela empresa ficará como fiel depositário até o recolhimento.
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5 italic">
+                  Desmarque se o fiscal levará a apreensão imediatamente (não aparecerá no PDF)
+                </p>
+              </div>
+            </label>
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Prazo para Retirada (dias)</Label>
-            <Input type="number" placeholder="Ex: 30" value={value.prazoRetirada} onChange={(e) => updateField('prazoRetirada', e.target.value)} className="text-sm" />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Responsável pela Guarda</Label>
-            <Input placeholder="Nome do responsável" value={value.responsavelGuarda} onChange={(e) => updateField('responsavelGuarda', e.target.value)} className="text-sm" />
-          </div>
+
           <div className="space-y-1">
             <Label className="text-xs">Observações</Label>
             <Textarea placeholder="Observações adicionais..." value={value.observacoes} onChange={(e) => updateField('observacoes', e.target.value)} className="min-h-[60px] text-sm" />
@@ -237,14 +305,14 @@ export function ApreensaoForm({
         </CardContent>
       </Card>
 
-      {/* Fotos */}
+      {/* Fotos - OPCIONAL */}
       <Card className="border-0 shadow-sm">
         <CardContent className="p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Camera className="h-4 w-4 text-primary" />
               <Label className="text-sm font-medium">Registro Fotográfico</Label>
-              <span className="text-xs bg-destructive/20 text-destructive px-2 py-0.5 rounded">Obrigatório</span>
+              <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">Opcional</span>
             </div>
             <span className="text-xs text-muted-foreground">{photos.length} foto(s)</span>
           </div>
@@ -262,7 +330,6 @@ export function ApreensaoForm({
             <Button variant="outline" size="sm" onClick={onCapturePhoto || onAddPhoto} className="flex-1 h-12"><Camera className="h-5 w-5 mr-2" /> Capturar</Button>
             <Button variant="outline" size="sm" onClick={onAddPhoto} className="flex-1 h-12"><FolderOpen className="h-5 w-5 mr-2" /> Galeria</Button>
           </div>
-          {photos.length === 0 && <p className="text-xs text-destructive">⚠️ Registro fotográfico obrigatório para apreensão</p>}
         </CardContent>
       </Card>
 
@@ -288,6 +355,7 @@ export function ApreensaoForm({
 export function formatApreensaoContent(data: ApreensaoData): string {
   const lines: string[] = ['TERMO DE APREENSÃO', ''];
   
+  if (data.lacreNumero) lines.push(`Lacre nº: ${data.lacreNumero}`);
   lines.push(`Total de produtos apreendidos: ${data.produtos.length}`);
   lines.push('');
 
@@ -296,16 +364,13 @@ export function formatApreensaoContent(data: ApreensaoData): string {
     if (p.lote) lines.push(`   Lote: ${p.lote}`);
     if (p.quantidade) lines.push(`   Quantidade: ${p.quantidade} ${p.unidade}`);
     if (p.pesoKg) lines.push(`   Peso: ${p.pesoKg} kg`);
-    if (p.lacre) lines.push(`   Lacre nº: ${p.lacre}`);
-    if (p.motivo) lines.push(`   Motivo: ${p.motivo}`);
-    if (p.localGuarda) lines.push(`   Local de guarda: ${p.localGuarda}`);
+    if (p.naoConformidade) lines.push(`   Não Conformidade: ${p.naoConformidade}`);
+    if (p.dispositivoLegal) lines.push(`   Dispositivo Legal: ${p.dispositivoLegal}`);
     lines.push('');
   });
 
-  if (data.fundamentacaoLegal) lines.push(`Fundamentação Legal: ${data.fundamentacaoLegal}`);
-  if (data.localDeposito) lines.push(`Local de Depósito: ${data.localDeposito}`);
-  if (data.prazoRetirada) lines.push(`Prazo para Retirada: ${data.prazoRetirada} dias`);
-  if (data.responsavelGuarda) lines.push(`Responsável pela Guarda: ${data.responsavelGuarda}`);
+  if (data.destinacao) lines.push(`Destinação: ${data.destinacao}`);
+  if (data.fielDepositario) lines.push(`O responsável pela empresa ficará como fiel depositário até o recolhimento.`);
   if (data.observacoes) lines.push(`Observações: ${data.observacoes}`);
 
   return lines.join('\n');

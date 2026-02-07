@@ -5,9 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Plus, X, Camera, FolderOpen, Calendar, Clock, Hash, Scale
+  Trash2, Plus, X, Camera, FolderOpen, Calendar, Clock, Scale, Sparkles, Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export interface ProdutoInutilizado {
   id: string;
@@ -18,6 +20,7 @@ export interface ProdutoInutilizado {
   unidade: string;
   pesoKg: string;
   motivo: string;
+  dispositivoLegal: string;
 }
 
 export interface InutilizacaoData {
@@ -69,6 +72,7 @@ const createEmptyProduto = (): ProdutoInutilizado => ({
   unidade: 'kg',
   pesoKg: '',
   motivo: '',
+  dispositivoLegal: '',
 });
 
 export function InutilizacaoForm({
@@ -79,9 +83,11 @@ export function InutilizacaoForm({
   onCapturePhoto,
   onRemovePhoto,
 }: InutilizacaoFormProps) {
+  const { toast } = useToast();
   const [expandedProduto, setExpandedProduto] = useState<string | null>(
     value.produtos.length > 0 ? value.produtos[0].id : null
   );
+  const [suggestingLegal, setSuggestingLegal] = useState<string | null>(null);
 
   const updateField = <K extends keyof InutilizacaoData>(field: K, val: InutilizacaoData[K]) => {
     onChange({ ...value, [field]: val });
@@ -102,6 +108,30 @@ export function InutilizacaoForm({
     updateField('produtos', value.produtos.map(p =>
       p.id === id ? { ...p, [field]: val } : p
     ));
+  };
+
+  const handleSuggestLegal = async (produtoId: string, motivo: string) => {
+    if (!motivo.trim()) return;
+    setSuggestingLegal(produtoId);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-photos', {
+        body: {
+          documentType: 'suggest_legal_basis',
+          photos: [],
+          description: `Inutilização de produto: ${motivo}`,
+        },
+      });
+      if (error) throw error;
+      const suggested = data?.photoAnalysis?.[0]?.item_rdc;
+      if (suggested) {
+        updateProduto(produtoId, 'dispositivoLegal', suggested);
+        toast({ title: 'Dispositivo sugerido', description: suggested });
+      }
+    } catch {
+      toast({ title: 'Erro na sugestão', variant: 'destructive' });
+    } finally {
+      setSuggestingLegal(null);
+    }
   };
 
   const totalPesoKg = value.produtos.reduce((sum, p) => sum + (parseFloat(p.pesoKg) || 0), 0);
@@ -196,11 +226,33 @@ export function InutilizacaoForm({
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Motivo da Inutilização</Label>
+                      <Label className="text-xs">Irregularidade / Motivo *</Label>
                       <select value={produto.motivo} onChange={(e) => updateProduto(produto.id, 'motivo', e.target.value)} className="flex h-12 w-full rounded-xl border border-border/60 bg-background px-3 py-3 text-sm">
                         <option value="">Selecione...</option>
                         {motivosInutilizacao.map(m => <option key={m} value={m}>{m}</option>)}
                       </select>
+                    </div>
+                    {/* Dispositivo Legal com sugestão por IA */}
+                    <div className="space-y-1">
+                      <Label className="text-xs">Dispositivo Legal</Label>
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder="Ex: RDC 216/2004 Art. 5º" 
+                          value={produto.dispositivoLegal} 
+                          onChange={(e) => updateProduto(produto.id, 'dispositivoLegal', e.target.value)} 
+                          className="text-sm flex-1" 
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-12 px-3"
+                          disabled={!produto.motivo || suggestingLegal === produto.id}
+                          onClick={() => handleSuggestLegal(produto.id, produto.motivo)}
+                        >
+                          {suggestingLegal === produto.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">Selecione a irregularidade e clique ✨ para sugestão por IA</p>
                     </div>
                   </div>
                 )}
@@ -239,14 +291,14 @@ export function InutilizacaoForm({
         </CardContent>
       </Card>
 
-      {/* Fotos */}
+      {/* Fotos - OPCIONAL */}
       <Card className="border-0 shadow-sm">
         <CardContent className="p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Camera className="h-4 w-4 text-primary" />
               <Label className="text-sm font-medium">Registro Fotográfico</Label>
-              <span className="text-xs bg-destructive/20 text-destructive px-2 py-0.5 rounded">Obrigatório</span>
+              <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">Opcional</span>
             </div>
             <span className="text-xs text-muted-foreground">{photos.length} foto(s)</span>
           </div>
@@ -270,9 +322,6 @@ export function InutilizacaoForm({
               <FolderOpen className="h-5 w-5 mr-2" /> Galeria
             </Button>
           </div>
-          {photos.length === 0 && (
-            <p className="text-xs text-destructive">⚠️ Registro fotográfico obrigatório para inutilização</p>
-          )}
         </CardContent>
       </Card>
 
@@ -306,7 +355,8 @@ export function formatInutilizacaoContent(data: InutilizacaoData): string {
     lines.push(`${idx + 1}. ${p.produto}${p.marca ? ` (${p.marca})` : ''}`);
     if (p.lote) lines.push(`   Lote: ${p.lote}`);
     lines.push(`   Quantidade: ${p.quantidade} ${p.unidade} | Peso: ${p.pesoKg} kg`);
-    if (p.motivo) lines.push(`   Motivo: ${p.motivo}`);
+    if (p.motivo) lines.push(`   Irregularidade: ${p.motivo}`);
+    if (p.dispositivoLegal) lines.push(`   Dispositivo Legal: ${p.dispositivoLegal}`);
     lines.push('');
   });
 
