@@ -112,7 +112,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
         </div>
         
         <div className="relative z-10">
-          <div className="mx-auto mb-6 flex h-32 w-32 items-center justify-center rounded-3xl bg-primary-foreground/10 backdrop-blur-md p-4 shadow-lg">
+          <div className="mx-auto mb-6 flex h-36 w-36 items-center justify-center rounded-3xl bg-primary-foreground/10 backdrop-blur-md p-4 shadow-lg">
             <img 
               src={fiscalizLogo} 
               alt="Fiscaliz" 
