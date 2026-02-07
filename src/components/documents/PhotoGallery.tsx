@@ -62,12 +62,12 @@ export function PhotoGallery({
 
         if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase.storage
+        const { data: signedData } = await supabase.storage
           .from('fiscal-photos')
-          .getPublicUrl(fileName);
+          .createSignedUrl(fileName, 3600);
 
-        if (urlData?.publicUrl) {
-          newUrls.push(urlData.publicUrl);
+        if (signedData?.signedUrl) {
+          newUrls.push(signedData.signedUrl);
         }
       } catch (error: any) {
         console.error('Upload error:', error);

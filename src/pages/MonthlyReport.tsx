@@ -899,11 +899,11 @@ export default function MonthlyReport() {
       return;
     }
 
-    const { data: urlData } = supabase.storage
+    const { data: signedData } = await supabase.storage
       .from('fiscal-photos')
-      .getPublicUrl(filePath);
+      .createSignedUrl(filePath, 3600);
 
-    setLicenseAttachment(urlData.publicUrl);
+    setLicenseAttachment(signedData?.signedUrl || filePath);
     toast({
       title: 'Anexo enviado!',
       description: 'O atestado foi anexado com sucesso.',

@@ -142,11 +142,11 @@ export function SignatureCapture({
 
         if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase.storage
+        const { data: signedData } = await supabase.storage
           .from('fiscal-photos')
-          .getPublicUrl(fileName);
+          .createSignedUrl(fileName, 3600);
 
-        onSignatureChange(urlData.publicUrl);
+        onSignatureChange(signedData?.signedUrl || fileName);
         
         toast({
           title: 'Assinatura salva',
@@ -187,11 +187,11 @@ export function SignatureCapture({
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
+      const { data: signedData } = await supabase.storage
         .from('fiscal-photos')
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 3600);
 
-      onPhotoChange(urlData.publicUrl);
+      onPhotoChange(signedData?.signedUrl || fileName);
       
       toast({
         title: 'Foto adicionada',

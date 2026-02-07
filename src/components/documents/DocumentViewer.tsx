@@ -631,15 +631,15 @@ _Enviado via FISCALIZ®_`;
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
+      const { data: signedData } = await supabase.storage
         .from('fiscal-photos')
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 3600);
 
-      setContributorPhoto(urlData.publicUrl);
+      setContributorPhoto(signedData?.signedUrl || fileName);
       
       // Auto-save when photo is uploaded
       if (onSave) {
-        onSave({ content: { ...document.content, text: content, contributor_photo: urlData.publicUrl, preposto_photo: prepostoPhoto, preposto_name: prepostoName, preposto_cpf: prepostoCpf } });
+        onSave({ content: { ...document.content, text: content, contributor_photo: signedData?.signedUrl || fileName, preposto_photo: prepostoPhoto, preposto_name: prepostoName, preposto_cpf: prepostoCpf } });
       }
 
       toast({
@@ -719,14 +719,14 @@ _Enviado via FISCALIZ®_`;
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
+      const { data: signedData } = await supabase.storage
         .from('fiscal-photos')
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 3600);
 
-      setPrepostoPhoto(urlData.publicUrl);
+      setPrepostoPhoto(signedData?.signedUrl || fileName);
       
       if (onSave) {
-        onSave({ content: { ...document.content, text: content, contributor_photo: contributorPhoto, preposto_photo: urlData.publicUrl, preposto_name: prepostoName, preposto_cpf: prepostoCpf } });
+        onSave({ content: { ...document.content, text: content, contributor_photo: contributorPhoto, preposto_photo: signedData?.signedUrl || fileName, preposto_name: prepostoName, preposto_cpf: prepostoCpf } });
       }
 
       toast({
@@ -813,11 +813,11 @@ _Enviado via FISCALIZ®_`;
           continue;
         }
 
-        const { data: urlData } = supabase.storage
+        const { data: signedData } = await supabase.storage
           .from('fiscal-photos')
-          .getPublicUrl(fileName);
+          .createSignedUrl(fileName, 3600);
 
-        uploadedUrls.push(urlData.publicUrl);
+        if (signedData?.signedUrl) uploadedUrls.push(signedData.signedUrl);
       }
 
       const newPhotos = [...evidencePhotos, ...uploadedUrls];

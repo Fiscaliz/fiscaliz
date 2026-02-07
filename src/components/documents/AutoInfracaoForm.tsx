@@ -141,8 +141,8 @@ export function AutoInfracaoForm({
             .from('fiscal-photos')
             .upload(fileName, photo.file, { upsert: true });
           if (uploadError) throw uploadError;
-          const { data: urlData } = supabase.storage.from('fiscal-photos').getPublicUrl(fileName);
-          if (urlData?.publicUrl) uploadedUrls.push(urlData.publicUrl);
+          const { data: signedData } = await supabase.storage.from('fiscal-photos').createSignedUrl(fileName, 3600);
+          if (signedData?.signedUrl) uploadedUrls.push(signedData.signedUrl);
         } else if (photo.previewUrl && !photo.previewUrl.startsWith('blob:')) {
           uploadedUrls.push(photo.previewUrl);
         }
