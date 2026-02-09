@@ -423,40 +423,55 @@ export type Database = {
       }
       profiles: {
         Row: {
+          areas_of_practice: string[] | null
           avatar_url: string | null
           created_at: string
           division: string | null
           email: string | null
           full_name: string
           id: string
+          institution_logo_url: string | null
+          institution_name: string | null
+          institutional_link: string | null
           phone: string | null
           registration_number: string | null
           signature_url: string | null
           updated_at: string
+          user_type: string | null
         }
         Insert: {
+          areas_of_practice?: string[] | null
           avatar_url?: string | null
           created_at?: string
           division?: string | null
           email?: string | null
           full_name: string
           id: string
+          institution_logo_url?: string | null
+          institution_name?: string | null
+          institutional_link?: string | null
           phone?: string | null
           registration_number?: string | null
           signature_url?: string | null
           updated_at?: string
+          user_type?: string | null
         }
         Update: {
+          areas_of_practice?: string[] | null
           avatar_url?: string | null
           created_at?: string
           division?: string | null
           email?: string | null
           full_name?: string
           id?: string
+          institution_logo_url?: string | null
+          institution_name?: string | null
+          institutional_link?: string | null
           phone?: string | null
           registration_number?: string | null
           signature_url?: string | null
           updated_at?: string
+          user_type?: string | null
         }
         Relationships: []
       }

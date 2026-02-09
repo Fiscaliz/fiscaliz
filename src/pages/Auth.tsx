@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Shield, Loader2, Eye, EyeOff } from 'lucide-react';
 import fiscalizLogo from '@/assets/logo-fiscaliz-oficial.png';
+import { SignupExtraFields, SignupExtraData } from '@/components/auth/SignupExtraFields';
 
 const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
   const [isLogin, setIsLogin] = useState(true);
@@ -18,6 +19,13 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
   const [identificationType, setIdentificationType] = useState<'cnpj' | 'cpf' | 'inscricao_municipal'>('cpf');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [extraData, setExtraData] = useState<SignupExtraData>({
+    userType: '',
+    institutionalLink: '',
+    institutionName: '',
+    areasOfPractice: [],
+    logoFile: null,
+  });
   
   const { signIn, signUp, user, loading } = useAuth();
   const navigate = useNavigate();
@@ -52,16 +60,33 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
         }
       } else {
         if (!fullName.trim()) {
-          toast({
-            title: 'Nome obrigatório',
-            description: 'Por favor, informe seu nome completo.',
-            variant: 'destructive',
-          });
+          toast({ title: 'Nome obrigatório', description: 'Por favor, informe seu nome completo.', variant: 'destructive' });
+          setIsSubmitting(false);
+          return;
+        }
+        if (!extraData.userType) {
+          toast({ title: 'Campo obrigatório', description: 'Selecione o tipo de usuário.', variant: 'destructive' });
+          setIsSubmitting(false);
+          return;
+        }
+        if (!extraData.institutionalLink) {
+          toast({ title: 'Campo obrigatório', description: 'Selecione o vínculo institucional.', variant: 'destructive' });
+          setIsSubmitting(false);
+          return;
+        }
+        if (extraData.areasOfPractice.length === 0) {
+          toast({ title: 'Campo obrigatório', description: 'Selecione ao menos uma área de atuação.', variant: 'destructive' });
           setIsSubmitting(false);
           return;
         }
         
-        const { error } = await signUp(email, password, fullName);
+        const { error } = await signUp(email, password, fullName, {
+          userType: extraData.userType,
+          institutionalLink: extraData.institutionalLink,
+          institutionName: extraData.institutionName,
+          areasOfPractice: extraData.areasOfPractice,
+          logoFile: extraData.logoFile,
+        });
         if (error) {
           if (error.message.includes('already registered')) {
             toast({
@@ -196,6 +221,8 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
                       onChange={(e) => setRegistrationNumber(e.target.value)}
                     />
                   </div>
+
+                  <SignupExtraFields data={extraData} onChange={setExtraData} />
                 </>
               )}
               
@@ -261,6 +288,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
                   setPassword('');
                   setFullName('');
                   setRegistrationNumber('');
+                  setExtraData({ userType: '', institutionalLink: '', institutionName: '', areasOfPractice: [], logoFile: null });
                 }}
                 className="text-body text-primary font-semibold hover:underline transition-all"
               >
