@@ -2,12 +2,20 @@ import { useState, useEffect, createContext, useContext, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+interface SignupExtra {
+  userType?: string;
+  institutionalLink?: string;
+  institutionName?: string;
+  areasOfPractice?: string[];
+  logoFile?: File | null;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName: string, extra?: SignupExtra) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -19,7 +27,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
@@ -28,7 +35,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -39,27 +45,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error: error as Error | null };
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, fullName: string, extra?: SignupExtra) => {
     const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
+
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectUrl,
-        data: {
-          full_name: fullName,
-        },
+        data: { full_name: fullName },
       },
     });
-    return { error: error as Error | null };
+
+    if (error) return { error: error as Error | null };
+
+    // Save extra fields to profiles after signup
+    if (data.user && extra) {
+      let logoUrl: string | null = null;
+
+      // Upload logo if provided
+      if (extra.logoFile) {
+        const ext = extra.logoFile.name.split('.').pop();
+        const path = `logos/${data.user.id}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from('fiscal-photos')
+          .upload(path, extra.logoFile, { upsert: true });
+        if (!uploadError) {
+          const { data: urlData } = await supabase.storage
+            .from('fiscal-photos')
+            .createSignedUrl(path, 60 * 60 * 24 * 365);
+          logoUrl = urlData?.signedUrl ?? null;
+        }
+      }
+
+      await supabase.from('profiles').update({
+        user_type: extra.userType,
+        institutional_link: extra.institutionalLink,
+        institution_name: extra.institutionName || null,
+        institution_logo_url: logoUrl,
+        areas_of_practice: extra.areasOfPractice,
+      } as any).eq('id', data.user.id);
+    }
+
+    return { error: null };
   };
 
   const signOut = async () => {
