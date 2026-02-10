@@ -1268,8 +1268,19 @@ _Enviado via FISCALIZ®_`;
             </div>
           )}
 
+          {/* QR Code para acesso ao PDF - ACIMA das assinaturas */}
+          <div className="doc-section mt-10 flex flex-col items-center gap-1">
+            <QRCodeSVG
+              value={`https://fiscaliz.lovable.app/doc/${document.id}`}
+              size={72}
+              level="M"
+              includeMargin={false}
+            />
+            <span className="text-[7px] text-gray-400 leading-tight text-center">Escaneie para abrir o documento</span>
+          </div>
+
           {/* ASSINATURAS - Rubricas acima dos nomes, simétricas */}
-          <div className="doc-section mt-10">
+          <div className="doc-section mt-6">
             <div className="grid grid-cols-2 gap-12">
               {/* Coluna do Auditor Fiscal */}
               <div className="text-center flex flex-col items-center">
@@ -1328,26 +1339,14 @@ _Enviado via FISCALIZ®_`;
 
           {/* RODAPÉ OFICIAL */}
           <div className="mt-10 pt-4 border-t text-xs text-gray-600">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 text-center">
-                <p>Goiânia, {formatDateFull(document.created_at)}</p>
-                <p className="mt-2">Este documento foi gerado eletronicamente e possui validade legal conforme legislação vigente.</p>
-                <p className="mt-1 font-semibold">Lei Municipal 8.741/08</p>
-                <p className="mt-1 text-[10px]">1ª Via: Estabelecimento | 2ª Via: Fiscalização</p>
-                <p className="mt-3 text-[9px] font-semibold text-gray-500">
-                  Criado por FISCALIZ<sup>®</sup>
-                </p>
-              </div>
-              {/* QR Code para acesso ao PDF */}
-              <div className="flex flex-col items-center gap-1 shrink-0">
-                <QRCodeSVG
-                  value={`https://fiscaliz.lovable.app/doc/${document.id}`}
-                  size={72}
-                  level="M"
-                  includeMargin={false}
-                />
-                <span className="text-[7px] text-gray-400 leading-tight text-center">Escaneie para<br/>abrir o documento</span>
-              </div>
+            <div className="text-center">
+              <p>Goiânia, {formatDateFull(document.created_at)}</p>
+              <p className="mt-2">Este documento foi gerado eletronicamente e possui validade legal conforme legislação vigente.</p>
+              <p className="mt-1 font-semibold">Lei Municipal 8.741/08</p>
+              <p className="mt-1 text-[10px]">1ª Via: Estabelecimento | 2ª Via: Fiscalização</p>
+              <p className="mt-3 text-[9px] font-semibold text-gray-500">
+                Criado por FISCALIZ<sup>®</sup>
+              </p>
             </div>
           </div>
         </div>
