@@ -84,7 +84,7 @@ interface DocumentViewerProps {
   };
   onSave?: (data: any) => void;
   onSend?: (data: { email?: string; whatsapp?: string }) => void;
-  onSendDocument?: (method: 'sefiz' | 'email' | 'whatsapp', destination?: string) => void;
+  onSendDocument?: (method: 'sefiz' | 'email' | 'whatsapp', destination?: string, pdfStoragePath?: string) => void;
   onGeneratePDF?: () => void;
   onDelete?: () => void;
   editable?: boolean;
@@ -260,26 +260,8 @@ export function DocumentViewer({
     });
   };
 
-  const prepareWhatsAppSend = async (): Promise<{
-    phoneWithCountry: string;
-    whatsappUrl: string;
-    pdfUrl: string | null;
-  }> => {
-    // Limpar número de telefone (no reenvio pode vir de document.sent_to)
-    const phoneSource = whatsapp || (typeof document.sent_to === 'string' ? document.sent_to : '');
-    const cleanPhone = phoneSource ? phoneSource.replace(/\D/g, '') : '';
-    const phoneWithCountry = cleanPhone
-      ? (cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`)
-      : '';
-
-    const docType = documentTypeLabels[document.document_type] || document.document_type;
-    const establishment = document.establishment?.nome_fantasia || document.establishment?.razao_social || 'Estabelecimento';
-    const documentNumber = document.document_number || '';
-    const fiscalName = document.profile?.full_name || 'Auditor Fiscal';
-
-    // Gerar PDF do documento
-    let pdfUrl: string | null = null;
-
+  // Função reutilizável para gerar PDF e fazer upload ao storage
+  const generateAndUploadPDF = async (): Promise<string | null> => {
     toast({
       title: 'Gerando PDF profissional...',
       description: 'Aguarde enquanto o documento é preparado com template oficial.'
@@ -316,7 +298,6 @@ export function DocumentViewer({
       windowWidth: previewElement.scrollWidth,
       windowHeight: previewElement.scrollHeight,
       onclone: (clonedDoc) => {
-        // Garantir que o clone está visível
         const clonedPreview = clonedDoc.querySelector('.pdf-preview-container') as HTMLElement;
         if (clonedPreview) {
           clonedPreview.style.position = 'relative';
@@ -339,16 +320,12 @@ export function DocumentViewer({
     const imgWidth = canvas.width;
     const imgHeight = canvas.height;
 
-    // Calcular proporção para caber na página
     const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
     const imgX = (pdfWidth - imgWidth * ratio) / 2;
     const imgY = 0;
-
-    // Se o conteúdo for maior que uma página, adicionar múltiplas páginas
     const scaledHeight = imgHeight * ratio;
 
     if (scaledHeight > pdfHeight) {
-      // Conteúdo precisa de múltiplas páginas
       let remainingHeight = imgHeight;
       let currentY = 0;
       const pageHeightInPixels = pdfHeight / ratio;
@@ -358,7 +335,6 @@ export function DocumentViewer({
           pdf.addPage();
         }
 
-        // Criar canvas para esta página
         const pageCanvas = window.document.createElement('canvas');
         pageCanvas.width = canvas.width;
         pageCanvas.height = Math.min(pageHeightInPixels, remainingHeight);
@@ -386,19 +362,15 @@ export function DocumentViewer({
 
     console.log('[PDF Generation] PDF created, uploading to storage...');
 
-    // Converter PDF para blob
     const pdfBlob = pdf.output('blob');
 
-    // Fazer upload para o Storage - pasta do usuário
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       throw new Error('Usuário não autenticado. Faça login novamente.');
     }
 
-    // Gerar nome do arquivo único uma vez
     const timestamp = Date.now();
     const pdfFileName = `${document.id}_${timestamp}.pdf`;
-    // Caminho completo: user_id no primeiro nível da pasta
     const fullPath = `${user.id}/${pdfFileName}`;
 
     const { data: uploadData, error: uploadError } = await supabase.storage
@@ -413,16 +385,47 @@ export function DocumentViewer({
       throw new Error(`Erro no upload: ${uploadError.message}`);
     }
 
+    setShowPDFPreview(false);
+
     if (uploadData) {
-      // Usar URL personalizada do Fiscaliz em vez do domínio do storage
+      console.log('[PDF Generation] PDF uploaded successfully, path:', fullPath);
+      return fullPath; // Retorna o path do storage (não URL)
+    }
+
+    return null;
+  };
+
+  const prepareWhatsAppSend = async (): Promise<{
+    phoneWithCountry: string;
+    whatsappUrl: string;
+    pdfUrl: string | null;
+    pdfStoragePath: string | null;
+  }> => {
+    // Limpar número de telefone (no reenvio pode vir de document.sent_to)
+    const phoneSource = whatsapp || (typeof document.sent_to === 'string' ? document.sent_to : '');
+    const cleanPhone = phoneSource ? phoneSource.replace(/\D/g, '') : '';
+    const phoneWithCountry = cleanPhone
+      ? (cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`)
+      : '';
+
+    const docType = documentTypeLabels[document.document_type] || document.document_type;
+    const establishment = document.establishment?.nome_fantasia || document.establishment?.razao_social || 'Estabelecimento';
+    const documentNumber = document.document_number || '';
+    const fiscalName = document.profile?.full_name || 'Auditor Fiscal';
+
+    // Gerar PDF usando função reutilizável
+    const pdfStoragePath = await generateAndUploadPDF();
+    
+    // Construir URL amigável para o WhatsApp
+    let pdfUrl: string | null = null;
+    if (pdfStoragePath) {
+      const userId = pdfStoragePath.split('/')[0];
+      const fileName = pdfStoragePath.split('/').slice(1).join('/');
       const baseUrl = window.location.hostname.includes('localhost')
         ? window.location.origin
         : 'https://fiscaliz.lovable.app';
-      pdfUrl = `${baseUrl}/pdf/${pdfFileName}?u=${user.id}`;
-      console.log('[PDF Generation] PDF uploaded successfully, friendly URL:', pdfUrl);
+      pdfUrl = `${baseUrl}/pdf/${fileName}?u=${userId}`;
     }
-
-    setShowPDFPreview(false);
 
     // Montar mensagem com link do PDF
     let message = `━━━━━━━━━━━━━━━━━━━━
@@ -449,7 +452,7 @@ ${pdfUrl}`;
 _Enviado via FISCALIZ®_`;
 
     const whatsappUrl = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`;
-    return { phoneWithCountry, whatsappUrl, pdfUrl };
+    return { phoneWithCountry, whatsappUrl, pdfUrl, pdfStoragePath };
   };
 
   // Estado para guardar a URL do WhatsApp pronta para abertura manual (fallback)
@@ -477,7 +480,7 @@ _Enviado via FISCALIZ®_`;
 
     try {
       const isResend = isLocked;
-      const { phoneWithCountry, whatsappUrl, pdfUrl } = await prepareWhatsAppSend();
+      const { phoneWithCountry, whatsappUrl, pdfUrl, pdfStoragePath } = await prepareWhatsAppSend();
 
       if (!phoneWithCountry) {
         throw new Error('Informe um número de WhatsApp válido para reenviar.');
@@ -486,7 +489,7 @@ _Enviado via FISCALIZ®_`;
       // No mobile, abrir o WhatsApp pode cancelar fetch pendente (gerando "Load failed").
       // Então, no envio (não reenvio), primeiro atualizamos o status no backend.
       if (!isResend && onSendDocument) {
-        await onSendDocument('whatsapp', phoneWithCountry || whatsapp);
+        await onSendDocument('whatsapp', phoneWithCountry || whatsapp, pdfStoragePath || undefined);
       }
 
       // Tentar navegação automática
@@ -2432,15 +2435,33 @@ _Enviado via FISCALIZ®_`;
               </Button>
               <Button 
                 className="flex-1 gap-1" 
-                onClick={() => {
+                disabled={isGeneratingPDF}
+                onClick={async () => {
                   if (onSendDocument) {
-                    onSendDocument('sefiz');
+                    setIsGeneratingPDF(true);
+                    try {
+                      const pdfStoragePath = await generateAndUploadPDF();
+                      await onSendDocument('sefiz', undefined, pdfStoragePath || undefined);
+                    } catch (error: any) {
+                      console.error('Error generating PDF for QR:', error);
+                      toast({
+                        title: 'Erro ao gerar PDF',
+                        description: error?.message || 'Tente novamente.',
+                        variant: 'destructive'
+                      });
+                    } finally {
+                      setIsGeneratingPDF(false);
+                    }
                     setShowQRCodeModal(false);
                   }
                 }}
               >
-                <QrCode className="h-4 w-4" />
-                Enviar e Bloquear
+                {isGeneratingPDF ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <QrCode className="h-4 w-4" />
+                )}
+                {isGeneratingPDF ? 'Gerando PDF...' : 'Enviar e Bloquear'}
               </Button>
             </div>
           </div>
