@@ -16,7 +16,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [registrationNumber, setRegistrationNumber] = useState('');
-  const [identificationType, setIdentificationType] = useState<'cnpj' | 'cpf' | 'inscricao_municipal'>('cpf');
+  const [identificationType, setIdentificationType] = useState<'cnpj' | 'cpf'>('cpf');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [extraData, setExtraData] = useState<SignupExtraData>({
@@ -187,7 +187,6 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
                       {[
                         { value: 'cpf', label: 'CPF' },
                         { value: 'cnpj', label: 'CNPJ' },
-                        { value: 'inscricao_municipal', label: 'Insc. Municipal' }
                       ].map((type) => (
                         <button
                           key={type.value}
@@ -207,15 +206,13 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
 
                   <div className="space-y-2">
                     <Label htmlFor="registrationNumber" className="text-caption font-semibold uppercase tracking-wide">
-                      {identificationType === 'cpf' ? 'CPF' : identificationType === 'cnpj' ? 'CNPJ' : 'Inscrição Municipal'} (opcional)
+                      {identificationType === 'cpf' ? 'CPF' : 'CNPJ'} (opcional)
                     </Label>
                     <Input
                       id="registrationNumber"
                       type="text"
                       placeholder={
-                        identificationType === 'cpf' ? '000.000.000-00' : 
-                        identificationType === 'cnpj' ? '00.000.000/0000-00' : 
-                        'Número da inscrição'
+                        identificationType === 'cpf' ? '000.000.000-00' : '00.000.000/0000-00'
                       }
                       value={registrationNumber}
                       onChange={(e) => setRegistrationNumber(e.target.value)}
