@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getSignedUrl } from '@/lib/storage';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -119,6 +120,15 @@ export default function DocumentDetail() {
       };
     } else {
       finalProfile = null;
+    }
+
+    // Resolve signature signed URL if needed
+    if (finalProfile?.signature_url) {
+      try {
+        finalProfile.signature_url = await getSignedUrl(finalProfile.signature_url);
+      } catch (e) {
+        console.error('Failed to get signed URL for signature:', e);
+      }
     }
 
     // Format document for viewer
