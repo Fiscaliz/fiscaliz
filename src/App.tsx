@@ -27,6 +27,7 @@ import MonthlyReports from "./pages/MonthlyReports";
 import DocumentDetail from "./pages/DocumentDetail";
 import Documents from "./pages/Documents";
 import PDFRedirect from "./pages/PDFRedirect";
+import PublicDocumentView from "./pages/PublicDocumentView";
 import ConsultAI from "./pages/ConsultAI";
 import AdminUsers from "./pages/AdminUsers";
 import NotFound from "./pages/NotFound";
@@ -143,6 +144,8 @@ const App = () => (
             } />
             {/* Public PDF redirect route - no auth required */}
             <Route path="/pdf/:fileName" element={<PDFRedirect />} />
+            {/* Public document view via QR Code - no auth required */}
+            <Route path="/doc/:id" element={<PublicDocumentView />} />
             
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
