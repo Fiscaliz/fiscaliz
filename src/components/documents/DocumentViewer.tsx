@@ -1338,7 +1338,7 @@ _Enviado via FISCALIZ®_`;
               {/* QR Code para acesso ao PDF */}
               <div className="flex flex-col items-center gap-1 shrink-0">
                 <QRCodeSVG
-                  value={`https://fiscaliz.lovable.app/documento/${document.id}`}
+                  value={`https://fiscaliz.lovable.app/doc/${document.id}`}
                   size={72}
                   level="M"
                   includeMargin={false}
@@ -2417,7 +2417,7 @@ _Enviado via FISCALIZ®_`;
             </div>
             <div className="flex justify-center p-4 bg-white rounded-xl">
               <QRCodeSVG
-                value={`https://fiscaliz.lovable.app/documento/${document.id}`}
+                value={`https://fiscaliz.lovable.app/doc/${document.id}`}
                 size={200}
                 level="H"
                 includeMargin
