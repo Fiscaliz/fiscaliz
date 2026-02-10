@@ -423,7 +423,7 @@ export function DocumentViewer({
       const fileName = pdfStoragePath.split('/').slice(1).join('/');
       const baseUrl = window.location.hostname.includes('localhost')
         ? window.location.origin
-        : 'https://fiscaliz.lovable.app';
+        : 'https://fiscaliz.app';
       pdfUrl = `${baseUrl}/pdf/${fileName}?u=${userId}`;
     }
 
@@ -1271,7 +1271,7 @@ _Enviado via FISCALIZ®_`;
           {/* QR Code para acesso ao PDF - ACIMA das assinaturas */}
           <div className="doc-section mt-10 flex flex-col items-center gap-1">
             <QRCodeSVG
-              value={`https://fiscaliz.lovable.app/doc/${document.id}`}
+              value={`https://fiscaliz.app/doc/${document.id}`}
               size={72}
               level="M"
               includeMargin={false}
@@ -2419,14 +2419,14 @@ _Enviado via FISCALIZ®_`;
             </div>
             <div className="flex justify-center p-4 bg-white rounded-xl">
               <QRCodeSVG
-                value={`https://fiscaliz.lovable.app/doc/${document.id}`}
+                value={`https://fiscaliz.app/doc/${document.id}`}
                 size={200}
                 level="H"
                 includeMargin
               />
             </div>
             <p className="text-[10px] text-center text-muted-foreground break-all">
-              fiscaliz.lovable.app/documento/{document.id.slice(0, 8)}...
+              fiscaliz.app/doc/{document.id.slice(0, 8)}...
             </p>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setShowQRCodeModal(false)}>
