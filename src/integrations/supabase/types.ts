@@ -433,6 +433,7 @@ export type Database = {
           institution_logo_url: string | null
           institution_name: string | null
           institutional_link: string | null
+          is_active: boolean
           phone: string | null
           registration_number: string | null
           signature_url: string | null
@@ -450,6 +451,7 @@ export type Database = {
           institution_logo_url?: string | null
           institution_name?: string | null
           institutional_link?: string | null
+          is_active?: boolean
           phone?: string | null
           registration_number?: string | null
           signature_url?: string | null
@@ -467,6 +469,7 @@ export type Database = {
           institution_logo_url?: string | null
           institution_name?: string | null
           institutional_link?: string | null
+          is_active?: boolean
           phone?: string | null
           registration_number?: string | null
           signature_url?: string | null

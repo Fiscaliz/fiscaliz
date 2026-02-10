@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,21 +13,36 @@ import {
   HelpCircle,
   ChevronRight,
   Shield,
-  Calendar
+  Calendar,
+  Users
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import fiscalizLogo from '@/assets/logo-fiscaliz.png';
 
 export default function Profile() {
   const { user, signOut } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
   
   const fullName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário';
   const initials = fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+
+  useEffect(() => {
+    if (user) {
+      supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .maybeSingle()
+        .then(({ data }) => setIsAdmin(!!data));
+    }
+  }, [user]);
 
   const menuItems = [
     { icon: User, label: 'Editar Perfil', href: '/perfil/editar', color: 'bg-primary/10 text-primary' },
     { icon: FileText, label: 'Meus Documentos', href: '/documentos', color: 'bg-info/10 text-info' },
     { icon: Calendar, label: 'Relatório Mensal', href: '/relatorio-mensal', color: 'bg-success/10 text-success' },
+    ...(isAdmin ? [{ icon: Users, label: 'Gestão de Usuários', href: '/admin/usuarios', color: 'bg-destructive/10 text-destructive' }] : []),
     { icon: Settings, label: 'Configurações', href: '/configuracoes', color: 'bg-muted text-muted-foreground' },
     { icon: HelpCircle, label: 'Ajuda', href: '/ajuda', color: 'bg-warning/10 text-warning' },
   ];
