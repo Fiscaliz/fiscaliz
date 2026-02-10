@@ -96,25 +96,25 @@ const respostasPadrao: RespostaPadrao[] = [
     id: 'improcedente',
     situacao: 'Denúncia julgada improcedente',
     categoria: 'finalizada',
-    respostaFechamento: 'Foi realizada ação investigativa em atendimento a denúncia e ficou constatado que, no dia.....às ......horas, não foi observada a situação denunciada.',
+    respostaFechamento: 'Foi realizada ação investigativa em atendimento a denúncia e ficou constatado que, no {DATA_HORA}, não foi observada a situação denunciada.',
   },
   {
     id: 'parcial_procedente',
     situacao: 'Denúncia julgada parcialmente procedente',
     categoria: 'finalizada',
-    respostaFechamento: 'A ação investigativa da denúcia ocorreu no dia.... às.....horas, com tomada de medidas sanitárias legais cabíveis quanto ao fato X. Não foi constatada a situação Y.',
+    respostaFechamento: 'A ação investigativa da denúcia ocorreu no {DATA_HORA}, com tomada de medidas sanitárias legais cabíveis quanto ao fato X. Não foi constatada a situação Y.',
   },
   {
     id: 'procedente',
     situacao: 'Denúncia julgada procedente',
     categoria: 'finalizada',
-    respostaFechamento: 'A ação investigativa da denúcia ocorreu no dia.... às.....horas, com tomada de medidas sanitárias legais cabíveis para correção das irregularidades.',
+    respostaFechamento: 'A ação investigativa da denúcia ocorreu no {DATA_HORA}, com tomada de medidas sanitárias legais cabíveis para correção das irregularidades.',
   },
   {
     id: 'mista_visa_outros',
     situacao: 'Denúncia com fatos da Visa e de outros órgãos',
     categoria: 'finalizada',
-    respostaFechamento: 'A ação investigativa da denúcia ocorreu no dia.... às.....horas, com tomada de medidas sanitárias legais cabíveis quanto ao fato X, cuja apuração é de responsabilidade da VISA. Para os demais fatos da denúncia, favor registrar no órgão competente.',
+    respostaFechamento: 'A ação investigativa da denúcia ocorreu no {DATA_HORA}, com tomada de medidas sanitárias legais cabíveis quanto ao fato X, cuja apuração é de responsabilidade da VISA. Para os demais fatos da denúncia, favor registrar no órgão competente.',
   },
   {
     id: 'endereco_residencial',
@@ -132,7 +132,7 @@ const respostasPadrao: RespostaPadrao[] = [
     id: 'varias_denuncias',
     situacao: 'Várias denúncias do mesmo denunciante e local',
     categoria: 'finalizada',
-    respostaFechamento: 'O fato denunciado foi registrado em solicitação anterior (registrar os números das outras solicitações, caso pertinente) e atendido conforme ação investigativa realizada no dia .... às................horas, com tomada de medidas sanitárias legais cabíveis no momento da inspeção.',
+    respostaFechamento: 'O fato denunciado foi registrado em solicitação anterior (registrar os números das outras solicitações, caso pertinente) e atendido conforme ação investigativa realizada no {DATA_HORA}, com tomada de medidas sanitárias legais cabíveis no momento da inspeção.',
   },
   {
     id: 'poluicao_amma',
@@ -204,7 +204,7 @@ const respostasPadrao: RespostaPadrao[] = [
     id: 'encerrou_atividades',
     situacao: 'Estabelecimento encerrou atividades',
     categoria: 'finalizada',
-    respostaFechamento: 'Em atendimento à denúncia, foi realizada visita fiscal no dia xxx às xx horas, e verificou-se que o estabelecimento encerrou as suas atividades no referido endereço.',
+    respostaFechamento: 'Em atendimento à denúncia, foi realizada visita fiscal no {DATA_HORA}, e verificou-se que o estabelecimento encerrou as suas atividades no referido endereço.',
   },
   {
     id: 'lixo_condominio',
@@ -234,7 +234,12 @@ export function DenunciaResponseForm({
 
   const handleSelect = (resposta: RespostaPadrao) => {
     setSelectedResposta(resposta.id);
-    const text = resposta.respostaFechamento || resposta.fraseTransferencia || '';
+    let text = resposta.respostaFechamento || resposta.fraseTransferencia || '';
+    // Auto-fill date/time placeholders
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    text = text.replace(/\{DATA_HORA\}/g, `dia ${dateStr} às ${timeStr} horas`);
     setEditedText(text);
   };
 

@@ -27,7 +27,8 @@ import {
   Clock,
   Trash2,
   Loader2,
-  ExternalLink
+  ExternalLink,
+  QrCode
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -453,6 +454,7 @@ _Enviado via FISCALIZ®_`;
 
   // Estado para guardar a URL do WhatsApp pronta para abertura manual (fallback)
   const [pendingWhatsAppUrl, setPendingWhatsAppUrl] = useState<string | null>(null);
+  const [showQRCodeModal, setShowQRCodeModal] = useState(false);
 
   const handleSendViaWhatsApp = async () => {
     setIsGeneratingPDF(true);
@@ -2240,7 +2242,7 @@ _Enviado via FISCALIZ®_`;
                 <p className="text-xs font-medium text-center text-muted-foreground">
                   Enviar e finalizar documento:
                 </p>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <Button 
                     variant="default" 
                     onClick={() => {
@@ -2279,6 +2281,14 @@ _Enviado via FISCALIZ®_`;
                   >
                     <MessageCircle className="h-4 w-4" />
                     Via WhatsApp
+                  </Button>
+                  <Button 
+                    variant="default" 
+                    onClick={() => setShowQRCodeModal(true)}
+                    className="gap-1 text-xs h-auto py-3 flex-col"
+                  >
+                    <QrCode className="h-4 w-4" />
+                    Via QR Code
                   </Button>
                 </div>
               </div>
@@ -2394,6 +2404,48 @@ _Enviado via FISCALIZ®_`;
           }
         }}
       />
+
+      {/* QR Code Modal for document delivery */}
+      {showQRCodeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowQRCodeModal(false)}>
+          <div className="bg-card rounded-2xl shadow-xl p-6 max-w-sm w-full space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center space-y-1">
+              <h3 className="text-lg font-bold text-foreground">QR Code do Documento</h3>
+              <p className="text-xs text-muted-foreground">
+                Mostre este QR Code para o contribuinte escanear e acessar o documento.
+              </p>
+            </div>
+            <div className="flex justify-center p-4 bg-white rounded-xl">
+              <QRCodeSVG
+                value={`https://fiscaliz.lovable.app/documento/${document.id}`}
+                size={200}
+                level="H"
+                includeMargin
+              />
+            </div>
+            <p className="text-[10px] text-center text-muted-foreground break-all">
+              fiscaliz.lovable.app/documento/{document.id.slice(0, 8)}...
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setShowQRCodeModal(false)}>
+                Fechar
+              </Button>
+              <Button 
+                className="flex-1 gap-1" 
+                onClick={() => {
+                  if (onSendDocument) {
+                    onSendDocument('sefiz');
+                    setShowQRCodeModal(false);
+                  }
+                }}
+              >
+                <QrCode className="h-4 w-4" />
+                Enviar e Bloquear
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
