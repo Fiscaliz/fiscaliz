@@ -1,13 +1,38 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, FileText, AlertCircle } from 'lucide-react';
+import { Loader2, FileText, AlertCircle, Building2, Calendar, Hash, User, MapPin } from 'lucide-react';
 import logoFiscaliz from '@/assets/logo-fiscaliz.png';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+const documentTypeLabels: Record<string, string> = {
+  termo_intimacao: 'Termo de Intimação',
+  visita_fiscal: 'Visita Fiscal',
+  auto_infracao: 'Auto de Infração',
+  advertencia: 'Advertência',
+  inutilizacao: 'Inutilização',
+  apreensao: 'Apreensão',
+  interdicao: 'Interdição',
+  relatorio_tecnico: 'Relatório Técnico',
+  notificacao: 'Notificação',
+  replica: 'Réplica',
+  certidao: 'Certidão',
+  coleta_amostra: 'Coleta de Amostra',
+  relatorio_atividade: 'Relatório de Atividade',
+};
+
+const statusLabels: Record<string, string> = {
+  draft: 'Rascunho',
+  sent: 'Enviado',
+  archived: 'Concluído',
+};
 
 export default function PublicDocumentView() {
   const { id } = useParams<{ id: string }>();
   const [status, setStatus] = useState<'loading' | 'found' | 'error'>('loading');
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [document, setDocument] = useState<any>(null);
+  const [establishment, setEstablishment] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
@@ -18,96 +43,166 @@ export default function PublicDocumentView() {
     }
 
     const fetchDocument = async () => {
-      // Try to get the document's PDF URL
       const { data, error } = await supabase
         .from('fiscal_documents')
-        .select('pdf_url, document_number, document_type')
+        .select('*, establishment:establishments(*)')
         .eq('id', id)
         .maybeSingle();
 
       if (error || !data) {
         setStatus('error');
-        setErrorMessage('Documento não encontrado ou acesso não autorizado.');
+        setErrorMessage('Documento não encontrado ou ainda não foi enviado.');
         return;
       }
 
-      if (data.pdf_url) {
-        // If there's a stored PDF URL, redirect to it
-        setPdfUrl(data.pdf_url);
-        setStatus('found');
-      } else {
-        // No PDF generated yet
-        setStatus('error');
-        setErrorMessage('O PDF deste documento ainda não foi gerado. Solicite ao fiscal responsável.');
-      }
+      const est = Array.isArray(data.establishment) ? data.establishment[0] : data.establishment;
+      setDocument(data);
+      setEstablishment(est);
+      setStatus('found');
     };
 
     fetchDocument();
   }, [id]);
 
+  const formatDate = (dateStr: string) => {
+    try {
+      return format(new Date(dateStr), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    } catch {
+      return dateStr;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-primary/5 flex items-center justify-center p-4">
-      <div className="bg-card rounded-2xl shadow-xl p-8 max-w-md w-full text-center space-y-6">
-        <div className="flex justify-center">
-          <img src={logoFiscaliz} alt="Fiscaliz" className="h-16 object-contain" />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-700 to-blue-600 p-6 text-white text-center">
+          <img src={logoFiscaliz} alt="Fiscaliz" className="h-12 mx-auto mb-3 brightness-0 invert" />
+          <p className="text-blue-200 text-xs tracking-wider uppercase">Documento Fiscal Digital</p>
         </div>
 
-        {status === 'loading' && (
-          <>
-            <div className="flex justify-center">
-              <div className="bg-primary/10 rounded-full p-4">
-                <Loader2 className="h-8 w-8 text-primary animate-spin" />
+        <div className="p-6 space-y-5">
+          {status === 'loading' && (
+            <div className="text-center py-8 space-y-3">
+              <Loader2 className="h-8 w-8 text-blue-600 animate-spin mx-auto" />
+              <p className="text-gray-500">Carregando documento...</p>
+            </div>
+          )}
+
+          {status === 'found' && document && (
+            <>
+              {/* Document Type Badge */}
+              <div className="text-center">
+                <span className="inline-flex items-center gap-2 bg-blue-50 text-blue-800 text-sm font-semibold px-4 py-2 rounded-full border border-blue-200">
+                  <FileText className="h-4 w-4" />
+                  {documentTypeLabels[document.document_type] || document.document_type}
+                </span>
+              </div>
+
+              {/* Document Info */}
+              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                {document.document_number && (
+                  <div className="flex items-center gap-3">
+                    <Hash className="h-4 w-4 text-gray-400 shrink-0" />
+                    <div>
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wider">Número</p>
+                      <p className="text-sm font-semibold text-gray-800">{document.document_number}</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-4 w-4 text-gray-400 shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider">Data da Ação</p>
+                    <p className="text-sm text-gray-800">
+                      {document.action_date ? formatDate(document.action_date) : formatDate(document.created_at)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <FileText className="h-4 w-4 text-gray-400 shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider">Status</p>
+                    <p className="text-sm text-gray-800">{statusLabels[document.status] || document.status}</p>
+                  </div>
+                </div>
+
+                {document.deadline_date && (
+                  <div className="flex items-center gap-3">
+                    <Calendar className="h-4 w-4 text-orange-400 shrink-0" />
+                    <div>
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wider">Prazo</p>
+                      <p className="text-sm font-semibold text-orange-700">{formatDate(document.deadline_date)}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Establishment Info */}
+              {establishment && (
+                <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Estabelecimento</p>
+                  
+                  <div className="flex items-center gap-3">
+                    <Building2 className="h-4 w-4 text-gray-400 shrink-0" />
+                    <p className="text-sm font-semibold text-gray-800">
+                      {establishment.nome_fantasia || establishment.razao_social}
+                    </p>
+                  </div>
+
+                  {establishment.cnpj && (
+                    <div className="flex items-center gap-3">
+                      <Hash className="h-4 w-4 text-gray-400 shrink-0" />
+                      <p className="text-sm text-gray-600">CNPJ: {establishment.cnpj}</p>
+                    </div>
+                  )}
+
+                  {establishment.endereco && (
+                    <div className="flex items-center gap-3">
+                      <MapPin className="h-4 w-4 text-gray-400 shrink-0" />
+                      <p className="text-sm text-gray-600">{establishment.endereco}</p>
+                    </div>
+                  )}
+
+                  {establishment.responsavel_nome && (
+                    <div className="flex items-center gap-3">
+                      <User className="h-4 w-4 text-gray-400 shrink-0" />
+                      <p className="text-sm text-gray-600">Resp.: {establishment.responsavel_nome}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Legal note */}
+              <div className="text-center border-t pt-4">
+                <p className="text-[11px] text-gray-500 leading-relaxed">
+                  Este documento foi gerado eletronicamente pelo sistema <strong>FISCALIZ®</strong> e possui validade legal conforme legislação vigente.
+                </p>
+                <p className="text-[10px] text-gray-400 mt-1 font-semibold">
+                  Lei Municipal 8.741/08
+                </p>
+              </div>
+            </>
+          )}
+
+          {status === 'error' && (
+            <div className="text-center py-8 space-y-4">
+              <div className="bg-red-50 rounded-full p-4 w-fit mx-auto">
+                <AlertCircle className="h-8 w-8 text-red-500" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800">Documento não disponível</h2>
+                <p className="text-gray-500 mt-1 text-sm">{errorMessage}</p>
               </div>
             </div>
-            <div>
-              <h1 className="text-xl font-semibold text-foreground">Carregando documento...</h1>
-              <p className="text-muted-foreground mt-2">Aguarde enquanto localizamos o documento.</p>
-            </div>
-          </>
-        )}
+          )}
+        </div>
 
-        {status === 'found' && pdfUrl && (
-          <>
-            <div className="flex justify-center">
-              <div className="bg-primary/10 rounded-full p-4">
-                <FileText className="h-8 w-8 text-primary" />
-              </div>
-            </div>
-            <div>
-              <h1 className="text-xl font-semibold text-foreground">Documento encontrado!</h1>
-              <p className="text-muted-foreground mt-2">Clique abaixo para visualizar o documento.</p>
-            </div>
-            <a
-              href={pdfUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground px-6 py-3 font-medium hover:bg-primary/90 transition-colors"
-            >
-              <FileText className="h-5 w-5" />
-              Abrir Documento
-            </a>
-          </>
-        )}
-
-        {status === 'error' && (
-          <>
-            <div className="flex justify-center">
-              <div className="bg-destructive/10 rounded-full p-4">
-                <AlertCircle className="h-8 w-8 text-destructive" />
-              </div>
-            </div>
-            <div>
-              <h1 className="text-xl font-semibold text-foreground">Documento não disponível</h1>
-              <p className="text-muted-foreground mt-2">{errorMessage}</p>
-            </div>
-          </>
-        )}
-
-        <div className="pt-4 border-t border-border">
-          <p className="text-xs text-muted-foreground">Vigilância Sanitária de Goiânia</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Documento gerado por <strong>FISCALIZ®</strong>
-          </p>
+        {/* Footer */}
+        <div className="bg-gray-50 p-4 text-center border-t">
+          <p className="text-[10px] text-gray-400">Vigilância Sanitária de Goiânia</p>
         </div>
       </div>
     </div>
