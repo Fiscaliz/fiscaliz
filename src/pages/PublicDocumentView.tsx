@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, FileText, AlertCircle, Building2, Calendar, Hash, User, MapPin } from 'lucide-react';
+import { Loader2, FileText, AlertCircle, Building2, Calendar, Hash, User, MapPin, Download } from 'lucide-react';
 import logoFiscaliz from '@/assets/logo-fiscaliz.png';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Button } from '@/components/ui/button';
 
 const documentTypeLabels: Record<string, string> = {
   termo_intimacao: 'Termo de Intimação',
@@ -34,6 +35,8 @@ export default function PublicDocumentView() {
   const [document, setDocument] = useState<any>(null);
   const [establishment, setEstablishment] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const [pdfSignedUrl, setPdfSignedUrl] = useState<string | null>(null);
+  const [loadingPdf, setLoadingPdf] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -59,6 +62,21 @@ export default function PublicDocumentView() {
       setDocument(data);
       setEstablishment(est);
       setStatus('found');
+
+      // Se tem pdf_url, gerar signed URL automaticamente
+      if (data.pdf_url) {
+        setLoadingPdf(true);
+        const { data: signedData, error: signedError } = await supabase.storage
+          .from('fiscal-photos')
+          .createSignedUrl(data.pdf_url, 3600);
+
+        if (signedData?.signedUrl) {
+          setPdfSignedUrl(signedData.signedUrl);
+        } else {
+          console.error('Error creating signed URL for PDF:', signedError);
+        }
+        setLoadingPdf(false);
+      }
     };
 
     fetchDocument();
@@ -98,6 +116,25 @@ export default function PublicDocumentView() {
                   {documentTypeLabels[document.document_type] || document.document_type}
                 </span>
               </div>
+
+              {/* PDF Download Button */}
+              {pdfSignedUrl && (
+                <div className="text-center">
+                  <a href={pdfSignedUrl} target="_blank" rel="noopener noreferrer">
+                    <Button className="gap-2 bg-blue-600 hover:bg-blue-700 text-white w-full" size="lg">
+                      <Download className="h-5 w-5" />
+                      Baixar Documento PDF
+                    </Button>
+                  </a>
+                </div>
+              )}
+
+              {loadingPdf && (
+                <div className="text-center py-2">
+                  <Loader2 className="h-5 w-5 text-blue-600 animate-spin mx-auto" />
+                  <p className="text-xs text-gray-500 mt-1">Preparando PDF...</p>
+                </div>
+              )}
 
               {/* Document Info */}
               <div className="bg-gray-50 rounded-xl p-4 space-y-3">

@@ -237,7 +237,7 @@ export default function DocumentDetail() {
   };
 
   // Enviar documento - bloqueia e muda status
-  const handleSendDocument = async (method: 'sefiz' | 'email' | 'whatsapp', destination?: string) => {
+  const handleSendDocument = async (method: 'sefiz' | 'email' | 'whatsapp', destination?: string, pdfStoragePath?: string) => {
     if (!id || !user || !document) return;
 
     try {
@@ -245,14 +245,21 @@ export default function DocumentDetail() {
       // Documentos que precisam de acompanhamento vão para 'sent' (Enviados)
       const newStatus = isSelfContainedDoc ? 'archived' : 'sent';
 
+      const updateData: any = {
+        status: newStatus,
+        is_locked: true,
+        sent_at: new Date().toISOString(),
+        sent_to: destination || method
+      };
+
+      // Salvar o path do PDF no storage se disponível
+      if (pdfStoragePath) {
+        updateData.pdf_url = pdfStoragePath;
+      }
+
       const { error: updateError } = await supabase
         .from('fiscal_documents')
-        .update({
-          status: newStatus,
-          is_locked: true,
-          sent_at: new Date().toISOString(),
-          sent_to: destination || method
-        })
+        .update(updateData)
         .eq('id', id);
 
       if (updateError) throw updateError;
