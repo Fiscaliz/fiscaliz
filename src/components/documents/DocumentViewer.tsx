@@ -443,7 +443,7 @@ Vigilância Sanitária de Goiânia`;
     if (pdfUrl) {
       message += `
 
-📎 *Documento PDF completo:*
+📎 Documento PDF completo:
 ${pdfUrl}`;
     }
 
