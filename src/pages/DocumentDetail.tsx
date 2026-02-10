@@ -356,7 +356,7 @@ export default function DocumentDetail() {
         showBack 
       />
       
-      <div className="p-5">
+      <div className="p-5 pb-32">
         <DocumentViewer
           document={document}
           onSave={handleSave}
