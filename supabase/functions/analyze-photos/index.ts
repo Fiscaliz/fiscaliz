@@ -1,10 +1,23 @@
 /// <reference lib="deno.ns" />
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const corsHeaders: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const ALLOWED_ORIGINS = [
+  "https://fiscaliz.lovable.app",
+  "https://id-preview--4a07efe0-5065-4b28-9142-91e42ddd1344.lovable.app",
+  "http://localhost:5173",
+  "http://localhost:8100",
+];
+
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get("origin") || "";
+  return {
+    "Access-Control-Allow-Origin": ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0],
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  };
+}
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const ALLOWED_URL_PREFIX = SUPABASE_URL ? `${SUPABASE_URL}/storage/v1/object/` : null;
 
 type Body = {
   documentType: string;
@@ -159,7 +172,24 @@ Analise as fotos fornecidas e identifique não conformidades baseadas EXCLUSIVAM
   "confidence": 0.92
 }`;
 
+function validatePhotoUrls(photos: string[], corsHeaders: Record<string, string>): Response | null {
+  if (!ALLOWED_URL_PREFIX) {
+    console.warn("[analyze-photos] SUPABASE_URL not configured, skipping URL validation");
+    return null;
+  }
+  for (const url of photos) {
+    if (!url.startsWith(ALLOWED_URL_PREFIX)) {
+      return new Response(
+        JSON.stringify({ error: "URL de foto inválida. Apenas URLs do storage são permitidas." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+  }
+  return null;
+}
+
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -178,6 +208,10 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Validate photo URLs - prevent SSRF
+    const urlError = validatePhotoUrls(photos, corsHeaders);
+    if (urlError) return urlError;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
@@ -203,7 +237,7 @@ Consulte os itens:
 - 4.10.x: Exposição
 - 4.11.x: Documentação
 
-Retorne um JSON: {"item_rdc": "4.X.X", "justificativa": "breve explicação"}`;
+Retorne um JSON: {\"item_rdc\": \"4.X.X\", \"justificativa\": \"breve explicação\"}`;
 
       const suggestParts: any[] = [
         { type: "text", text: suggestPrompt },
@@ -261,7 +295,7 @@ Retorne um JSON: {"item_rdc": "4.X.X", "justificativa": "breve explicação"}`;
 
 Para CADA foto, retorne: foto (1-${photos.length}), description (máx 50 chars ou vazio), severity, legalBasis (RDC 216/2004), recommendation, deadline.
 
-JSON: {"nonConformities":[...], "generalObservations":"", "confidence":0.9}
+JSON: {\"nonConformities\":[...], \"generalObservations\":\"\", \"confidence\":0.9}
 Sem markdown.`;
 
     const parts: any[] = [{ type: "text", text: userPrompt }];
@@ -297,7 +331,6 @@ Sem markdown.`;
     } catch (fetchError: any) {
       clearTimeout(timeoutId);
       
-      // Timeout or network error - return fallback for all photos
       if (fetchError.name === 'AbortError') {
         console.log(`[analyze-photos] Timeout after 15s, returning fallback for ${photos.length} photos`);
         
@@ -349,7 +382,6 @@ Sem markdown.`;
 
     console.log(`[analyze-photos] Raw response: ${rawText.substring(0, 500)}`);
 
-    // Try to parse as JSON
     let analysisResult: {
       nonConformities: Array<{
         foto: number;
@@ -364,7 +396,6 @@ Sem markdown.`;
     } | null = null;
 
     try {
-      // Extract JSON from possible markdown code blocks
       const jsonMatch = rawText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         analysisResult = JSON.parse(jsonMatch[0]);
@@ -373,7 +404,6 @@ Sem markdown.`;
       console.error("Failed to parse AI response as JSON:", parseError);
     }
 
-    // Convert to legacy format for backward compatibility with existing UI
     const photoAnalysis = analysisResult?.nonConformities?.map(nc => ({
       foto: nc.foto,
       legenda: nc.description,
@@ -394,6 +424,7 @@ Sem markdown.`;
     });
   } catch (e) {
     console.error("analyze-photos error:", e);
+    const corsHeaders = getCorsHeaders(req);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
