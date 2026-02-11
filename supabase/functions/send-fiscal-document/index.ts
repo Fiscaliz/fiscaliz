@@ -1,11 +1,20 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const ALLOWED_ORIGINS = [
+  "https://fiscaliz.lovable.app",
+  "https://id-preview--4a07efe0-5065-4b28-9142-91e42ddd1344.lovable.app",
+  "http://localhost:5173",
+  "http://localhost:8100",
+];
+
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get("origin") || "";
+  return {
+    "Access-Control-Allow-Origin": ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0],
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  };
+}
 
 interface SendDocumentRequest {
   email: string;
@@ -16,7 +25,7 @@ interface SendDocumentRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -26,18 +35,14 @@ const handler = async (req: Request): Promise<Response> => {
     if (!RESEND_API_KEY) {
       console.error("RESEND_API_KEY not configured");
       return new Response(
-        JSON.stringify({ 
-          error: "Serviço de email não configurado. Configure a API key do Resend." 
-        }),
+        JSON.stringify({ error: "Serviço de email não configurado. Configure a API key do Resend." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const resend = new Resend(RESEND_API_KEY);
-
     const { email, documentId, documentType, establishmentName, fiscalName }: SendDocumentRequest = await req.json();
 
-    // Validate required fields
     if (!email || !documentId || !documentType) {
       return new Response(
         JSON.stringify({ error: "Campos obrigatórios não preenchidos" }),
@@ -47,12 +52,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Sending fiscal document to ${email}`, { documentId, documentType, establishmentName });
 
-    // Get app URL for document link
     const appUrl = Deno.env.get("APP_URL") || "https://fiscaliz-smart-app.lovable.app";
     const documentLink = `${appUrl}/documento/${documentId}`;
 
     const emailResponse = await resend.emails.send({
-      from: "Fiscaliz <noreply@resend.dev>", // Use your verified domain in production
+      from: "Fiscaliz <noreply@resend.dev>",
       to: [email],
       subject: `${documentType} - Vigilância Sanitária de Goiânia`,
       html: `
