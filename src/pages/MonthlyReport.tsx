@@ -613,9 +613,15 @@ export default function MonthlyReport() {
         action_date,
         content,
         irregularities,
+        legislation_references,
         attachments,
         deadline_days,
         deadline_date,
+        fine_amount,
+        fine_uvf_quantity,
+        seal_number,
+        total_weight_kg,
+        is_partial_interdiction,
         establishment_id,
         fiscal_action_id,
         status,
@@ -1492,128 +1498,163 @@ export default function MonthlyReport() {
                   {/* Page break entre documentos (não no primeiro) */}
                   {docIndex > 0 && <div className="page-break" />}
                   
-                  {/* Cabeçalho do documento anexo */}
+                  {/* Cabeçalho oficial */}
                   <div className="mb-4 border-b-2 border-gray-800 pb-3">
-                    <div className="flex justify-between items-center mb-2">
-                      <div className="flex items-center gap-2">
-                        <img src={BRASAO_GOIANIA_SVG} alt="Brasão" className="h-12 w-auto" />
-                        <img src={SUS_LOGO_SVG} alt="SUS" className="h-8 w-auto" />
-                      </div>
-                      <div className="text-right text-xs text-gray-600">
-                        <p>Anexo {docIndex + 1} de {fullDocuments.length}</p>
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs font-bold">PREFEITURA DE GOIÂNIA - SMS - VIGILÂNCIA SANITÁRIA</p>
-                    </div>
-                    <div className="mt-2 py-2 bg-gray-800 text-white text-center">
-                      <h3 className="text-sm font-bold">
-                        {documentTypeLabels[doc.document_type]?.toUpperCase() || doc.document_type}
-                      </h3>
-                      {doc.document_number && (
-                        <p className="text-xs">Nº {doc.document_number}</p>
-                      )}
+                    <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                      <colgroup><col style={{ width: '70px' }} /><col /><col style={{ width: '60px' }} /></colgroup>
+                      <tbody><tr>
+                        <td style={{ verticalAlign: 'middle', textAlign: 'center', padding: '0' }}>
+                          <img src={BRASAO_GOIANIA_SVG} alt="Brasão" style={{ height: '55px', width: 'auto', display: 'inline-block' }} />
+                        </td>
+                        <td style={{ verticalAlign: 'middle', textAlign: 'center', padding: '0 8px' }}>
+                          <div style={{ fontSize: '10pt', fontWeight: 'bold', color: '#111', lineHeight: '1.25' }}>PREFEITURA DE GOIÂNIA</div>
+                          <div style={{ fontSize: '9pt', fontWeight: 'bold', color: '#111', lineHeight: '1.25' }}>SECRETARIA MUNICIPAL DE SAÚDE</div>
+                          <div style={{ fontSize: '7.5pt', fontWeight: '600', color: '#222', lineHeight: '1.25' }}>DIRETORIA DE VIGILÂNCIA SANITÁRIA E AMBIENTAL</div>
+                          <div style={{ fontSize: '6.5pt', color: '#555', marginTop: '2px', lineHeight: '1.3' }}>Av. Universitária esq. c/ 1ª Avenida, s/nº - Setor Universitário - CEP: 74605-010</div>
+                        </td>
+                        <td style={{ verticalAlign: 'middle', textAlign: 'center', padding: '0' }}>
+                          <img src={SUS_LOGO_SVG} alt="SUS" style={{ height: '35px', width: 'auto', display: 'inline-block' }} />
+                        </td>
+                      </tr></tbody>
+                    </table>
+                    <div className="mt-3 py-2 bg-gray-800 text-white text-center">
+                      <h3 className="text-sm font-bold">{documentTypeLabels[doc.document_type]?.toUpperCase() || doc.document_type}</h3>
+                      {doc.document_number && <p className="text-xs">Nº {doc.document_number}</p>}
+                      <p className="text-[9px] opacity-75">Anexo {docIndex + 1} de {fullDocuments.length}</p>
                     </div>
                   </div>
 
                   {/* Dados do estabelecimento */}
                   {doc.establishments && (
                     <div className="border border-gray-300 p-3 mb-4 text-xs">
-                      <h4 className="font-bold bg-gray-100 -m-3 mb-2 p-2 border-b border-gray-300">ESTABELECIMENTO</h4>
+                      <h4 className="font-bold bg-gray-100 -m-3 mb-2 p-2 border-b border-gray-300">IDENTIFICAÇÃO DO ESTABELECIMENTO</h4>
                       <div className="space-y-1">
                         <p><strong>Razão Social:</strong> {doc.establishments.razao_social}</p>
-                        {doc.establishments.nome_fantasia && (
-                          <p><strong>Nome Fantasia:</strong> {doc.establishments.nome_fantasia}</p>
-                        )}
+                        {doc.establishments.nome_fantasia && <p><strong>Nome Fantasia:</strong> {doc.establishments.nome_fantasia}</p>}
                         <p><strong>CNPJ:</strong> {doc.establishments.cnpj}</p>
-                        <p><strong>Endereço:</strong> {doc.establishments.endereco}{doc.establishments.bairro ? ` - ${doc.establishments.bairro}` : ''}</p>
-                        {doc.establishments.risk_level && (
-                          <p><strong>Nível de Risco:</strong> {doc.establishments.risk_level}</p>
-                        )}
+                        <p><strong>Endereço:</strong> {doc.establishments.endereco}{doc.establishments.bairro ? ` - ${doc.establishments.bairro}` : ''}{doc.establishments.cep ? ` - CEP: ${doc.establishments.cep}` : ''}</p>
+                        {doc.establishments.cnae_principal && <p><strong>CNAE/Atividade:</strong> {doc.establishments.cnae_principal}{(() => { const e = getRiskByCNAE(doc.establishments.cnae_principal); return e ? ` - ${e.description}` : ''; })()}</p>}
+                        {doc.establishments.responsavel_nome && <p><strong>Responsável:</strong> {doc.establishments.responsavel_nome}{doc.establishments.responsavel_cpf ? ` — CPF: ${doc.establishments.responsavel_cpf}` : ''}</p>}
+                        {doc.establishments.responsavel_telefone && <p><strong>Telefone:</strong> {doc.establishments.responsavel_telefone}</p>}
+                        {doc.establishments.risk_level && <p><strong>Risco Sanitário:</strong> {doc.establishments.risk_level === 'I' ? 'I (Baixo)' : doc.establishments.risk_level === 'II' ? 'II (Médio)' : 'III (Alto)'}</p>}
+                        {doc.establishments.alvara_numero && <p><strong>Alvará:</strong> {doc.establishments.alvara_numero}{doc.establishments.alvara_validade ? ` — Val: ${format(new Date(doc.establishments.alvara_validade + 'T12:00:00'), 'dd/MM/yyyy')}` : ''}</p>}
                       </div>
                     </div>
                   )}
 
-                  {/* Conteúdo do documento */}
+                  {/* Conteúdo com irregularidades */}
                   <div className="border border-gray-300 p-3 mb-4 text-xs">
-                    <h4 className="font-bold bg-gray-100 -m-3 mb-2 p-2 border-b border-gray-300">CONTEÚDO</h4>
+                    <h4 className="font-bold bg-gray-100 -m-3 mb-2 p-2 border-b border-gray-300">
+                      {doc.document_type === 'relatorio_tecnico' ? 'ESPECIFICAÇÃO DAS IRREGULARIDADES' : doc.document_type === 'visita_fiscal' ? 'RELATÓRIO DE INSPEÇÃO' : doc.document_type === 'certidao' ? 'CERTIDÃO' : 'ESPECIFICAÇÃO DAS IRREGULARIDADES / OBSERVAÇÕES'}
+                    </h4>
                     <div className="whitespace-pre-wrap leading-relaxed min-h-[80px]">
-                      {doc.content?.text || 'Sem conteúdo especificado.'}
+                      {doc.irregularities && Array.isArray(doc.irregularities) && (doc.irregularities as any[]).length > 0 && (
+                        <div className="mb-3">
+                          {(doc.irregularities as any[]).map((irr: any, irrIdx: number) => (
+                            <p key={irrIdx} className="mb-1"><strong>{irrIdx + 1}.</strong> {typeof irr === 'string' ? irr : irr.description || irr.text || JSON.stringify(irr)}{irr.legislation && <span className="text-gray-600"> ({irr.legislation})</span>}</p>
+                          ))}
+                        </div>
+                      )}
+                      {doc.content?.text || doc.content?.observations || 'Sem conteúdo especificado.'}
                     </div>
                   </div>
 
-                  {/* Observações adicionais */}
-                  {doc.content?.observations && (
+                  {doc.content?.observations && doc.content?.text && (
                     <div className="border border-gray-300 p-3 mb-4 text-xs">
-                      <h4 className="font-bold bg-gray-100 -m-3 mb-2 p-2 border-b border-gray-300">OBSERVAÇÕES</h4>
-                      <div className="whitespace-pre-wrap leading-relaxed">
-                        {doc.content.observations}
+                      <h4 className="font-bold bg-gray-100 -m-3 mb-2 p-2 border-b border-gray-300">OBSERVAÇÕES ADICIONAIS</h4>
+                      <div className="whitespace-pre-wrap leading-relaxed">{doc.content.observations}</div>
+                    </div>
+                  )}
+
+                  {doc.legislation_references && Array.isArray(doc.legislation_references) && (doc.legislation_references as any[]).length > 0 && (
+                    <div className="border border-gray-300 p-3 mb-4 text-xs">
+                      <h4 className="font-bold bg-gray-100 -m-3 mb-2 p-2 border-b border-gray-300">FUNDAMENTAÇÃO LEGAL</h4>
+                      <div className="space-y-1">
+                        {(doc.legislation_references as any[]).map((ref: any, ri: number) => (
+                          <p key={ri}>• {typeof ref === 'string' ? ref : ref.text || ref.description || JSON.stringify(ref)}</p>
+                        ))}
                       </div>
                     </div>
                   )}
 
-                  {/* Prazo (se aplicável) */}
                   {doc.deadline_date && (
                     <div className="border border-yellow-400 bg-yellow-50 p-3 mb-4 text-xs">
                       <h4 className="font-bold">PRAZO PARA ADEQUAÇÃO</h4>
-                      <p className="mt-1">
-                        <strong>{doc.deadline_days} dias</strong> - até {format(new Date(doc.deadline_date), 'dd/MM/yyyy')}
-                      </p>
+                      <p className="mt-1"><strong>{doc.deadline_days} dias</strong> — até {format(new Date(doc.deadline_date + 'T12:00:00'), 'dd/MM/yyyy')}</p>
                     </div>
                   )}
 
-                  {/* Registro fotográfico */}
-                  {doc.attachments && Array.isArray(doc.attachments) && doc.attachments.length > 0 && (
+                  {(doc.fine_amount || doc.fine_uvf_quantity) && (
+                    <div className="border border-red-400 bg-red-50 p-3 mb-4 text-xs">
+                      <h4 className="font-bold">PENALIDADE</h4>
+                      {doc.fine_uvf_quantity && <p className="mt-1"><strong>UVF:</strong> {doc.fine_uvf_quantity}</p>}
+                      {doc.fine_amount && <p className="mt-1"><strong>Valor:</strong> R$ {Number(doc.fine_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>}
+                    </div>
+                  )}
+
+                  {doc.seal_number && (
+                    <div className="border border-gray-300 p-3 mb-4 text-xs">
+                      <h4 className="font-bold bg-gray-100 -m-3 mb-2 p-2 border-b border-gray-300">LACRE / INTERDIÇÃO</h4>
+                      <p><strong>Nº do Lacre:</strong> {doc.seal_number}</p>
+                      {doc.is_partial_interdiction && <p><strong>Tipo:</strong> Interdição Parcial</p>}
+                      {doc.total_weight_kg && <p><strong>Peso Total:</strong> {doc.total_weight_kg} kg</p>}
+                    </div>
+                  )}
+
+                  {doc.attachments && Array.isArray(doc.attachments) && (doc.attachments as any[]).length > 0 && (
                     <div className="border border-gray-300 p-3 mb-4">
                       <h4 className="font-bold bg-gray-100 -m-3 mb-2 p-2 border-b border-gray-300 text-xs">REGISTRO FOTOGRÁFICO</h4>
                       <div className="grid grid-cols-2 gap-2">
-                        {(doc.attachments as any[]).slice(0, 4).map((att: any, attIdx: number) => (
-                          <div key={attIdx} className="aspect-[4/3] border border-gray-200 rounded overflow-hidden">
-                            <img 
-                              src={att.url} 
-                              alt={`Foto ${attIdx + 1}`} 
-                              className="w-full h-full object-cover"
-                            />
+                        {(doc.attachments as any[]).map((att: any, attIdx: number) => (
+                          <div key={attIdx} className="flex flex-col">
+                            <div className="relative aspect-[4/3] border border-gray-200 rounded overflow-hidden">
+                              <div className="absolute top-1 left-1 bg-gray-800 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">{attIdx + 1}</div>
+                              <img src={att.url} alt={`Foto ${attIdx + 1}`} className="w-full h-full object-cover" />
+                            </div>
+                            {att.caption && <p className="text-[8pt] text-gray-600 mt-1 leading-tight"><strong>Foto {attIdx + 1}:</strong> {att.caption}</p>}
                           </div>
                         ))}
                       </div>
-                      {doc.attachments.length > 4 && (
-                        <p className="text-xs text-gray-500 text-center mt-2">
-                          + {doc.attachments.length - 4} foto(s) adicionais
-                        </p>
-                      )}
                     </div>
                   )}
 
-                  {/* Data e hora do documento */}
-                  <div className="text-xs text-gray-600 text-right mt-2">
-                    <p>
-                      Data: {doc.content?.document_date 
-                        ? format(new Date(doc.content.document_date + 'T12:00:00'), 'dd/MM/yyyy') 
-                        : doc.action_date 
-                          ? format(new Date(doc.action_date + 'T12:00:00'), 'dd/MM/yyyy') 
-                          : format(new Date(doc.created_at), 'dd/MM/yyyy')}
-                      {doc.content?.document_time && ` às ${doc.content.document_time}`}
-                    </p>
+                  <div className="text-xs text-gray-600 text-right mt-2 mb-6">
+                    <p>Goiânia, {doc.content?.document_date 
+                      ? format(new Date(doc.content.document_date + 'T12:00:00'), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                      : doc.action_date 
+                        ? format(new Date(doc.action_date + 'T12:00:00'), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                        : format(new Date(doc.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                    {doc.content?.document_time && ` às ${doc.content.document_time}`}</p>
                   </div>
 
-                  {/* Assinatura do auditor no anexo */}
-                  <div className="mt-10 text-center">
-                    <div className="w-72 mx-auto">
-                      {profile?.signature_url && (
-                        <div className="flex justify-center mb-1">
-                          <img 
-                            src={profile.signature_url} 
-                            alt="Assinatura do auditor" 
-                            style={{ maxHeight: '60px', maxWidth: '200px', objectFit: 'contain' }}
-                          />
+                  <div className="mt-8">
+                    <div className="grid grid-cols-2 gap-12">
+                      <div className="text-center flex flex-col items-center">
+                        <div className="min-h-[50px] flex items-end justify-center mb-1">
+                          {profile?.signature_url && <img src={profile.signature_url} alt="Rubrica" style={{ maxHeight: '50px', maxWidth: '180px', objectFit: 'contain' }} />}
                         </div>
-                      )}
-                      <div className="border-t border-black mb-2" />
-                      <p className="font-bold text-xs">{profile?.full_name}</p>
-                      <p className="text-xs">Matrícula: {profile?.registration_number}</p>
-                      <p className="text-xs text-gray-600">{profile?.division || 'Auditor Fiscal'}</p>
+                        <div style={{ borderTop: '1px solid #333', width: '220px', marginBottom: '4px' }} />
+                        <p className="font-bold text-xs">{profile?.full_name}</p>
+                        {profile?.registration_number && <p className="text-xs">Matrícula: {profile.registration_number}</p>}
+                        <p className="text-xs text-gray-600">Auditor Fiscal de Saúde Pública</p>
+                      </div>
+                      <div className="text-center flex flex-col items-center">
+                        <div className="min-h-[50px] flex items-end justify-center mb-1">
+                          {doc.content?.contributor_signature ? (
+                            <img src={doc.content.contributor_signature} alt="Assinatura Contribuinte" style={{ maxHeight: '50px', maxWidth: '180px', objectFit: 'contain' }} />
+                          ) : doc.content?.preposto_photo ? (
+                            <img src={doc.content.preposto_photo} alt="Preposto" className="w-12 h-12 object-cover rounded-full border" />
+                          ) : null}
+                        </div>
+                        <div style={{ borderTop: '1px solid #333', width: '220px', marginBottom: '4px' }} />
+                        <p className="font-bold text-xs">Contribuinte / Preposto</p>
+                        {doc.content?.preposto_name && <p className="text-xs">{doc.content.preposto_name}</p>}
+                      </div>
                     </div>
+                  </div>
+
+                  <div className="mt-6 pt-3 border-t text-center text-[8pt] text-gray-500">
+                    <p>Documento gerado eletronicamente com validade legal — Lei Municipal 8.741/08</p>
                   </div>
                 </div>
               ))}
