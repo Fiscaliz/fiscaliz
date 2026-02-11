@@ -54,7 +54,26 @@ export default function EditProfile() {
         setDivision(data.division || '');
         setPhone(data.phone || '');
         setEmail(data.email || user.email || '');
-        setSignatureUrl(data.signature_url || null);
+        // Generate signed URL for display if it's a storage path
+        if (data.signature_url && !data.signature_url.startsWith('http')) {
+          const { data: signedData } = await supabase.storage
+            .from('fiscal-photos')
+            .createSignedUrl(data.signature_url, 3600);
+          setSignatureUrl(signedData?.signedUrl || data.signature_url);
+        } else if (data.signature_url) {
+          // Extract path from expired signed URL and regenerate
+          const match = data.signature_url.match(/\/storage\/v1\/object\/sign\/fiscal-photos\/(.+?)(\?|$)/);
+          if (match) {
+            const { data: signedData } = await supabase.storage
+              .from('fiscal-photos')
+              .createSignedUrl(match[1], 3600);
+            setSignatureUrl(signedData?.signedUrl || data.signature_url);
+          } else {
+            setSignatureUrl(data.signature_url);
+          }
+        } else {
+          setSignatureUrl(null);
+        }
       } else {
         setEmail(user.email || '');
       }
@@ -128,8 +147,8 @@ export default function EditProfile() {
       return;
     }
 
-    const { data: signedData } = await supabase.storage.from('fiscal-photos').createSignedUrl(fileName, 3600);
-    setSignatureUrl(signedData?.signedUrl || fileName);
+    // Store the file path, not the signed URL (signed URLs expire)
+    setSignatureUrl(fileName);
     setShowSignaturePad(false);
     toast({ title: 'Rubrica salva!', description: 'Clique em Salvar para confirmar as alterações.' });
   };
@@ -157,7 +176,12 @@ export default function EditProfile() {
           division: division.trim() || null,
           phone: phone.trim() || null,
           email: email.trim() || null,
-          signature_url: signatureUrl,
+          // Store the storage path, not signed URL
+          signature_url: signatureUrl ? (
+            signatureUrl.includes('/storage/v1/object/sign/fiscal-photos/')
+              ? signatureUrl.match(/\/storage\/v1\/object\/sign\/fiscal-photos\/(.+?)(\?|$)/)?.[1] || signatureUrl
+              : signatureUrl
+          ) : null,
         });
 
       if (upsertError) throw upsertError;
@@ -315,11 +339,8 @@ export default function EditProfile() {
                     
                     if (uploadError) throw uploadError;
                     
-                    const { data: signedData } = await supabase.storage
-                      .from('fiscal-photos')
-                      .createSignedUrl(fileName, 3600);
-                    
-                    setSignatureUrl(signedData?.signedUrl || fileName);
+                    // Store the file path, not the signed URL (signed URLs expire)
+                    setSignatureUrl(fileName);
                     toast({ 
                       title: 'Imagem de assinatura carregada!',
                       description: 'Clique em Salvar para confirmar as alterações.'
