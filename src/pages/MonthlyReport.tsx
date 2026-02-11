@@ -456,6 +456,25 @@ export default function MonthlyReport() {
       return;
     }
 
+    // If signature_url is a storage path (not a full URL), generate a fresh signed URL
+    if (data.signature_url) {
+      const url = data.signature_url;
+      const isStoragePath = !url.startsWith('http') || url.includes('/storage/v1/object/sign/');
+      if (isStoragePath) {
+        // Extract the path from a signed URL or use directly if it's a path
+        let storagePath = url;
+        if (url.includes('/storage/v1/object/sign/fiscal-photos/')) {
+          const match = url.match(/\/storage\/v1\/object\/sign\/fiscal-photos\/(.+?)(\?|$)/);
+          if (match) storagePath = match[1];
+        }
+        const { data: signedData } = await supabase.storage
+          .from('fiscal-photos')
+          .createSignedUrl(storagePath, 3600);
+        if (signedData?.signedUrl) {
+          data.signature_url = signedData.signedUrl;
+        }
+      }
+    }
     setProfile(data);
   };
 
@@ -696,10 +715,11 @@ export default function MonthlyReport() {
         const cnaeCode = doc.establishments?.cnae_principal || '';
         // Buscar descrição da atividade econômica pela tabela CNAE
         const cnaeEntry = cnaeCode ? getRiskByCNAE(cnaeCode) : null;
-        // Atividade = CNAE descrição (não usar nome fantasia)
+        // Atividade = CNAE descrição > nome_fantasia > fallback
         const economicActivity = cnaeEntry?.description || 
           content.atividade_economica ||
-          cnaeCode || // Usar o código CNAE se não tiver descrição
+          doc.establishments?.nome_fantasia ||
+          cnaeCode ||
           '';
         
         // Escala (Plantão Fiscal1 como padrão)
