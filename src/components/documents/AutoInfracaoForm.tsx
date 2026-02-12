@@ -31,6 +31,19 @@ import {
   type ChecklistItem 
 } from '@/data/checklists';
 
+/**
+ * Converte texto do checklist (imperativo) para narração na negativa (infração).
+ * Ex: "Contratar empresa especializada..." → "Por não contratar empresa especializada..."
+ */
+function convertToNegativeNarration(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.toLowerCase().startsWith('por não ') || trimmed.toLowerCase().startsWith('por nao ')) {
+    return trimmed;
+  }
+  const firstChar = trimmed.charAt(0).toLowerCase();
+  return `Por não ${firstChar}${trimmed.slice(1)}`;
+}
+
 export interface InfracaoItem {
   id: string;
   descricao: string;
@@ -231,7 +244,7 @@ export function AutoInfracaoForm({
 
           newInfracoes.push({
             id: `inf_${Date.now()}_${item.id}`,
-            descricao: item.text,
+            descricao: convertToNegativeNarration(item.text),
             dispositivo: item.legislation || 'Legislação não especificada',
             dispositivoCompleto: legislacaoRef,
           });

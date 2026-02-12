@@ -1548,14 +1548,15 @@ export default function MonthlyReport() {
                       {doc.document_type === 'relatorio_tecnico' ? 'ESPECIFICAÇÃO DAS IRREGULARIDADES' : doc.document_type === 'visita_fiscal' ? 'RELATÓRIO DE INSPEÇÃO' : doc.document_type === 'certidao' ? 'CERTIDÃO' : 'ESPECIFICAÇÃO DAS IRREGULARIDADES / OBSERVAÇÕES'}
                     </h4>
                     <div className="whitespace-pre-wrap leading-relaxed min-h-[80px]">
-                      {doc.irregularities && Array.isArray(doc.irregularities) && (doc.irregularities as any[]).length > 0 && (
-                        <div className="mb-3">
+                      {doc.irregularities && Array.isArray(doc.irregularities) && (doc.irregularities as any[]).length > 0 ? (
+                        <div>
                           {(doc.irregularities as any[]).map((irr: any, irrIdx: number) => (
                             <p key={irrIdx} className="mb-1"><strong>{irrIdx + 1}.</strong> {typeof irr === 'string' ? irr : irr.description || irr.text || JSON.stringify(irr)}{irr.legislation && <span className="text-gray-600"> ({irr.legislation})</span>}</p>
                           ))}
                         </div>
+                      ) : (
+                        <>{doc.content?.text || doc.content?.observations || 'Sem conteúdo especificado.'}</>
                       )}
-                      {doc.content?.text || doc.content?.observations || 'Sem conteúdo especificado.'}
                     </div>
                   </div>
 
