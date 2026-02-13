@@ -177,6 +177,7 @@ export default function MonthlyReport() {
   const [showPDFPreview, setShowPDFPreview] = useState(false);
   const [editingPreview, setEditingPreview] = useState(false);
   const [dailyActions, setDailyActions] = useState<EditableDailyAction[]>([]);
+  const [updatingAllCnaes, setUpdatingAllCnaes] = useState(false);
   
   // Período - Licenças
   const [selectedLicenseType, setSelectedLicenseType] = useState<string | null>(null);
@@ -821,6 +822,70 @@ export default function MonthlyReport() {
         console.error(`Erro ao buscar CNAE para ${cnpj}:`, e);
       }
     }
+  };
+
+  const forceUpdateAllCnaes = async () => {
+    const estIds = new Set<string>();
+    dailyActions.forEach(action => {
+      if (action.establishmentId && !action.isInternal) {
+        estIds.add(action.establishmentId);
+      }
+    });
+
+    if (estIds.size === 0) {
+      toast({ title: 'Nenhum estabelecimento para atualizar', variant: 'destructive' });
+      return;
+    }
+
+    setUpdatingAllCnaes(true);
+
+    // Buscar CNPJs dos estabelecimentos
+    const { data: ests } = await supabase
+      .from('establishments')
+      .select('id, cnpj')
+      .in('id', Array.from(estIds));
+
+    if (!ests || ests.length === 0) {
+      setUpdatingAllCnaes(false);
+      toast({ title: 'Nenhum estabelecimento encontrado', variant: 'destructive' });
+      return;
+    }
+
+    let updated = 0;
+    for (const est of ests) {
+      try {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-cnae-by-cnpj`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            },
+            body: JSON.stringify({ cnpj: est.cnpj, establishmentId: est.id }),
+          }
+        );
+        if (!response.ok) continue;
+        const data = await response.json();
+        if (data?.cnae_principal) {
+          const cnaeEntry = getRiskByCNAE(data.cnae_principal);
+          const description = cnaeEntry?.description || data.cnae_descricao || data.nome_fantasia || '';
+          setDailyActions(prev => prev.map(action => {
+            if (action.establishmentId === est.id) {
+              return { ...action, cnaeCode: data.cnae_principal, economicActivity: description || action.economicActivity };
+            }
+            return action;
+          }));
+          updated++;
+        }
+      } catch (e) {
+        console.error(`Erro ao buscar CNAE para ${est.cnpj}:`, e);
+      }
+    }
+    setUpdatingAllCnaes(false);
+    toast({ title: `CNAEs atualizados: ${updated}/${ests.length}` });
   };
 
   // Função para atualizar uma ação na tabela
@@ -2278,10 +2343,23 @@ export default function MonthlyReport() {
           <TabsContent value="acoes" className="space-y-4">
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  Ações - {months[selectedMonth - 1]}/{selectedYear}
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Ações - {months[selectedMonth - 1]}/{selectedYear}
+                  </CardTitle>
+                  {dailyActions.length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={forceUpdateAllCnaes}
+                      disabled={updatingAllCnaes}
+                      className="text-xs"
+                    >
+                      {updatingAllCnaes ? 'Atualizando...' : 'Atualizar CNAEs'}
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 {dailyActions.length === 0 ? (
