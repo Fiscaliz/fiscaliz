@@ -2386,10 +2386,18 @@ export default function MonthlyReport() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{action.establishment}</p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          {action.economicActivity && (
+                            <p className="text-xs text-muted-foreground truncate">{action.economicActivity}</p>
+                          )}
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                             <Badge variant="outline" className="text-[10px]">
                               {documentTypeLabels[action.documentType] || action.documentType}
                             </Badge>
+                            {action.cnaeCode && (
+                              <Badge variant="secondary" className="text-[10px]">
+                                CNAE {action.cnaeCode}
+                              </Badge>
+                            )}
                             <span>{action.transport}</span>
                             {action.riskLevel && (
                               <Badge variant="secondary" className="text-[10px]">
