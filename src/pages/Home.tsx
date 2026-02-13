@@ -232,29 +232,29 @@ export default function Home() {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {pendingTasks.map((task) => (
                     <Link 
                       key={task.id} 
                       to="/tarefas"
-                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-all duration-200"
+                      className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-muted/50 transition-all duration-200"
                     >
-                      <div className={`p-2.5 rounded-xl ${isUrgent(task.due_date) ? 'bg-warning/15' : 'bg-primary/10'}`}>
+                      <div className={`p-1.5 rounded-lg ${isUrgent(task.due_date) ? 'bg-warning/15' : 'bg-primary/10'}`}>
                         {isUrgent(task.due_date) ? (
-                          <AlertTriangle className="h-4 w-4 text-warning" />
+                          <AlertTriangle className="h-3.5 w-3.5 text-warning" />
                         ) : (
-                          <Clock className="h-4 w-4 text-primary" />
+                          <Clock className="h-3.5 w-3.5 text-primary" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-body font-medium truncate">{task.title}</p>
+                        <p className="text-sm font-medium truncate leading-tight">{task.title}</p>
                         {task.due_date && (
-                          <p className="text-caption text-muted-foreground">
+                          <p className="text-xs text-muted-foreground leading-tight">
                             Prazo: {formatDate(task.due_date)}
                           </p>
                         )}
                       </div>
-                      <Badge variant={task.priority === 'high' ? 'destructive' : 'muted'}>
+                      <Badge variant={task.priority === 'high' ? 'destructive' : 'muted'} className="text-[10px] shrink-0">
                         {task.priority === 'high' ? 'Urgente' : 'Normal'}
                       </Badge>
                     </Link>
