@@ -784,13 +784,28 @@ export default function MonthlyReport() {
   const fetchMissingCnaes = async (establishments: Map<string, string>) => {
     for (const [estId, cnpj] of establishments) {
       try {
-        const { data, error } = await supabase.functions.invoke('fetch-cnae-by-cnpj', {
-          body: { cnpj, establishmentId: estId },
-        });
-        if (!error && data?.cnae_principal) {
+        // Delay entre chamadas para evitar rate limiting
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-cnae-by-cnpj`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            },
+            body: JSON.stringify({ cnpj, establishmentId: estId }),
+          }
+        );
+        
+        if (!response.ok) continue;
+        const data = await response.json();
+        
+        if (data?.cnae_principal) {
           const cnaeEntry = getRiskByCNAE(data.cnae_principal);
           const description = cnaeEntry?.description || data.cnae_descricao || data.nome_fantasia || '';
-          // Atualizar as ações com o CNAE encontrado
           setDailyActions(prev => prev.map(action => {
             if (action.establishmentId === estId) {
               return {
