@@ -760,7 +760,51 @@ export default function MonthlyReport() {
         };
       });
       
+      // Auto-buscar CNAE para estabelecimentos sem cnae_principal
+      const establishmentsWithoutCnae = new Map<string, string>();
+      actions.forEach(a => {
+        if (!a.cnaeCode && a.establishmentId) {
+          const doc = filteredData.find((d: any) => d.id === a.id);
+          const cnpj = doc?.establishments?.cnpj;
+          if (cnpj && !establishmentsWithoutCnae.has(a.establishmentId)) {
+            establishmentsWithoutCnae.set(a.establishmentId, cnpj);
+          }
+        }
+      });
+
       setDailyActions(actions);
+
+      // Buscar CNAE em background para estabelecimentos sem código
+      if (establishmentsWithoutCnae.size > 0) {
+        fetchMissingCnaes(establishmentsWithoutCnae);
+      }
+    }
+  };
+
+  const fetchMissingCnaes = async (establishments: Map<string, string>) => {
+    for (const [estId, cnpj] of establishments) {
+      try {
+        const { data, error } = await supabase.functions.invoke('fetch-cnae-by-cnpj', {
+          body: { cnpj, establishmentId: estId },
+        });
+        if (!error && data?.cnae_principal) {
+          const cnaeEntry = getRiskByCNAE(data.cnae_principal);
+          const description = cnaeEntry?.description || data.cnae_descricao || data.nome_fantasia || '';
+          // Atualizar as ações com o CNAE encontrado
+          setDailyActions(prev => prev.map(action => {
+            if (action.establishmentId === estId) {
+              return {
+                ...action,
+                cnaeCode: data.cnae_principal,
+                economicActivity: description || action.economicActivity,
+              };
+            }
+            return action;
+          }));
+        }
+      } catch (e) {
+        console.error(`Erro ao buscar CNAE para ${cnpj}:`, e);
+      }
     }
   };
 
