@@ -731,15 +731,9 @@ export default function MonthlyReport() {
         // Escala (Plantão Fiscal1 como padrão)
         const scale = content.scale || 'Plantão Fiscal1';
         
-        // Número do documento - formato simplificado: "VF 8776"
+        // Número do documento - mostrar número completo
         const docAbbrev = documentTypeAbbreviation[doc.document_type] || 'DOC';
-        // Extrair apenas o número sequencial do document_number (ex: JA977-TI-000001 → 1, ou TI-000042 → 42)
-        let seqNum = '';
-        if (doc.document_number) {
-          const match = doc.document_number.match(/(\d+)$/);
-          seqNum = match ? String(parseInt(match[1], 10)) : doc.document_number;
-        }
-        const documentNumber = seqNum ? `${docAbbrev} ${seqNum}` : docAbbrev;
+        const documentNumber = doc.document_number || docAbbrev;
         
         return {
           id: doc.id,
@@ -1155,13 +1149,10 @@ export default function MonthlyReport() {
                   <th style={{ width: '35px', textAlign: 'center' }}>Dia</th>
                   <th style={{ width: '40px', textAlign: 'center' }}>ML</th>
                   <th style={{ width: '80px' }}>Ação</th>
-                  
-                  <th style={{ width: '50px', textAlign: 'center' }}>Niv.Gr.</th>
                   <th>Estabelecimento/Descrição</th>
                   <th style={{ width: '45px', textAlign: 'center' }}>Cód.</th>
-                  <th style={{ width: '100px' }}>Atividade Econômica</th>
-                  <th style={{ width: '80px', textAlign: 'center' }}>Doc.Em.</th>
-                  
+                  <th style={{ width: '120px' }}>Atividade Econômica</th>
+                  <th style={{ width: '120px', textAlign: 'center' }}>Doc.Em.</th>
                 </tr>
               </thead>
               <tbody>
@@ -1216,11 +1207,6 @@ export default function MonthlyReport() {
                         </select>
                       ) : action.actionType}
                     </td>
-                    <td style={{ textAlign: 'center' }}>
-                      {action.riskLevel ? (
-                        <>x {action.difficultyGrade === 2 ? 'x' : ''}</>
-                      ) : '-'}
-                    </td>
                     <td className={editingPreview ? 'editable-field' : ''}>
                       {editingPreview ? (
                         <input
@@ -1252,13 +1238,13 @@ export default function MonthlyReport() {
                         />
                       ) : (action.economicActivity || '-')}
                     </td>
-                    <td style={{ textAlign: 'center' }} className={editingPreview ? 'editable-field' : ''}>
+                    <td style={{ textAlign: 'center', fontSize: '7pt' }} className={editingPreview ? 'editable-field' : ''}>
                       {editingPreview ? (
                         <input
                           type="text"
                           value={action.documentNumber}
                           onChange={(e) => updateDailyAction(action.id, 'documentNumber', e.target.value)}
-                          className="editable-input w-16"
+                          className="editable-input w-24"
                         />
                       ) : action.documentNumber}
                     </td>
