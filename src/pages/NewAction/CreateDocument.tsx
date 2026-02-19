@@ -1528,6 +1528,9 @@ export default function CreateDocument() {
               onCapturePhoto={() => relatorioTecnicoCameraRef.current?.click()}
               onRemovePhoto={removeImage}
               establishmentType={establishment?.cnae_principal}
+              checklistItems={selectedChecklist ? checklistTemplates.find(c => c.id === selectedChecklist)?.items
+                .filter(item => selectedItems.length === 0 || selectedItems.includes(item.id))
+                .map(item => `${item.text} (${item.legislation || ''})`) : undefined}
             />
 
             <TransportModeSelector
