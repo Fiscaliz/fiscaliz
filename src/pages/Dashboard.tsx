@@ -4,6 +4,7 @@ import { BrandHeader } from '@/components/layout/BrandHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import { 
   BarChart3, 
   FileText, 
@@ -17,7 +18,11 @@ import {
   TableIcon,
   ChevronLeft,
   ChevronRight,
-  Calendar
+  Calendar,
+  ShieldAlert,
+  TrendingUp,
+  Building2,
+  Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,11 +36,21 @@ import {
   BarChart,
   Bar,
   Cell,
+  PieChart,
+  Pie,
+  Legend,
 } from 'recharts';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { RISK_LABELS } from '@/data/cnaeRiskTable';
 
 const COLORS = ['#0F4C5C', '#14B8A6', '#2E8B57', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+const RISK_COLORS: Record<string, string> = {
+  'III': '#EF4444',
+  'II': '#F59E0B',
+  'I': '#2E8B57',
+  'null': '#94a3b8',
+};
 
 const documentTypeLabels: Record<string, string> = {
   termo_intimacao: 'Termo Intimação',
@@ -181,18 +196,18 @@ export default function Dashboard() {
     const [docsRes, actionsRes] = await Promise.all([
       supabase
         .from('fiscal_documents')
-        .select('document_type, created_at, total_weight_kg, establishments(bairro)')
+        .select('document_type, created_at, total_weight_kg, irregularities, establishments(bairro, risk_level, cnae_principal, nome_fantasia, razao_social)')
         .gte('created_at', start.toISOString())
         .lt('created_at', end.toISOString()),
       supabase
         .from('fiscal_actions')
-        .select('reason, created_at, establishments(bairro)')
+        .select('reason, created_at, establishments(bairro, risk_level, cnae_principal)')
         .gte('created_at', start.toISOString())
         .lt('created_at', end.toISOString()),
     ]);
 
     if (docsRes.data) setDivisionDocuments(docsRes.data);
-    if (actionsRes.data) setDivisionActions(actionsRes.data);
+    if (actionsRes.data) setDivisionActions(docsRes.data ? actionsRes.data : []);
   };
 
   const myStats = useMemo(() => {
@@ -237,12 +252,12 @@ export default function Dashboard() {
       docsByType[doc.document_type] = (docsByType[doc.document_type] || 0) + 1;
     });
 
+    // Ações por bairro
     const byBairro: Record<string, number> = {};
     divisionActions.forEach(action => {
       const bairro = action.establishments?.bairro || 'Não informado';
       byBairro[bairro] = (byBairro[bairro] || 0) + 1;
     });
-
     const topBairros = Object.entries(byBairro)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5);
@@ -253,6 +268,75 @@ export default function Dashboard() {
 
     const totalApreensoes = divisionDocuments.filter((doc: any) => doc.document_type === 'apreensao').length;
 
+    // ===== INDICADORES ESTRATÉGICOS =====
+
+    // % de fiscalizações por nível de risco
+    const byRiskLevel: Record<string, number> = { 'III': 0, 'II': 0, 'I': 0, 'Não informado': 0 };
+    divisionActions.forEach((action: any) => {
+      const risk = action.establishments?.risk_level;
+      if (risk === 'III') byRiskLevel['III']++;
+      else if (risk === 'II') byRiskLevel['II']++;
+      else if (risk === 'I') byRiskLevel['I']++;
+      else byRiskLevel['Não informado']++;
+    });
+    const totalActionsForRisk = divisionActions.length || 1;
+    const riskDistribution = Object.entries(byRiskLevel)
+      .filter(([, v]) => v > 0)
+      .map(([key, value]) => ({
+        name: key === 'III' ? 'Alto (III)' : key === 'II' ? 'Médio (II)' : key === 'I' ? 'Baixo (I)' : 'Sem risco',
+        value,
+        pct: Math.round((value / totalActionsForRisk) * 100),
+        fill: key === 'III' ? '#EF4444' : key === 'II' ? '#F59E0B' : key === 'I' ? '#2E8B57' : '#94a3b8',
+      }));
+
+    // Top irregularidades reais (extraindo do campo irregularities dos documentos)
+    const irregularityCount: Record<string, number> = {};
+    divisionDocuments.forEach((doc: any) => {
+      const irregs = doc.irregularities;
+      if (Array.isArray(irregs)) {
+        irregs.forEach((irr: any) => {
+          const desc = typeof irr === 'string' ? irr : irr?.description || irr?.text || '';
+          if (desc && desc.trim().length > 3) {
+            const key = desc.trim().slice(0, 60);
+            irregularityCount[key] = (irregularityCount[key] || 0) + 1;
+          }
+        });
+      }
+    });
+    const topIrregularities = Object.entries(irregularityCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    // Ranking por tipo de estabelecimento (baseado no CNAE / nome)
+    const byEstabType: Record<string, number> = {};
+    divisionDocuments.forEach((doc: any) => {
+      const name = doc.establishments?.nome_fantasia || doc.establishments?.razao_social || 'Outros';
+      // Agrupar pela primeira palavra como categoria aproximada
+      const category = name.split(' ')[0].toUpperCase();
+      byEstabType[category] = (byEstabType[category] || 0) + 1;
+    });
+    const topEstabTypes = Object.entries(byEstabType)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    // Motivos das ações da divisão
+    const byReason: Record<string, number> = {};
+    divisionActions.forEach((action: any) => {
+      byReason[action.reason] = (byReason[action.reason] || 0) + 1;
+    });
+    const reasonDistribution = Object.entries(byReason)
+      .sort((a, b) => b[1] - a[1])
+      .map(([key, value]) => ({
+        name: actionReasonLabels[key] || key,
+        value,
+      }));
+
+    // Documentos de alto impacto (apreensão + interdição + auto infração)
+    const highImpactDocs = (docsByType['apreensao'] || 0) + (docsByType['interdicao'] || 0) + (docsByType['auto_infracao'] || 0);
+    const highImpactPct = divisionDocuments.length > 0
+      ? Math.round((highImpactDocs / divisionDocuments.length) * 100)
+      : 0;
+
     return {
       totalDocuments: divisionDocuments.length,
       totalActions: divisionActions.length,
@@ -260,6 +344,12 @@ export default function Dashboard() {
       topBairros,
       totalInutilizadoKg,
       totalApreensoes,
+      riskDistribution,
+      topIrregularities,
+      topEstabTypes,
+      reasonDistribution,
+      highImpactDocs,
+      highImpactPct,
     };
   }, [divisionDocuments, divisionActions]);
 
@@ -459,21 +549,32 @@ export default function Dashboard() {
             )}
           </TabsContent>
           
+          {/* ===== ABA DIVISÃO - DASHBOARD ESTRATÉGICO ===== */}
           <TabsContent value="division" className="space-y-5 mt-5">
-            {/* Division Stats */}
+
+            {/* Cabeçalho estratégico */}
+            <div className="rounded-xl bg-primary/10 border border-primary/20 px-4 py-3 flex items-start gap-3">
+              <TrendingUp className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-primary">Dashboard Estratégico</p>
+                <p className="text-xs text-muted-foreground">Análise de risco sanitário — {format(new Date(selectedYear, selectedMonth, 1), 'MMMM/yyyy', { locale: ptBR })}</p>
+              </div>
+            </div>
+
+            {/* KPIs principais */}
             <div className="grid grid-cols-2 gap-3">
               <StatCard 
                 icon={FileText}
-                label="Total Divisão"
+                label="Documentos"
                 value={divisionStats.totalDocuments.toString()}
-                subtitle="documentos"
+                subtitle="divisão"
                 color="bg-secondary/15 text-secondary"
               />
               <StatCard 
-                icon={MapPin}
+                icon={Activity}
                 label="Fiscalizações"
                 value={divisionStats.totalActions.toString()}
-                subtitle="este mês"
+                subtitle="divisão"
                 color="bg-info/15 text-info"
               />
               <StatCard 
@@ -484,14 +585,56 @@ export default function Dashboard() {
                 color="bg-destructive/15 text-destructive"
               />
               <StatCard 
-                icon={Package}
-                label="Apreensões"
-                value={divisionStats.totalApreensoes.toString()}
-                subtitle="este mês"
+                icon={ShieldAlert}
+                label="Alto Impacto"
+                value={`${divisionStats.highImpactDocs}`}
+                subtitle={`${divisionStats.highImpactPct}% do total`}
                 color="bg-warning/15 text-warning"
               />
             </div>
-            
+
+            {/* % Fiscalizações por Nível de Risco */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-body font-semibold flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-destructive/10">
+                    <ShieldAlert className="h-4 w-4 text-destructive" />
+                  </div>
+                  Fiscalizações por Nível de Risco
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {divisionStats.riskDistribution.length > 0 ? (
+                  <div className="space-y-3">
+                    {divisionStats.riskDistribution.map(item => (
+                      <div key={item.name} className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.fill }} />
+                            <span className="font-medium">{item.name}</span>
+                          </div>
+                          <span className="font-bold">{item.value} <span className="text-muted-foreground font-normal text-xs">({item.pct}%)</span></span>
+                        </div>
+                        <div className="h-2 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{ width: `${item.pct}%`, backgroundColor: item.fill }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                    {divisionStats.riskDistribution.some(r => r.name.includes('Alto')) && (
+                      <p className="text-xs text-muted-foreground italic mt-2">
+                        ✅ Fiscalizações em estabelecimentos de alto risco (III) indicam foco estratégico correto.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <EmptyState icon={ShieldAlert} text="Sem dados de risco para este período" />
+                )}
+              </CardContent>
+            </Card>
+
             {/* Top Bairros */}
             {divisionBarData.length > 0 ? (
               <Card>
@@ -524,54 +667,121 @@ export default function Dashboard() {
                     <div className="p-2 rounded-xl bg-info/10">
                       <MapPin className="h-4 w-4 text-info" />
                     </div>
-                    Mapa de Risco - Goiânia
+                    Mapa de Risco por Bairro
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-center py-14 text-center rounded-xl bg-muted/30">
-                    <div>
-                      <div className="mx-auto mb-3 h-14 w-14 rounded-2xl bg-muted/50 flex items-center justify-center">
-                        <MapPin className="h-7 w-7 text-muted-foreground/40" />
-                      </div>
-                      <p className="text-body text-muted-foreground">
-                        Mapa de calor
-                      </p>
-                      <p className="text-caption text-muted-foreground/70">
-                        Requer mais dados de fiscalização
-                      </p>
+                  <EmptyState icon={MapPin} text="Requer mais dados de fiscalização" subtitle="Os bairros aparecerão conforme ações forem registradas" />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Motivos das Ações - Divisão */}
+            {divisionStats.reasonDistribution.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-body font-semibold flex items-center gap-2">
+                    <div className="p-2 rounded-xl bg-secondary/10">
+                      <Target className="h-4 w-4 text-secondary" />
                     </div>
+                    Motivos das Ações — Divisão
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {divisionStats.reasonDistribution.map((item, idx) => (
+                      <div key={item.name} className="flex items-center justify-between py-2 border-b border-border/40 last:border-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground w-4">{idx + 1}.</span>
+                          <span className="text-sm">{item.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="h-1.5 rounded-full bg-primary/20 w-16 overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-primary"
+                              style={{ width: `${Math.round((item.value / (divisionStats.totalActions || 1)) * 100)}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-bold w-6 text-right">{item.value}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
             )}
 
-            {/* Top Irregularities */}
+            {/* Top Irregularidades Reais */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-body font-semibold flex items-center gap-2">
                   <div className="p-2 rounded-xl bg-warning/10">
                     <AlertTriangle className="h-4 w-4 text-warning" />
                   </div>
-                  Top 5 Irregularidades
+                  Top Irregularidades Registradas
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-1">
-                  {[
-                    { label: 'Falta de alvará sanitário', count: 0 },
-                    { label: 'Produtos vencidos', count: 0 },
-                    { label: 'Higiene inadequada', count: 0 },
-                    { label: 'Falta de controle de pragas', count: 0 },
-                    { label: 'Estrutura física irregular', count: 0 },
-                  ].map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
-                      <span className="text-body">{item.label}</span>
-                      <span className="text-body font-semibold text-muted-foreground">{item.count}</span>
-                    </div>
-                  ))}
-                </div>
+                {divisionStats.topIrregularities.length > 0 ? (
+                  <div className="space-y-1">
+                    {divisionStats.topIrregularities.map(([label, count], idx) => (
+                      <div key={idx} className="flex items-start justify-between py-2.5 border-b border-border/40 last:border-0 gap-2">
+                        <div className="flex items-start gap-2 flex-1 min-w-0">
+                          <Badge variant="outline" className="text-[10px] flex-shrink-0 mt-0.5">#{idx + 1}</Badge>
+                          <span className="text-sm leading-snug">{label}</span>
+                        </div>
+                        <span className="text-sm font-bold text-destructive flex-shrink-0">{count}×</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState 
+                    icon={AlertTriangle} 
+                    text="Sem irregularidades estruturadas registradas" 
+                    subtitle="As irregularidades aparecem quando documentos com campos estruturados são emitidos"
+                  />
+                )}
               </CardContent>
             </Card>
+
+            {/* Ranking por Tipo de Estabelecimento */}
+            {divisionStats.topEstabTypes.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-body font-semibold flex items-center gap-2">
+                    <div className="p-2 rounded-xl bg-primary/10">
+                      <Building2 className="h-4 w-4 text-primary" />
+                    </div>
+                    Tipos de Estabelecimentos Mais Fiscalizados
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {divisionStats.topEstabTypes.map(([type, count], idx) => {
+                      const total = divisionStats.totalDocuments || 1;
+                      const pct = Math.round((count / total) * 100);
+                      return (
+                        <div key={type} className="flex items-center gap-3">
+                          <span className="text-xs text-muted-foreground w-4">{idx + 1}.</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between mb-1">
+                              <span className="text-xs font-medium truncate">{type}</span>
+                              <span className="text-xs text-muted-foreground">{count} ({pct}%)</span>
+                            </div>
+                            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-secondary"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="pb-4" />
           </TabsContent>
@@ -605,5 +815,19 @@ function StatCard({ icon: Icon, label, value, subtitle, color }: StatCardProps) 
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function EmptyState({ icon: Icon, text, subtitle }: { icon: React.ElementType; text: string; subtitle?: string }) {
+  return (
+    <div className="flex items-center justify-center py-10 text-center rounded-xl bg-muted/30">
+      <div>
+        <div className="mx-auto mb-3 h-12 w-12 rounded-2xl bg-muted/50 flex items-center justify-center">
+          <Icon className="h-6 w-6 text-muted-foreground/40" />
+        </div>
+        <p className="text-body text-muted-foreground">{text}</p>
+        {subtitle && <p className="text-caption text-muted-foreground/70 mt-1 max-w-[220px]">{subtitle}</p>}
+      </div>
+    </div>
   );
 }
