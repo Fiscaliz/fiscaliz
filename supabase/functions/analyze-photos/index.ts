@@ -14,6 +14,7 @@ type Body = {
   photos: string[]; // public URLs
   establishmentType?: string;
   description?: string; // for single photo re-analysis
+  checklistItems?: string[]; // checklist items for contextual analysis
 };
 
 const SYSTEM_PROMPT = `Você é um auditor fiscal da Vigilância Sanitária de Goiânia com vasta experiência em inspeções de estabelecimentos alimentícios.
@@ -109,7 +110,7 @@ serve(async (req) => {
       });
     }
 
-    const { documentType, photos, establishmentType, description } = (await req.json()) as Body;
+    const { documentType, photos, establishmentType, description, checklistItems } = (await req.json()) as Body;
     if (!documentType || !Array.isArray(photos) || photos.length === 0) {
       return new Response(JSON.stringify({ error: "Invalid payload: documentType and photos required" }), {
         status: 400,
@@ -226,11 +227,17 @@ Retorne um JSON: {\"item_rdc\": \"4.X.X\", \"justificativa\": \"breve explicaç�
       const batch = photoBatches[batchIdx];
       const startPhotoNum = batchIdx * BATCH_SIZE + 1;
 
+      // Build checklist context if available (limit to 25 items to avoid oversized prompts)
+      const limitedItems = checklistItems && checklistItems.length > 0 ? checklistItems.slice(0, 25) : [];
+      const checklistContext = limitedItems.length > 0
+        ? `\n\nCHECKLIST APLICADO (direcione a análise com base nestes itens):\n${limitedItems.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\nPRIORIZE não conformidades relacionadas ao checklist. Use a legislação citada quando aplicável.`
+        : '';
+
       const batchPrompt = `Analise ${batch.length} fotos de inspeção sanitária (numeradas ${startPhotoNum} a ${startPhotoNum + batch.length - 1})${establishmentType ? ` em ${establishmentType}` : ''}.
+${checklistContext}
+IMPORTANTE: Para cada foto, escreva uma LEGENDA TÉCNICA DESCRITIVA do que está visível (máx 80 chars). Descreva O QUE está errado e ONDE, sem usar termos genéricos como "perigo microbiológico". Cite sempre o dispositivo legal específico (item da RDC, artigo de lei, etc). Cada legenda deve ser única — não repita padrões entre fotos.
 
-IMPORTANTE: Para cada foto, escreva uma LEGENDA TÉCNICA DESCRITIVA do que está visível (máx 80 chars). Descreva O QUE está errado e ONDE, sem usar termos genéricos como "perigo microbiológico". Cite sempre o item específico da RDC 216/2004. Cada legenda deve ser única — não repita padrões entre fotos.
-
-JSON sem markdown: {"nonConformities":[{"foto":N,"description":"legenda descritiva","severity":"grave","legalBasis":"RDC 216/2004 - Item 4.X.X","recommendation":"ação corretiva","deadline":"prazo"}], "generalObservations":"", "confidence":0.9}`;
+JSON sem markdown: {"nonConformities":[{"foto":N,"description":"legenda descritiva","severity":"grave","legalBasis":"Legislação - Dispositivo específico","recommendation":"ação corretiva","deadline":"prazo"}], "generalObservations":"", "confidence":0.9}`;
 
       const parts: any[] = [{ type: "text", text: batchPrompt }];
       for (const url of batch) {

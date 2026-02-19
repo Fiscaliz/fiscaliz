@@ -81,6 +81,7 @@ interface RelatorioTecnicoFormProps {
   onCapturePhoto?: () => void;
   onRemovePhoto: (index: number) => void;
   establishmentType?: string;
+  checklistItems?: string[];
 }
 
 const objetivosOptions = [
@@ -116,6 +117,7 @@ export function RelatorioTecnicoForm({
   onCapturePhoto,
   onRemovePhoto,
   establishmentType,
+  checklistItems,
 }: RelatorioTecnicoFormProps) {
   const { toast } = useToast();
   const [expandedSections, setExpandedSections] = useState<string[]>(['objetivos', 'base_legal', 'descricao', 'medidas', 'conclusao']);
@@ -230,6 +232,7 @@ export function RelatorioTecnicoForm({
           documentType: 'relatorio_tecnico',
           photos: uploadedUrls,
           establishmentType: establishmentType || 'Estabelecimento de Alimentos',
+          checklistItems: checklistItems && checklistItems.length > 0 ? checklistItems : undefined,
         },
       });
 
