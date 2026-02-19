@@ -50,6 +50,79 @@ Seja preciso, cite os dispositivos legais e artigos quando possível, e responda
 - **Lei Estadual 20.498/2019** - Normas de Segurança Contra Incêndio: Código Estadual de Segurança Contra Incêndio e Pânico.
 - **Portaria CBMGO 03/2023** - Certificado do Corpo de Bombeiros: Requisitos para emissão de certificado de vistoria.
 
+### RESOLUÇÃO DIVISA/SES-GO Nº 20/2011 — Regulamento Técnico de Boas Práticas para Serviços de Alimentação no Estado de Goiás
+Norma estadual mais detalhada que a RDC 216/2004 para o estado de Goiás. Deve ser citada sempre que houver exigência mais restritiva que a norma federal.
+
+**Capítulo I — Disposições Gerais**
+- Art. 1º: Aplica-se a todos os serviços de alimentação que realizam manipulação, preparação, fracionamento, armazenamento, distribuição, transporte, exposição à venda e entrega de alimentos preparados ao consumo.
+- Art. 2º: Definições técnicas (alimento preparado, anti-sepsia, contaminantes, higienização, manipulador, etc.)
+
+**Capítulo II — Edificação, Instalações, Equipamentos, Móveis e Utensílios**
+- Art. 3º: Instalações devem ser projetadas para facilitar limpeza e manutenção, evitando cruzamento de fluxos.
+- Art. 4º: Pisos, paredes e teto devem ser lisos, laváveis, impermeáveis, em bom estado de conservação.
+- Art. 5º: Portas e janelas ajustadas, com telas milimétricas removíveis em aberturas para área externa.
+- Art. 6º: Instalações sanitárias separadas por sexo, sem comunicação direta com áreas de manipulação.
+- Art. 7º: Lavatórios exclusivos para higiene das mãos na área de manipulação, dotados de sabonete líquido, produto antisséptico e toalhas descartáveis.
+- Art. 8º: Iluminação que não altere características visuais dos alimentos; luminárias com proteção contra quedas.
+- Art. 9º: Ventilação adequada; ar condicionado com manutenção programada e registrada.
+- Art. 10: Equipamentos e utensílios de material sanitário, resistentes à corrosão, de fácil higienização.
+- Art. 11: Equipamentos de conservação dos alimentos com termômetros aferidos e registros de temperatura.
+
+**Capítulo III — Higienização de Instalações, Equipamentos e Utensílios**
+- Art. 12: Frequência de higienização adequada; produtos regularizados pela ANVISA.
+- Art. 13: Procedimentos de higienização documentados (diluição, tempo de contato, enxágue).
+- Art. 14: Utensílios e equipamentos higienizados antes e após cada uso.
+
+**Capítulo IV — Controle Integrado de Vetores e Pragas Urbanas**
+- Art. 15: Ações preventivas contínuas (telas, ralos sifonados, portas com mola).
+- Art. 16: Controle químico por empresa especializada licenciada, com certificado contendo produtos e princípios ativos.
+
+**Capítulo V — Abastecimento de Água**
+- Art. 17: Água potável conforme legislação vigente; reservatório higienizado semestralmente com registro.
+- Art. 18: Gelo fabricado com água potável; vapor que entre em contato com alimentos deve ser isento de contaminantes.
+
+**Capítulo VI — Manejo de Resíduos**
+- Art. 19: Coletores com tampa acionada sem contato manual; frequência de retirada que evite acúmulo.
+- Art. 20: Área de armazenamento de resíduos isolada, limpa e com proteção contra vetores.
+
+**Capítulo VII — Manipuladores**
+- Art. 21: Controle de saúde periódico; atestados atualizados. Manipuladores com lesões ou sintomas de doenças afastados da manipulação.
+- Art. 22: Higiene pessoal: banho diário, cabelos presos e protegidos, unhas curtas e sem esmalte, sem adornos.
+- Art. 23: Uniforme exclusivo, limpo e em bom estado; troca diária.
+- Art. 24: Lavagem frequente e cuidadosa das mãos (antes da manipulação, após uso do sanitário, após manipular alimentos crus).
+
+**Capítulo VIII — Matérias-Primas, Ingredientes e Embalagens**
+- Art. 25: Fornecedores com Alvará Sanitário vigente; nota fiscal obrigatória na recepção.
+- Art. 26: Inspeção na recepção: temperatura, validade, integridade da embalagem, características sensoriais.
+- Art. 27: Armazenamento organizado por tipo, sobre estrados ou prateleiras, afastado do piso e paredes, em local ventilado.
+- Art. 28: Produtos descartados quando em desacordo com a legislação.
+
+**Capítulo IX — Preparação do Alimento**
+- Art. 29: Seleção de matérias-primas; remoção de partes deterioradas.
+- Art. 30: Descongelamento em refrigeração (até 5°C), micro-ondas ou em água corrente. Nunca à temperatura ambiente.
+- Art. 31: Tratamento térmico: temperatura mínima de 70°C no centro geométrico (ou combinações equivalentes).
+- Art. 32: Óleos e gorduras: temperatura máxima de 180°C; descarte quando apresentarem alteração de cor, odor, formação de espuma ou fumaça.
+- Art. 33: Alimentos prontos para consumo: protegidos contra contaminação; identificados com data e hora de preparo.
+- Art. 34: Pós-preparo: alimentos quentes mantidos acima de 60°C por no máximo 6 horas; abaixo de 60°C por no máximo 1 hora. Não atingindo 60°C, devem ser refrigerados.
+- Art. 35: Resfriamento: de 60°C a 10°C em até 2 horas, depois mantidos sob refrigeração a temperaturas inferiores a 5°C.
+- Art. 36: Alimentos preparados e refrigerados: validade máxima de 5 dias a temperatura até 5°C. Acima de 5°C até 7°C, validade de 24 horas. Congelados: prazo definido pelo responsável técnico.
+
+**Capítulo X — Armazenamento e Transporte do Alimento Preparado**
+- Art. 37: Alimentos em contêineres térmicos identificados com data, hora e temperatura.
+- Art. 38: Transporte em veículos fechados, isotérmicos quando necessário, limpos e exclusivos.
+
+**Capítulo XI — Exposição ao Consumo**
+- Art. 39: Balcões com barreira de proteção (salivar guard); utensílios de servir com cabo longo.
+- Art. 40: Temperaturas de exposição: quentes acima de 60°C, frios abaixo de 5°C. Controle e registro de temperatura.
+
+**Capítulo XII — Documentação e Registro**
+- Art. 41: Manual de Boas Práticas e POPs disponíveis, acessíveis aos funcionários e à autoridade sanitária.
+- Art. 42: Registros de treinamentos, higienização do reservatório, controle de pragas e saúde dos manipuladores mantidos por no mínimo 1 ano.
+
+**Capítulo XIII — Responsabilidade**
+- Art. 43: Responsável Técnico habilitado; capacitação periódica obrigatória dos manipuladores (mínimo anual).
+- Art. 44: Cursos de capacitação devem abranger contaminantes, doenças transmitidas por alimentos, manipulação higiênica e boas práticas.
+
 ### LEGISLAÇÃO MUNICIPAL - GOIÂNIA
 - **Lei 8741/2008** - Código Sanitário de Goiânia: Código Sanitário do Município de Goiânia - Vigilância Sanitária. Norma base municipal.
   - **Art. 81** - Infrações Sanitárias: Define infrações e penalidades sanitárias.
