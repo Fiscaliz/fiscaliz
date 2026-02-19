@@ -1087,3 +1087,77 @@ export const checklistPanificadora: ChecklistTemplate = {
 
 // Adicionar panificadora ao array de templates
 checklistTemplates.push(checklistPanificadora);
+
+// ============= CHECKLIST AÇOUGUE =============
+export const checklistAcougue: ChecklistTemplate = {
+  id: 'acougue',
+  name: 'Açougue / Comércio de Cárneos',
+  description: 'Comércio varejista de produtos cárneos com ou sem transformação',
+  icon: 'Beef',
+  legislationBase: 'Res. 20/GAB/SES/GO, Lei Municipal nº 8.741/08 e Port. 284/09',
+  items: [
+    // Documentação
+    { id: 'ac1', text: 'Apresentar Alvará de Autorização Sanitária. Açougue tipo 1 - sem transformação; Açougue tipo 2 - com transformação', category: 'Documentação', legislation: 'LM 8741/2008 Art. 81 Inc. III; Res. 20/GAB/SES/GO Art. 1° Inc. IV' },
+    { id: 'ac2', text: 'Apresentar Caderneta de Inspeção Sanitária', category: 'Documentação', legislation: 'LM 8741/2008 Art. 81 §1°' },
+    { id: 'ac3', text: 'Apresentar comprovante de treinamento dos manipuladores em Boas Práticas de Manipulação de Alimentos', category: 'Documentação', legislation: 'Res. 20/GAB/SES/GO Art. 27 Inc. III' },
+    { id: 'ac4', text: 'Apresentar certificado do Corpo de Bombeiros', category: 'Documentação', legislation: 'Port. 284/09 Art. 33 Parágrafo único' },
+    { id: 'ac5', text: 'Apresentar comprovante de higienização da caixa de água a cada seis meses, realizada por empresa especializada e regularizada ou funcionário capacitado. A água deve ser proveniente de abastecimento público; caso não exista, é autorizada a utilização de água proveniente de fontes alternativas, desde que tratada e com qualidade controlada por análise laboratorial conforme legislação vigente', category: 'Água', legislation: 'Res. 20/GAB/SES/GO Art. 26 §1°; Art. 25; Port. 888/2021' },
+    { id: 'ac6', text: 'Apresentar comprovante do controle integrado de pragas urbanas e vetores executado por empresa especializada e habilitada', category: 'Controle de Pragas', legislation: 'Res. 20/GAB/SES/GO Art. 41' },
+    { id: 'ac7', text: 'Apresentar comprovante de procedência de todos os produtos cárneos através de notas fiscais e rotulagem que atenda a legislação vigente. Todos os produtos de origem animal devem possuir selo do órgão de inspeção competente', category: 'Documentação', legislation: 'Res. 20/GAB/SES/GO Art. 4° Parágrafo único; LM 8741/2008 Art. 81 Inc. XVI alíneas "e" e "f"' },
+    { id: 'ac8', text: 'Apresentar comprovante de manutenção e troca dos filtros dos equipamentos de climatização, que devem ser mantidos conservados e higienizados', category: 'Equipamentos', legislation: 'Res. 20/GAB/SES/GO Art. 9°' },
+    { id: 'ac9', text: 'Apresentar certificado de vistoria do veículo de transporte de matérias-primas e/ou produtos', category: 'Documentação', legislation: 'LM 8741/08 Art. 81 Inc. III' },
+
+    // Estrutura e Instalações
+    { id: 'ac10', text: 'Pisos, paredes e tetos devem possuir revestimento liso, resistente, impermeável, lavável e de cor clara, mantidos íntegros, conservados, livres de rachaduras, trincas, vazamentos, infiltrações, bolores, descascamentos e não devem transmitir contaminantes aos alimentos', category: 'Estrutura', legislation: 'Res. 20/GAB/SES/GO Art. 5°' },
+    { id: 'ac11', text: 'Portas e janelas ajustadas aos batentes com superfície lisa, impermeável, de cor clara e em bom estado de conservação e higiene. Aberturas externas providas de telas milimétricas para impedir acesso de vetores e pragas urbanas', category: 'Estrutura', legislation: 'Res. 20/GAB/SES/GO Art. 6°' },
+    { id: 'ac12', text: 'Ralos e grelhas do piso devem possuir sistema de fechamento escamoteável ou outro tipo que impeça acesso de pragas, ligados à fossa séptica ou rede de esgoto', category: 'Estrutura', legislation: 'Res. 20/GAB/SES/GO Art. 7°' },
+    { id: 'ac13', text: 'Não é permitido uso de ventiladores nas salas de manipulação e fluxo de ar não deve incidir direto sobre os alimentos', category: 'Estrutura', legislation: 'Res. 20/GAB/SES/GO Art. 8°' },
+    { id: 'ac14', text: 'Iluminação adequada da área de manipulação, com luminárias apropriadas, protegidas contra quedas acidentais e explosão, mantidas limpas e em bom estado de conservação', category: 'Estrutura', legislation: 'Res. 20/GAB/SES/GO Art. 10' },
+    { id: 'ac15', text: 'Instalações elétricas embutidas ou protegidas por tubulações externas e íntegras permitindo a higienização', category: 'Estrutura', legislation: 'Res. 20/GAB/SES/GO Art. 11' },
+    { id: 'ac16', text: 'Lavatório exclusivo para higiene das mãos na área de preparação dotado de dispensadores abastecidos de sabão líquido inodoro, toalhas de papel e lixeira com tampa acionada sem contato manual', category: 'Higiene', legislation: 'Res. 20/GAB/SES/GO Art. 12' },
+    { id: 'ac17', text: 'Pia exclusiva para higiene de utensílios', category: 'Higiene', legislation: 'Res. 20/GAB/SES/GO Art. 13' },
+    { id: 'ac18', text: 'Local para guardar objetos de uso pessoal dos funcionários', category: 'Estrutura', legislation: 'Res. 20/GAB/SES/GO Art. 14' },
+    { id: 'ac19', text: 'Caixas de gordura fora da área de produção mantidas íntegras, limpas, com tampas ajustadas e vedadas e com capacidade proporcional à demanda', category: 'Estrutura', legislation: 'Res. 20/GAB/SES/GO Art. 15' },
+    { id: 'ac20', text: 'Sanitários: não devem ter comunicação direta com área de manipulação, possuir dispensadores com sabonete líquido inodoro e toalhas de papel, papel higiênico, lixeira com tampa acionada sem contato manual e porta com fechamento automático', category: 'Estrutura', legislation: 'Res. 20/GAB/SES/GO Art. 16' },
+
+    // Sala de Preparo e Equipamentos
+    { id: 'ac21', text: 'Açougues Tipo 2: sala de preparo climatizada para transformação de produtos cárneos com temperatura mantida entre 16-18°C e porta de acesso com fechamento automático. Caso a desossa e manipulação sejam na mesma sala, devem ser realizadas em horários distintos e com higienização adequada entre as etapas', category: 'Equipamentos', legislation: 'Res. 20/GAB/SES/GO Art. 17; Art. 17 Parágrafo único' },
+    { id: 'ac22', text: 'Equipamentos, móveis e utensílios devem possuir superfícies lisas, laváveis e impermeáveis, de material atóxico, resistente à corrosão e mantidos limpos e em bom estado de conservação', category: 'Equipamentos', legislation: 'Res. 20/GAB/SES/GO Art. 18' },
+    { id: 'ac23', text: 'Câmaras frias, freezeres, geladeiras e balcões expositores em quantidade proporcional à demanda e em perfeito funcionamento para manutenção adequada da temperatura dos produtos', category: 'Equipamentos', legislation: 'Res. 20/GAB/SES/GO Art. 19' },
+    { id: 'ac24', text: 'Máquina de moer carne e amaciador de bifes devem ser desmontados e lavados no encerramento das atividades do dia e permanecer protegidos de insetos e sujidades', category: 'Equipamentos', legislation: 'Res. 20/GAB/SES/GO Art. 21' },
+    { id: 'ac25', text: 'Todas lixeiras dotadas de tampas sem acionamento manual, sacos plásticos e em tamanho/quantidade que atendam à demanda', category: 'Higiene', legislation: 'Res. 20/GAB/SES/GO Art. 22' },
+    { id: 'ac26', text: 'Produtos de limpeza e utensílios devem possuir local adequado para seu armazenamento e saneantes devem ter registro no Ministério da Saúde', category: 'Higiene', legislation: 'Res. 20/GAB/SES/GO Art. 23' },
+    { id: 'ac27', text: 'Produtos devem ser mantidos sobre paletes, estrados e/ou prateleiras de material liso, impermeável, lavável, resistente e mantidos limpos', category: 'Armazenamento', legislation: 'Res. 20/GAB/SES/GO Art. 24' },
+
+    // Pessoal / Manipuladores
+    { id: 'ac28', text: 'Uso de uniforme completo, de cor clara, sapatos fechados e gorro de proteção para os cabelos. Não fazer uso de adornos. Fazer uso de EPIs limpos e conservados. Obrigatório uso de luva de malha de aço no corte e desossa de carnes', category: 'Pessoal', legislation: 'Res. 20/GAB/SES/GO Art. 27 Inc. I e Inc. II' },
+    { id: 'ac29', text: 'Cumprir rotina de higiene diária: banho; barba e bigode raspados; unhas curtas, limpas e sem esmalte. Higienização adequada das mãos', category: 'Pessoal', legislation: 'Res. 20/GAB/SES/GO Art. 27 Inc. IV e Inc. V' },
+
+    // Armazenamento e Temperaturas
+    { id: 'ac30', text: 'Produtos, matérias-primas e insumos devem ter embalagens íntegras, com identificação legível e armazenados em locais limpos e adequados. Em caso de fracionamento devem ser identificados com dados originais e data de validade de acordo com fabricante', category: 'Armazenamento', legislation: 'Res. 20/GAB/SES/GO Art. 29' },
+    { id: 'ac31', text: 'Controle da data de validade de produtos comercializados e utilizados', category: 'Armazenamento', legislation: 'Res. 20/GAB/SES/GO Art. 30; LM 8741/2008 Art. 81 Inc. XII' },
+    { id: 'ac32', text: 'Proibido armazenar produtos em caixas de papelão dentro de freezeres, geladeiras e/ou câmaras frias junto com produtos não embalados', category: 'Armazenamento', legislation: 'Res. 20/GAB/SES/GO Art. 31' },
+    { id: 'ac33', text: 'Líquidos residuais de carnes suspensas não devem entrar em contato com as peças depositadas na parte inferior do expositor/ou equipamento de refrigeração', category: 'Armazenamento', legislation: 'Res. 20/GAB/SES/GO Art. 32' },
+    { id: 'ac34', text: 'Separar carnes de diferentes espécies através de proteção eficiente para evitar contaminação cruzada', category: 'Armazenamento', legislation: 'Res. 20/GAB/SES/GO Art. 33' },
+    { id: 'ac35', text: 'Balcões refrigerados, ilhas ou gôndolas dotados de termômetros, mantidos limpos e em perfeito funcionamento. Produtos devem ser dispostos de forma a não obstruir passagem do frio e respeitar a capacidade dos equipamentos. Produtos cárneos não devem ficar em contato direto com gelo, exceto pescados frescos', category: 'Equipamentos', legislation: 'Res. 20/GAB/SES/GO Art. 34; Art. 34 §1° e §2°' },
+    { id: 'ac36', text: 'Pescados frescos inteiros/com ou sem vísceras: máx. 4°C e com no mín. 70% da superfície submersa em gelo com água potável. Pescados resfriados: entre 0-2°C. Pescados congelados: máx. -15°C ou conforme orientação do fabricante. Pescados secos/salgados: conforme recebidos pelo fabricante. Pescados fracionados na ausência do consumidor: embalados, identificados e máx. 4°C', category: 'Temperaturas', legislation: 'Res. 20/GAB/SES/GO Art. 35 Inc. I a V' },
+    { id: 'ac37', text: 'Temperatura de armazenamento dos demais produtos cárneos: congelados temperatura máx. -12°C ou orientação do fabricante e refrigerados até 8°C ou orientação do frigorífico', category: 'Temperaturas', legislation: 'Res. 20/GAB/SES/GO Art. 36 Inc. I e II' },
+    { id: 'ac38', text: 'Carnes salgadas mantidas em expositores fechados, de material liso e lavável, à prova de insetos e poeira', category: 'Armazenamento', legislation: 'Res. 20/GAB/SES/GO Art. 37' },
+
+    // Carne Moída e Transformação
+    { id: 'ac39', text: 'Carnes moídas ou com porcionamento prévio: em perfeitas condições de conservação e características organolépticas próprias; produzida e embalada em sala climatizada; embalada logo após a moagem com massa não ultrapassando 10 cm de espessura; rotulagem mínima com espécie do animal, tipo de carne, data da moagem, conservação e prazo para consumo; temperatura de até 8°C; comercializada no mesmo dia da moagem; consumidor tem direito de escolher a peça e moagem ser feita na sua presença', category: 'Alimentos', legislation: 'Res. 20/GAB/SES/GO Art. 38 Inc. I a VI; Art. 38 Parágrafo único' },
+    { id: 'ac40', text: 'Proibido descongelar os produtos para fins de comercialização. Pode descongelar em temperatura de refrigeração apenas para fins de transformação', category: 'Alimentos', legislation: 'Res. 20/GAB/SES/GO Art. 39; Art. 39 Parágrafo único' },
+    { id: 'ac41', text: 'Acondicionamento de alimentos em sacos plásticos transparentes de 1° uso e/ou caixas, bandejas e outros recipientes de material liso, lavável, impermeável e protegidos devidamente limpos e identificados com nome do produto, data de fabricação e validade', category: 'Alimentos', legislation: 'Res. 20/GAB/SES/GO Art. 40' },
+    { id: 'ac42', text: 'Na transformação dos produtos cárneos não poderão ser utilizados aditivos ou conservantes químicos, apenas sal e condimentos naturais', category: 'Alimentos', legislation: 'LM 8741/2008 Art. 81 Inc. XVI alíneas "c" e "d"; Res. 20/GAB/SES/GO Art. 42' },
+    { id: 'ac43', text: 'Todas as matérias-primas devem ser inspecionadas, estar em perfeitas condições de conservação e com características organolépticas próprias', category: 'Alimentos', legislation: 'Res. 20/GAB/SES/GO Art. 43; LM 8741/2008 Art. 81 Inc. XVI alínea "b"' },
+    { id: 'ac44', text: 'Os produtos cárneos transformados devem ser embalados e expostos à venda com nome do produto, lote, data de fabricação e validade', category: 'Alimentos', legislation: 'Res. 20/GAB/SES/GO Art. 46' },
+    { id: 'ac45', text: 'Prazo de validade dos produtos cárneos transformados não deve ultrapassar 48 horas', category: 'Alimentos', legislation: 'Res. 20/GAB/SES/GO Art. 47' },
+    { id: 'ac46', text: 'Os ossos, sebos e demais resíduos devem ser armazenados sob refrigeração em recipientes fechados, de material liso, impermeável e resistente, mantidos conservados, limpos e identificados', category: 'Resíduos', legislation: 'Res. 20/GAB/SES/GO Art. 50' },
+
+    // Proibições Gerais
+    { id: 'ac47', text: 'Proibido o uso de cigarros, cigarrilhas, charutos, cachimbos ou qualquer outro produto fumígeno, derivado ou não do tabaco em recintos coletivos, total ou parcialmente fechados, privados ou públicos', category: 'Pessoal', legislation: 'Lei Federal 9294/1996 Art. 2°; Art. 2° §3°' },
+  ]
+};
+
+// Adicionar açougue ao array de templates
+checklistTemplates.push(checklistAcougue);
