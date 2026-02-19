@@ -1,7 +1,10 @@
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.heat'; // Import heatmap plugin
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 // Coordenadas aproximadas dos principais bairros de Goiânia
 const GOIANIA_BAIRROS: Record<string, [number, number]> = {
@@ -83,6 +86,7 @@ function getRiskColor(d: BairroData): string {
 export function RiskMap({ divisionActions, divisionDocuments }: RiskMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const [showHeatmap, setShowHeatmap] = useState(true);
 
   // Agregar dados por bairro
   const bairroData = useMemo(() => {
@@ -115,100 +119,131 @@ export function RiskMap({ divisionActions, divisionDocuments }: RiskMapProps) {
   useEffect(() => {
     if (!mapRef.current) return;
 
-    // Limpar mapa anterior
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.remove();
-      mapInstanceRef.current = null;
-    }
+    // Se o mapa já existe, apenas atualiza camadas
+    if (!mapInstanceRef.current) {
+      const map = L.map(mapRef.current, {
+        center: GOIANIA_CENTER,
+        zoom: 12,
+        zoomControl: true,
+        attributionControl: false,
+      });
 
-    // Inicializar mapa
-    const map = L.map(mapRef.current, {
-      center: GOIANIA_CENTER,
-      zoom: 12,
-      zoomControl: true,
-      attributionControl: false,
-    });
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap',
-      maxZoom: 18,
-    }).addTo(map);
-
-    // Adicionar marcadores por bairro
-    bairrosWithCoords.forEach(d => {
-      if (!d.coords) return;
-
-      const color = getRiskColor(d);
-      const radius = Math.max(20, Math.min(50, d.total * 8));
-
-      const circle = L.circleMarker(d.coords, {
-        radius,
-        fillColor: color,
-        color: '#fff',
-        weight: 2,
-        opacity: 0.9,
-        fillOpacity: 0.75,
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap contributors & © CARTO',
+        subdomains: 'abcd',
+        maxZoom: 19
       }).addTo(map);
 
-      const dominantRisk = d.riskIII > 0 ? 'Alto (III)' : d.riskII > 0 ? 'Médio (II)' : d.riskI > 0 ? 'Baixo (I)' : 'Não informado';
-      const riskLabel = d.riskIII > 0 ? '🔴' : d.riskII > 0 ? '🟡' : d.riskI > 0 ? '🟢' : '⚪';
+      mapInstanceRef.current = map;
+    }
 
-      circle.bindPopup(`
-        <div style="font-family: sans-serif; min-width: 160px;">
-          <strong style="font-size: 13px;">${d.bairro}</strong><br/>
-          <span style="font-size: 12px; color: #666;">Risco predominante: ${riskLabel} ${dominantRisk}</span>
-          <hr style="margin: 6px 0; border-color: #eee"/>
-          <table style="font-size: 11px; width: 100%;">
-            <tr><td>Total ações</td><td style="text-align:right; font-weight:bold">${d.total}</td></tr>
-            ${d.riskIII > 0 ? `<tr><td>🔴 Alto risco</td><td style="text-align:right; color: #EF4444; font-weight:bold">${d.riskIII}</td></tr>` : ''}
-            ${d.riskII > 0 ? `<tr><td>🟡 Médio risco</td><td style="text-align:right; color: #F59E0B; font-weight:bold">${d.riskII}</td></tr>` : ''}
-            ${d.riskI > 0 ? `<tr><td>🟢 Baixo risco</td><td style="text-align:right; color: #22c55e; font-weight:bold">${d.riskI}</td></tr>` : ''}
-            ${d.semRisco > 0 ? `<tr><td>⚪ Sem info</td><td style="text-align:right">${d.semRisco}</td></tr>` : ''}
-          </table>
-        </div>
-      `);
+    const map = mapInstanceRef.current;
+
+    // Limpar camadas anteriores
+    map.eachLayer((layer) => {
+      if (layer instanceof L.CircleMarker || (layer as any)._heat) {
+        map.removeLayer(layer);
+      }
     });
 
-    mapInstanceRef.current = map;
+    if (showHeatmap) {
+      // Camada de Calor (Heatmap)
+      const heatPoints: [number, number, number][] = [];
+      
+      bairrosWithCoords.forEach(d => {
+        if (!d.coords) return;
+        // Peso do calor: Alto Risco (III) tem peso 3x, Médio (II) 2x, Baixo (I) 1x
+        // Multiplicado pelo volume de ações no local
+        const intensity = (d.riskIII * 3) + (d.riskII * 2) + (d.riskI * 1) + (d.semRisco * 0.5);
+        // Normalizar intensidade para visualização (max 1.0 por ponto, mas heatmap acumula)
+        // Adicionamos vários pontos próximos ou um ponto com intensidade? L.heat usa intensidade 0-1
+        // Vamos adicionar pontos repetidos levemente dispersos para criar a mancha
+        
+        // Adicionar um ponto central com intensidade baseada no total ponderado
+        // Limitando intensidade para não "estourar" o vermelho imediatamente
+        const normalizedIntensity = Math.min(intensity / 5, 1.0); 
+        heatPoints.push([d.coords[0], d.coords[1], normalizedIntensity * 50]); // Multiplicador alto para garantir visibilidade
+      });
 
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
+      if (heatPoints.length > 0) {
+        (L as any).heatLayer(heatPoints, {
+          radius: 35,
+          blur: 25,
+          maxZoom: 14,
+          max: 10.0,
+          gradient: { 0.2: 'blue', 0.4: 'lime', 0.6: 'yellow', 0.8: 'orange', 1.0: 'red' }
+        }).addTo(map);
       }
-    };
-  }, [bairrosWithCoords]);
+    } else {
+      // Camada de Bolhas (Markers)
+      bairrosWithCoords.forEach(d => {
+        if (!d.coords) return;
+
+        const color = getRiskColor(d);
+        const radius = Math.max(10, Math.min(40, d.total * 6));
+
+        const circle = L.circleMarker(d.coords, {
+          radius,
+          fillColor: color,
+          color: '#fff',
+          weight: 1,
+          opacity: 0.9,
+          fillOpacity: 0.7,
+        }).addTo(map);
+
+        const dominantRisk = d.riskIII > 0 ? 'Alto (III)' : d.riskII > 0 ? 'Médio (II)' : d.riskI > 0 ? 'Baixo (I)' : 'Não informado';
+        const riskLabel = d.riskIII > 0 ? '🔴' : d.riskII > 0 ? '🟡' : d.riskI > 0 ? '🟢' : '⚪';
+
+        circle.bindPopup(`
+          <div style="font-family: sans-serif; min-width: 160px;">
+            <strong style="font-size: 13px;">${d.bairro}</strong><br/>
+            <span style="font-size: 12px; color: #666;">Risco predominante: ${riskLabel} ${dominantRisk}</span>
+            <hr style="margin: 6px 0; border-color: #eee"/>
+            <table style="font-size: 11px; width: 100%;">
+              <tr><td>Total ações</td><td style="text-align:right; font-weight:bold">${d.total}</td></tr>
+              ${d.riskIII > 0 ? `<tr><td>🔴 Alto risco</td><td style="text-align:right; color: #EF4444; font-weight:bold">${d.riskIII}</td></tr>` : ''}
+              ${d.riskII > 0 ? `<tr><td>🟡 Médio risco</td><td style="text-align:right; color: #F59E0B; font-weight:bold">${d.riskII}</td></tr>` : ''}
+              ${d.riskI > 0 ? `<tr><td>🟢 Baixo risco</td><td style="text-align:right; color: #22c55e; font-weight:bold">${d.riskI}</td></tr>` : ''}
+              ${d.semRisco > 0 ? `<tr><td>⚪ Sem info</td><td style="text-align:right">${d.semRisco}</td></tr>` : ''}
+            </table>
+          </div>
+        `);
+      });
+    }
+
+  }, [bairrosWithCoords, showHeatmap]);
 
   const totalOnMap = bairrosWithCoords.reduce((s, b) => s + b.total, 0);
   const totalOffMap = bairrosWithoutCoords.reduce((s, b) => s + b.total, 0);
 
   return (
     <div className="space-y-3">
-      {/* Legenda */}
-      <div className="flex flex-wrap gap-2 text-xs">
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-red-500" />
-          <span>Alto Risco (III)</span>
+      {/* Controles */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Switch 
+            id="heatmap-mode" 
+            checked={showHeatmap} 
+            onCheckedChange={setShowHeatmap} 
+          />
+          <Label htmlFor="heatmap-mode" className="text-xs font-medium cursor-pointer">
+            Visualizar como Mapa de Calor
+          </Label>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-yellow-400" />
-          <span>Médio Risco (II)</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-green-500" />
-          <span>Baixo Risco (I)</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-slate-400" />
-          <span>Sem info</span>
-        </div>
-        <span className="text-muted-foreground ml-auto">Tamanho = volume de ações</span>
+        
+        {!showHeatmap && (
+          <div className="flex gap-2 text-[10px]">
+            <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-500" /> Alto</span>
+            <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-yellow-400" /> Médio</span>
+            <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-green-500" /> Baixo</span>
+          </div>
+        )}
       </div>
 
       {/* Mapa */}
       <div
         ref={mapRef}
-        className="w-full rounded-xl overflow-hidden border border-border"
+        className="w-full rounded-xl overflow-hidden border border-border relative z-0"
         style={{ height: 320 }}
       />
 
