@@ -486,7 +486,7 @@ export default function CreateDocument() {
     const files = e.target.files;
     if (!files) return;
 
-    const maxFiles = isAI ? 50 : 10;
+    const maxFiles = 50; // Todos os tipos de documentos suportam até 50 fotos
     const currentCount = uploadedImages.length;
     const remainingSlots = maxFiles - currentCount;
     
