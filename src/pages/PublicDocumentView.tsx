@@ -35,8 +35,7 @@ export default function PublicDocumentView() {
   const [document, setDocument] = useState<any>(null);
   const [establishment, setEstablishment] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState('');
-  const [pdfSignedUrl, setPdfSignedUrl] = useState<string | null>(null);
-  const [loadingPdf, setLoadingPdf] = useState(false);
+  const [pdfPublicUrl, setPdfPublicUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) {
@@ -63,19 +62,14 @@ export default function PublicDocumentView() {
       setEstablishment(est);
       setStatus('found');
 
-      // Se tem pdf_url, gerar signed URL automaticamente
+      // Bucket é público: usar URL permanente diretamente (ideal para QR Code em documentos impressos)
       if (data.pdf_url) {
-        setLoadingPdf(true);
-        const { data: signedData, error: signedError } = await supabase.storage
+        const { data: urlData } = supabase.storage
           .from('fiscal-photos')
-          .createSignedUrl(data.pdf_url, 3600);
-
-        if (signedData?.signedUrl) {
-          setPdfSignedUrl(signedData.signedUrl);
-        } else {
-          console.error('Error creating signed URL for PDF:', signedError);
+          .getPublicUrl(data.pdf_url);
+        if (urlData?.publicUrl) {
+          setPdfPublicUrl(urlData.publicUrl);
         }
-        setLoadingPdf(false);
       }
     };
 
@@ -118,21 +112,14 @@ export default function PublicDocumentView() {
               </div>
 
               {/* PDF Download Button */}
-              {pdfSignedUrl && (
+              {pdfPublicUrl && (
                 <div className="text-center">
-                  <a href={pdfSignedUrl} target="_blank" rel="noopener noreferrer">
+                  <a href={pdfPublicUrl} target="_blank" rel="noopener noreferrer">
                     <Button className="gap-2 bg-blue-600 hover:bg-blue-700 text-white w-full" size="lg">
                       <Download className="h-5 w-5" />
                       Baixar Documento PDF
                     </Button>
                   </a>
-                </div>
-              )}
-
-              {loadingPdf && (
-                <div className="text-center py-2">
-                  <Loader2 className="h-5 w-5 text-blue-600 animate-spin mx-auto" />
-                  <p className="text-xs text-gray-500 mt-1">Preparando PDF...</p>
                 </div>
               )}
 
