@@ -105,15 +105,43 @@ function getFollowUpSuggestions(messages: Message[]): string[] {
   return suggestions.slice(0, 3);
 }
 
+const STORAGE_KEY = 'fiscaliz_consultai_history';
+const MAX_PERSISTED_MESSAGES = 40; // keep last 40 messages (~20 turns)
+
+function loadPersistedMessages(): Message[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+  } catch { /* ignore */ }
+  return [];
+}
+
+function persistMessages(msgs: Message[]) {
+  try {
+    // Keep only last N messages to avoid bloating localStorage
+    const toStore = msgs.slice(-MAX_PERSISTED_MESSAGES);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toStore));
+  } catch { /* ignore */ }
+}
+
 export default function ConsultAI() {
   const { toast } = useToast();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => loadPersistedMessages());
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [expandedGroup, setExpandedGroup] = useState<number | null>(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Persist messages whenever they change
+  useEffect(() => {
+    if (messages.length > 0) {
+      persistMessages(messages);
+    }
+  }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -249,6 +277,7 @@ export default function ConsultAI() {
     setInput('');
     setShowSuggestions(true);
     setExpandedGroup(0);
+    localStorage.removeItem(STORAGE_KEY);
   };
 
   const followUpSuggestions = getFollowUpSuggestions(messages);
