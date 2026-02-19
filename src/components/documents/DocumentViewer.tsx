@@ -1276,7 +1276,9 @@ _Enviado via FISCALIZ®_`;
               level="M"
               includeMargin={false}
             />
-            <span className="text-[7px] text-gray-400 leading-tight text-center">Escaneie para abrir o documento</span>
+            <span className="text-[7px] text-gray-400 leading-tight text-center">
+              {document.status === 'draft' ? 'Prévia — link ativo após envio' : 'Escaneie para abrir o documento'}
+            </span>
           </div>
 
           {/* ASSINATURAS - Rubricas acima dos nomes, simétricas */}
