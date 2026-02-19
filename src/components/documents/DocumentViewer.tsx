@@ -157,6 +157,8 @@ export function DocumentViewer({
   });
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
   const [isAnalyzingAI, setIsAnalyzingAI] = useState(false);
+  const [isEditingLegends, setIsEditingLegends] = useState(false);
+  const [editablePhotoLegends, setEditablePhotoLegends] = useState<PhotoLegend[]>([]);
   const { toast } = useToast();
 
   // Get attached photos - use state (evidencePhotos) for live updates when editing
@@ -985,6 +987,44 @@ _Enviado via FISCALIZ®_`;
     }
   };
 
+  const startEditingLegends = () => {
+    setEditablePhotoLegends([...photoLegends]);
+    setIsEditingLegends(true);
+  };
+
+  const updateLegend = (idx: number, field: 'legenda' | 'item_rdc', value: string) => {
+    setEditablePhotoLegends(prev => {
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], [field]: value };
+      return updated;
+    });
+  };
+
+  const saveLegends = () => {
+    if (onSave) {
+      const legendsToSave = editablePhotoLegends;
+      const saveData: any = {
+        content: {
+          ...document.content,
+          text: content,
+          photoLegends: legendsToSave,
+          observations,
+          document_date: documentDate,
+          document_time: documentTime,
+        }
+      };
+      if (isRelatorioTecnico) {
+        saveData.content.relatorio_tecnico_data = {
+          ...document.content?.relatorio_tecnico_data,
+          photoLegends: legendsToSave,
+        };
+      }
+      onSave(saveData);
+    }
+    setIsEditingLegends(false);
+    toast({ title: "Legendas salvas", description: "As legendas das fotos foram atualizadas." });
+  };
+
   const savePrepostoData = () => {
     if (onSave) {
       onSave({ 
@@ -1701,10 +1741,60 @@ _Enviado via FISCALIZ®_`;
                     Editar
                   </Button>
                 )}
+                {canEdit && hasPhotoLegends && !isEditingLegends && (
+                  <Button variant="ghost" size="sm" onClick={startEditingLegends} className="print:hidden">
+                    <Edit3 className="h-4 w-4 mr-1" />
+                    Editar Legendas
+                  </Button>
+                )}
+                {canEdit && isEditingLegends && (
+                  <div className="flex gap-2 print:hidden">
+                    <Button variant="outline" size="sm" onClick={() => setIsEditingLegends(false)}>
+                      Cancelar
+                    </Button>
+                    <Button size="sm" onClick={saveLegends}>
+                      <Save className="h-4 w-4 mr-1" />
+                      Salvar
+                    </Button>
+                  </div>
+                )}
               </div>
               
               {/* Se tem legendas de fotos (IA), exibir texto formatado com referência cruzada */}
               {hasPhotoLegends && photoLegends.length > 0 ? (
+                isEditingLegends ? (
+                  <div className="space-y-3 print:hidden">
+                    <p className="text-sm text-muted-foreground">Edite a legenda e a base legal de cada foto:</p>
+                    {editablePhotoLegends.map((legend, idx) => (
+                      <div key={idx} className="border rounded-lg p-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm text-muted-foreground shrink-0">Foto {idx + 1}:</span>
+                          {attachedPhotos[legend.photoIndex] && (
+                            <img src={attachedPhotos[legend.photoIndex]} alt={`Foto ${idx + 1}`} className="h-10 w-10 object-cover rounded" />
+                          )}
+                        </div>
+                        <div>
+                          <Label className="text-xs">Legenda</Label>
+                          <Textarea
+                            value={legend.legenda}
+                            onChange={(e) => updateLegend(idx, 'legenda', e.target.value)}
+                            className="text-sm min-h-[60px]"
+                            placeholder="Descrição da não conformidade..."
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Base Legal (Item RDC)</Label>
+                          <Input
+                            value={legend.item_rdc}
+                            onChange={(e) => updateLegend(idx, 'item_rdc', e.target.value)}
+                            className="text-sm"
+                            placeholder="Ex: 4.1.3"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
                 <div className="bg-muted/20 rounded-lg p-4 min-h-[200px] print:bg-transparent print:border print:border-gray-200">
                   <div className="text-sm leading-relaxed space-y-3">
                     <p className="mb-2">Durante a inspeção sanitária foram constatadas as seguintes irregularidades:</p>
@@ -1736,6 +1826,7 @@ _Enviado via FISCALIZ®_`;
                     )}
                   </div>
                 </div>
+                )
               ) : isEditing ? (
                 <div className="space-y-2 print:hidden">
                   <Textarea
