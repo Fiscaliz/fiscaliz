@@ -28,7 +28,8 @@ import {
   Trash2,
   Loader2,
   ExternalLink,
-  QrCode
+  QrCode,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -155,6 +156,7 @@ export function DocumentViewer({
       .map(a => a.url);
   });
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
+  const [isAnalyzingAI, setIsAnalyzingAI] = useState(false);
   const { toast } = useToast();
 
   // Get attached photos - use state (evidencePhotos) for live updates when editing
@@ -880,6 +882,107 @@ _Enviado via FISCALIZ®_`;
       title: "Foto removida",
       description: "A foto foi removida do documento"
     });
+  };
+
+  // AI Photo Analysis for draft documents
+  const handleAIAnalysis = async () => {
+    if (evidencePhotos.length === 0) {
+      toast({
+        title: "Sem fotos",
+        description: "Adicione fotos de evidência antes de analisar com IA",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsAnalyzingAI(true);
+      
+      // Convert signed URLs to public URLs for the edge function
+      const publicUrls = evidencePhotos.map(url => {
+        const signedMarker = '/storage/v1/object/sign/fiscal-photos/';
+        const idx = url.indexOf(signedMarker);
+        if (idx !== -1) {
+          const pathWithQuery = url.substring(idx + signedMarker.length);
+          const path = pathWithQuery.split('?')[0];
+          const baseUrl = url.substring(0, idx);
+          return `${baseUrl}/storage/v1/object/public/fiscal-photos/${path}`;
+        }
+        return url;
+      });
+
+      const { data, error } = await supabase.functions.invoke('analyze-photos', {
+        body: {
+          documentType: document.document_type,
+          photos: publicUrls,
+          establishmentType: document.establishment?.nome_fantasia || document.establishment?.razao_social || '',
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.photoAnalysis && data.photoAnalysis.length > 0) {
+        // Build photo legends from analysis
+        const newLegends = data.photoAnalysis.map((item: any) => ({
+          photoIndex: item.foto - 1,
+          legenda: item.legenda || '',
+          item_rdc: item.item_rdc || '',
+          previewUrl: publicUrls[item.foto - 1] || '',
+        }));
+
+        // Build irregularities from analysis
+        const newIrregularities = data.analysisResult?.nonConformities?.map((nc: any, idx: number) => ({
+          id: `ai_${idx}`,
+          descricao: nc.description,
+          dispositivo: nc.legalBasis || '',
+          severity: nc.severity,
+          recommendation: nc.recommendation,
+          deadline: nc.deadline,
+        })) || [];
+
+        // Save legends and irregularities to document content
+        if (onSave) {
+          onSave({
+            content: {
+              ...document.content,
+              text: content,
+              photoLegends: newLegends,
+              method: 'ai',
+              observations: observations,
+              document_date: documentDate,
+              document_time: documentTime,
+              ...(document.document_type === 'relatorio_tecnico' ? {
+                relatorio_tecnico_data: {
+                  ...document.content?.relatorio_tecnico_data,
+                  photoLegends: newLegends,
+                  aiAnalysisResult: JSON.stringify(data.analysisResult),
+                }
+              } : {}),
+            },
+            irregularities: newIrregularities,
+          });
+        }
+
+        toast({
+          title: "Análise concluída",
+          description: `${data.photoAnalysis.length} não conformidade(s) identificada(s) pela IA`,
+        });
+      } else {
+        toast({
+          title: "Análise concluída",
+          description: "Nenhuma não conformidade identificada nas fotos",
+        });
+      }
+    } catch (error: any) {
+      console.error('AI analysis error:', error);
+      toast({
+        title: "Erro na análise",
+        description: error.message || "Não foi possível analisar as fotos com IA",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAnalyzingAI(false);
+    }
   };
 
   const savePrepostoData = () => {
@@ -1921,6 +2024,29 @@ _Enviado via FISCALIZ®_`;
                     onChange={handleEvidencePhotosUpload}
                   />
                 </div>
+
+                {/* AI Analysis Button */}
+                {evidencePhotos.length > 0 && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleAIAnalysis}
+                    disabled={isAnalyzingAI}
+                    className="w-full"
+                  >
+                    {isAnalyzingAI ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        Analisando {evidencePhotos.length} foto(s)...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-1" />
+                        Analisar com IA ({evidencePhotos.length} fotos)
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             )}
 
