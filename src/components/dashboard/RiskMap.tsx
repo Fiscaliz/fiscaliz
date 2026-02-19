@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo, useState } from 'react';
+import { useEffect, useRef, useMemo, useState, forwardRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.heat'; // Import heatmap plugin
@@ -83,7 +83,7 @@ function getRiskColor(d: BairroData): string {
   return '#94a3b8';                       // Cinza - Sem info
 }
 
-export function RiskMap({ divisionActions, divisionDocuments }: RiskMapProps) {
+export const RiskMap = forwardRef<HTMLDivElement, RiskMapProps>(({ divisionActions, divisionDocuments }, ref) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const [showHeatmap, setShowHeatmap] = useState(true);
@@ -268,4 +268,5 @@ export function RiskMap({ divisionActions, divisionDocuments }: RiskMapProps) {
       )}
     </div>
   );
-}
+});
+RiskMap.displayName = 'RiskMap';
