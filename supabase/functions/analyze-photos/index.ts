@@ -291,134 +291,141 @@ Retorne um JSON: {\"item_rdc\": \"4.X.X\", \"justificativa\": \"breve explicaç�
       });
     }
 
-    const userPrompt = `${photos.length} fotos de fiscalização${establishmentType ? ` (${establishmentType})` : ''}.
+    // Process photos in batches of 5 to avoid timeouts with large sets
+    const BATCH_SIZE = 5;
+    const photoBatches: string[][] = [];
+    const limitedPhotos = photos.slice(0, 50);
+    for (let i = 0; i < limitedPhotos.length; i += BATCH_SIZE) {
+      photoBatches.push(limitedPhotos.slice(i, i + BATCH_SIZE));
+    }
 
-Para CADA foto, retorne: foto (1-${photos.length}), description (máx 50 chars ou vazio), severity, legalBasis (RDC 216/2004), recommendation, deadline.
+    console.log(`[analyze-photos] Processing ${limitedPhotos.length} photos in ${photoBatches.length} batches of up to ${BATCH_SIZE}`);
 
-JSON: {\"nonConformities\":[...], \"generalObservations\":\"\", \"confidence\":0.9}
+    const allNonConformities: Array<{
+      foto: number;
+      description: string;
+      severity: string;
+      legalBasis: string;
+      recommendation: string;
+      deadline: string;
+    }> = [];
+    let generalObservations = "";
+    let overallConfidence = 0;
+    let batchesProcessed = 0;
+    let timedOutBatches = 0;
+
+    for (let batchIdx = 0; batchIdx < photoBatches.length; batchIdx++) {
+      const batch = photoBatches[batchIdx];
+      const startPhotoNum = batchIdx * BATCH_SIZE + 1;
+
+      const batchPrompt = `${batch.length} fotos de fiscalização (fotos ${startPhotoNum} a ${startPhotoNum + batch.length - 1})${establishmentType ? ` (${establishmentType})` : ''}.
+
+Para CADA foto, retorne: foto (use números ${startPhotoNum}-${startPhotoNum + batch.length - 1}), description (máx 50 chars ou vazio), severity, legalBasis (RDC 216/2004), recommendation, deadline.
+
+JSON: {"nonConformities":[...], "generalObservations":"", "confidence":0.9}
 Sem markdown.`;
 
-    const parts: any[] = [{ type: "text", text: userPrompt }];
-    for (const url of photos.slice(0, 50)) {
-      parts.push({ type: "image_url", image_url: { url } });
-    }
-
-    console.log(`[analyze-photos] Analyzing ${photos.length} photos for document type: ${documentType}`);
-
-    // Add 15s timeout using AbortController - faster fallback
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-    let aiResp: Response;
-    try {
-      aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash-lite",
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: parts },
-          ],
-          temperature: 0.1,
-          max_tokens: 2000,
-        }),
-        signal: controller.signal,
-      });
-    } catch (fetchError: any) {
-      clearTimeout(timeoutId);
-      
-      if (fetchError.name === 'AbortError') {
-        console.log(`[analyze-photos] Timeout after 15s, returning fallback for ${photos.length} photos`);
-        
-        return new Response(JSON.stringify({
-          text: "Análise excedeu tempo limite. Preencha manualmente.",
-          photoAnalysis: photos.map((_, idx) => ({
-            foto: idx + 1,
-            legenda: "",
-            item_rdc: "",
-          })),
-          timedOut: true,
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      const parts: any[] = [{ type: "text", text: batchPrompt }];
+      for (const url of batch) {
+        parts.push({ type: "image_url", image_url: { url } });
       }
-      throw fetchError;
-    } finally {
-      clearTimeout(timeoutId);
-    }
 
-    if (!aiResp.ok) {
-      const errorText = await aiResp.text();
-      console.error("AI gateway error:", aiResp.status, errorText);
+      console.log(`[analyze-photos] Batch ${batchIdx + 1}/${photoBatches.length}: ${batch.length} photos (${startPhotoNum}-${startPhotoNum + batch.length - 1})`);
 
-      if (aiResp.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limits exceeded. Tente novamente em instantes." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (aiResp.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Créditos de IA esgotados. Adicione créditos no workspace para continuar." }),
-          {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      try {
+        const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
           },
-        );
-      }
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-lite",
+            messages: [
+              { role: "system", content: SYSTEM_PROMPT },
+              { role: "user", content: parts },
+            ],
+            temperature: 0.1,
+            max_tokens: 2000,
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
 
-      return new Response(JSON.stringify({ error: `AI gateway error: ${aiResp.status}` }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        if (!aiResp.ok) {
+          const errorText = await aiResp.text();
+          console.error(`[analyze-photos] Batch ${batchIdx + 1} AI error:`, aiResp.status, errorText);
+
+          if (aiResp.status === 429) {
+            return new Response(JSON.stringify({ error: "Rate limits exceeded. Tente novamente em instantes." }), {
+              status: 429,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          if (aiResp.status === 402) {
+            return new Response(
+              JSON.stringify({ error: "Créditos de IA esgotados. Adicione créditos no workspace para continuar." }),
+              { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
+          }
+          // Skip this batch on other errors
+          timedOutBatches++;
+          continue;
+        }
+
+        const json = await aiResp.json();
+        const rawText = (json?.choices?.[0]?.message?.content as string | undefined) || "";
+        console.log(`[analyze-photos] Batch ${batchIdx + 1} response: ${rawText.substring(0, 300)}`);
+
+        try {
+          const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (parsed.nonConformities) {
+              allNonConformities.push(...parsed.nonConformities);
+            }
+            if (parsed.generalObservations) {
+              generalObservations += (generalObservations ? "; " : "") + parsed.generalObservations;
+            }
+            overallConfidence += parsed.confidence || 0;
+          }
+        } catch (parseError) {
+          console.error(`[analyze-photos] Batch ${batchIdx + 1} parse error:`, parseError);
+        }
+        batchesProcessed++;
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          console.log(`[analyze-photos] Batch ${batchIdx + 1} timed out after 30s`);
+          timedOutBatches++;
+          continue;
+        }
+        throw fetchError;
+      }
     }
 
-    const json = await aiResp.json();
-    const rawText = (json?.choices?.[0]?.message?.content as string | undefined) || "";
-
-    console.log(`[analyze-photos] Raw response: ${rawText.substring(0, 500)}`);
-
-    let analysisResult: {
-      nonConformities: Array<{
-        foto: number;
-        description: string;
-        severity: string;
-        legalBasis: string;
-        recommendation: string;
-        deadline: string;
-      }>;
-      generalObservations: string;
-      confidence: number;
-    } | null = null;
-
-    try {
-      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        analysisResult = JSON.parse(jsonMatch[0]);
-      }
-    } catch (parseError) {
-      console.error("Failed to parse AI response as JSON:", parseError);
-    }
-
-    const photoAnalysis = analysisResult?.nonConformities?.map(nc => ({
+    const photoAnalysis = allNonConformities.map(nc => ({
       foto: nc.foto,
       legenda: nc.description,
-      item_rdc: nc.legalBasis.replace('RDC 216/2004 - Item ', ''),
+      item_rdc: (nc.legalBasis || '').replace('RDC 216/2004 - Item ', ''),
       severity: nc.severity,
       recommendation: nc.recommendation,
       deadline: nc.deadline,
-    })) || [];
+    }));
 
-    console.log(`[analyze-photos] Parsed ${photoAnalysis.length} non-conformities`);
+    console.log(`[analyze-photos] Total: ${photoAnalysis.length} non-conformities from ${batchesProcessed} batches (${timedOutBatches} timed out)`);
 
     return new Response(JSON.stringify({ 
-      text: rawText, 
       photoAnalysis,
-      analysisResult,
+      analysisResult: {
+        nonConformities: allNonConformities,
+        generalObservations,
+        confidence: batchesProcessed > 0 ? overallConfidence / batchesProcessed : 0,
+      },
+      timedOut: timedOutBatches === photoBatches.length,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
