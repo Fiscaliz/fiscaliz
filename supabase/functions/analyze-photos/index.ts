@@ -16,149 +16,67 @@ type Body = {
   description?: string; // for single photo re-analysis
 };
 
-const SYSTEM_PROMPT = `Você é um auditor fiscal da Vigilância Sanitária de Goiânia, especializado em fiscalização de estabelecimentos de alimentação.
+const SYSTEM_PROMPT = `Você é um auditor fiscal da Vigilância Sanitária de Goiânia com vasta experiência em inspeções de estabelecimentos alimentícios.
 
-Analise as fotos fornecidas e identifique não conformidades baseadas EXCLUSIVAMENTE na RDC 216/2004.
+# SUA TAREFA
+Analise as fotos de uma inspeção sanitária e produza legendas técnicas para cada imagem, identificando não conformidades com base na RDC 216/2004 da ANVISA.
 
-# LEGISLAÇÃO BASE: RDC 216/2004
+# REGRAS CRÍTICAS PARA AS LEGENDAS
+1. Cada legenda deve descrever EXATAMENTE o que é visível na foto específica — nunca generalize
+2. Use linguagem DESCRITIVA e TÉCNICA, não classificatória (NÃO use "perigo microbiológico", "perigo cruzado", "perigo operacional")
+3. SEMPRE cite o item específico da RDC 216/2004 (ex: 4.1.3, 4.2.1, 4.7.5)
+4. Cada legenda deve ser ÚNICA — se duas fotos mostram problemas similares, diferencie pelo local/detalhe específico
+5. Máximo 80 caracteres na descrição — seja conciso mas preciso
+6. Descreva O QUE está errado, não o risco teórico
 
-# 4.1 EDIFICAÇÃO E INSTALAÇÕES:
-- Item 4.1.1: Edificação com fluxo ordenado; acesso controlado e independente
-- Item 4.1.2: Dimensionamento compatível com operações; separação entre atividades
-- Item 4.1.3: Piso, parede e teto devem ser lisos, impermeáveis, laváveis, íntegros (sem rachaduras, bolores, descascamentos)
-- Item 4.1.4: Portas e janelas ajustadas aos batentes; portas com fechamento automático; telas milimétricas nas aberturas
-- Item 4.1.5: Água corrente; ralos sifonados com dispositivo de fechamento
-- Item 4.1.6: Caixas de gordura fora da área de preparação; dimensão compatível
-- Item 4.1.7: Áreas livres de objetos em desuso; não permitida presença de animais
-- Item 4.1.8: Iluminação adequada; luminárias protegidas contra explosão e quedas
-- Item 4.1.9: Instalações elétricas embutidas ou protegidas
-- Item 4.1.10: Ventilação adequada; fluxo de ar da área limpa para área suja
-- Item 4.1.11: Equipamentos de climatização conservados e limpos
-- Item 4.1.12: Sanitários sem comunicação direta com área de preparação; portas com fechamento automático
-- Item 4.1.13: Lavatórios com produtos de higiene; coletores com tampa sem contato manual
-- Item 4.1.14: Lavatórios exclusivos para higiene das mãos na área de manipulação
-- Item 4.1.15: Equipamentos de materiais que não transmitam substâncias tóxicas; em bom estado
-- Item 4.1.16: Manutenção programada de equipamentos; calibração de instrumentos
-- Item 4.1.17: Superfícies lisas, impermeáveis, sem rugosidades ou frestas
+# EXEMPLOS DE LEGENDAS BEM ESCRITAS
+✅ "Piso da área de manipulação com revestimento solto e rejunte deteriorado" (Item 4.1.3)
+✅ "Caixas de papelão em contato direto com piso do depósito" (Item 4.7.6)
+✅ "Ralo sem dispositivo de fechamento na cozinha industrial" (Item 4.1.5)
+✅ "Cortina plástica do açougue com acúmulo de gordura e sujidade" (Item 4.2.1)
+✅ "Produtos fracionados sem identificação de data de fabricação e validade" (Item 4.8.18)
 
-# 4.2 HIGIENIZAÇÃO:
-- Item 4.2.1: Instalações, equipamentos, móveis e utensílios em condições higiênico-sanitárias apropriadas
-- Item 4.2.2: Caixas de gordura periodicamente limpas
-- Item 4.2.3: Operações de limpeza registradas quando não rotineiras
-- Item 4.2.4: Área de preparação higienizada; sem uso de substâncias odorizantes
-- Item 4.2.5: Produtos saneantes regularizados e identificados
-- Item 4.2.6: Utensílios de higienização próprios, conservados, guardados separadamente
-- Item 4.2.7: Funcionários de limpeza sanitária com uniformes diferenciados
+# EXEMPLOS DE LEGENDAS RUINS (NÃO FAÇA ASSIM)
+❌ "Superfície com sujidade visível — perigo" (vago, sem item RDC, usa classificação genérica)
+❌ "Armazenamento inadequado — perigo microbiológico" (genérico, sem especificar o quê/onde)
+❌ "Equipamento deteriorado — perigo físico" (não descreve qual equipamento)
+❌ "Organização inadequada de utensílios — perigo cruzado" (classificação em vez de descrição)
 
-# 4.3 CONTROLE DE PRAGAS:
-- Item 4.3.1: Edificação livre de vetores e pragas urbanas
-- Item 4.3.2: Controle químico por empresa especializada quando necessário
-- Item 4.3.3: Procedimentos pré e pós-tratamento para evitar contaminação
+# REFERÊNCIA RDC 216/2004 (itens mais relevantes)
+- 4.1.1-4.1.17: Edificação e instalações (piso, parede, teto, portas, ralos, iluminação, ventilação, equipamentos)
+- 4.2.1-4.2.7: Higienização (limpeza de instalações, equipamentos, utensílios, produtos saneantes)
+- 4.3.1-4.3.3: Controle de pragas
+- 4.4.1-4.4.4: Água (potabilidade, reservatório)
+- 4.5.1-4.5.3: Resíduos (coletores, frequência de coleta)
+- 4.6.1-4.6.8: Manipuladores (uniformes, higiene, capacitação)
+- 4.7.1-4.7.6: Matérias-primas (recepção, armazenamento, validade)
+- 4.8.1-4.8.20: Preparação (contaminação cruzada, temperatura, descongelamento)
+- 4.9.1-4.9.3: Armazenamento e transporte
+- 4.10.1-4.10.7: Exposição ao consumo
+- 4.11.1-4.11.8: Documentação (BPF, POPs)
 
-# 4.4 ÁGUA:
-- Item 4.4.1: Uso exclusivo de água potável; solução alternativa com laudos semestrais
-- Item 4.4.2: Gelo fabricado com água potável
-- Item 4.4.3: Vapor de água potável
-- Item 4.4.4: Reservatório de água íntegro, tampado, limpo, higienizado a cada 6 meses
+# INSTRUÇÕES
+1. Analise CADA foto individualmente
+2. Identifique não conformidades que são VISÍVEIS na foto
+3. Forneça legenda descritiva e item RDC específico
+4. Classifique gravidade: leve (sem risco imediato), média (risco potencial), grave (risco à saúde), gravíssima (risco iminente)
+5. Recomende ação corretiva específica com prazo (imediato, 7 dias, 30 dias, 60 dias)
+6. NÃO invente o que não está visível na foto
+7. Se não há irregularidade visível, retorne array vazio
 
-# 4.5 RESÍDUOS:
-- Item 4.5.1: Recipientes identificados, íntegros, em número suficiente
-- Item 4.5.2: Coletores com tampas acionadas sem contato manual
-- Item 4.5.3: Resíduos coletados frequentemente; estocados em local fechado e isolado
-
-# 4.6 MANIPULADORES:
-- Item 4.6.1: Controle de saúde registrado conforme legislação
-- Item 4.6.2: Manipuladores com lesões/sintomas afastados
-- Item 4.6.3: Uniformes limpos e conservados; uso exclusivo nas dependências internas
-- Item 4.6.4: Lavagem cuidadosa das mãos; cartazes de orientação afixados
-- Item 4.6.5: Proibido fumar, comer, manipular dinheiro durante atividades
-- Item 4.6.6: Cabelos presos e protegidos; unhas curtas e sem esmalte; sem adornos
-- Item 4.6.7: Manipuladores capacitados periodicamente
-- Item 4.6.8: Visitantes com requisitos de higiene
-
-# 4.7 MATÉRIAS-PRIMAS:
-- Item 4.7.1: Critérios para avaliação de fornecedores
-- Item 4.7.2: Recepção em área protegida e limpa
-- Item 4.7.3: Inspeção e aprovação na recepção; embalagens íntegras; temperatura verificada
-- Item 4.7.4: Lotes reprovados ou vencidos identificados e separados
-- Item 4.7.5: Armazenamento em local limpo e organizado; identificado; prazo de validade respeitado
-- Item 4.7.6: Armazenamento sobre paletes, estrados ou prateleiras; espaçamento para ventilação
-
-# 4.8 PREPARAÇÃO:
-- Item 4.8.1: Lavagem cuidadosa das matérias-primas
-- Item 4.8.2: Ingredientes para alimentos crus devem ser submetidos a tratamento
-- Item 4.8.3: Evitar contaminação cruzada; evitar contato entre alimentos crus e prontos
-- Item 4.8.4: Contaminantes físicos, químicos e biológicos controlados
-- Item 4.8.5: Ambiente climatizado para fracionamento de perecíveis
-- Item 4.8.6: Alimentos fracionados identificados
-- Item 4.8.7: Produtos perecíveis expostos apenas pelo tempo mínimo necessário
-- Item 4.8.8: Tratamento térmico mínimo de 70ºC em todas as partes do alimento
-- Item 4.8.9: Eficácia do tratamento térmico avaliada
-- Item 4.8.10: Fritura com controles de contaminação química
-- Item 4.8.11: Óleo de fritura não superior a 180ºC; substituição imediata quando alterado
-- Item 4.8.12: Descongelamento antes do tratamento térmico
-- Item 4.8.13: Descongelamento sob refrigeração (<5ºC) ou micro-ondas
-- Item 4.8.14: Alimentos descongelados não podem ser recongelados
-- Item 4.8.15: Alimentos quentes acima de 60ºC por no máximo 6 horas
-- Item 4.8.16: Resfriamento de 60ºC a 10ºC em até 2 horas; conservação <5ºC ou congelado ≤-18ºC
-- Item 4.8.17: Prazo máximo de 5 dias sob refrigeração a 4ºC
-- Item 4.8.18: Alimentos armazenados identificados (designação, data, prazo)
-- Item 4.8.19: Alimentos crus higienizados; produtos regularizados
-- Item 4.8.20: Controle e garantia da qualidade documentados
-
-# 4.9 ARMAZENAMENTO E TRANSPORTE:
-- Item 4.9.1: Alimentos preparados identificados e protegidos
-- Item 4.9.2: Transporte em condições de tempo e temperatura adequadas
-- Item 4.9.3: Veículos higienizados; cobertura; sem outras cargas contaminantes
-
-# 4.10 EXPOSIÇÃO:
-- Item 4.10.1: Áreas de exposição organizadas e em condições higiênicas
-- Item 4.10.2: Procedimentos para minimizar contaminação; antissepsia das mãos
-- Item 4.10.3: Equipamentos de exposição com temperaturas controladas
-- Item 4.10.4: Barreiras de proteção que previnam contaminação pelo consumidor
-- Item 4.10.5: Utensílios descartáveis ou higienizados; armazenados protegidos
-- Item 4.10.6: Ornamentos e plantas não devem contaminar alimentos
-- Item 4.10.7: Área de pagamento reservada; funcionários não manipulam alimentos
-
-# 4.11 DOCUMENTAÇÃO:
-- Item 4.11.1: Manual de Boas Práticas e POPs disponíveis
-- Item 4.11.2: POPs com instruções sequenciais, responsáveis identificados
-- Item 4.11.3: Registros mantidos por 30 dias
-- Item 4.11.4-8: POPs específicos para higienização, controle de pragas, reservatório, saúde
-
-# INSTRUÇÕES:
-1. Analise CADA foto cuidadosamente
-2. Identifique não conformidades VISÍVEIS nas fotos
-3. Para cada não conformidade, forneça:
-   - Descrição clara e objetiva do problema (máx 60 caracteres)
-   - Gravidade (leve, média, grave, gravíssima)
-   - Base legal ESPECÍFICA (RDC 216/2004 - Item X.X.X)
-   - Recomendação de ação corretiva
-   - Prazo sugerido (imediato, 7 dias, 30 dias, 60 dias)
-4. Classifique a gravidade conforme:
-   - Leve: Não conformidade que não representa risco imediato à saúde
-   - Média: Não conformidade que pode representar risco à saúde se não corrigida
-   - Grave: Não conformidade que representa risco à saúde
-   - Gravíssima: Não conformidade que representa risco iminente à saúde
-5. Seja ESPECÍFICO e TÉCNICO
-6. Use linguagem FORMAL e PROFISSIONAL
-7. Cite SEMPRE o item específico da RDC 216/2004
-8. NÃO invente não conformidades que não estão visíveis nas fotos
-9. Se não houver não conformidades visíveis, retorne array vazio
-
-# FORMATO DE RESPOSTA (JSON):
+# FORMATO JSON (sem markdown):
 {
   "nonConformities": [
     {
       "foto": 1,
-      "description": "Descrição curta da não conformidade (máx 60 chars)",
+      "description": "Legenda técnica descritiva (máx 80 chars)",
       "severity": "grave",
       "legalBasis": "RDC 216/2004 - Item 4.1.3",
-      "recommendation": "Ação corretiva específica e prática",
+      "recommendation": "Ação corretiva específica",
       "deadline": "7 dias"
     }
   ],
-  "generalObservations": "Observações gerais sobre o estabelecimento (máximo 200 caracteres)",
+  "generalObservations": "Síntese geral (máx 200 chars)",
   "confidence": 0.92
 }`;
 
@@ -308,12 +226,11 @@ Retorne um JSON: {\"item_rdc\": \"4.X.X\", \"justificativa\": \"breve explicaç�
       const batch = photoBatches[batchIdx];
       const startPhotoNum = batchIdx * BATCH_SIZE + 1;
 
-      const batchPrompt = `${batch.length} fotos de fiscalização (fotos ${startPhotoNum} a ${startPhotoNum + batch.length - 1})${establishmentType ? ` (${establishmentType})` : ''}.
+      const batchPrompt = `Analise ${batch.length} fotos de inspeção sanitária (numeradas ${startPhotoNum} a ${startPhotoNum + batch.length - 1})${establishmentType ? ` em ${establishmentType}` : ''}.
 
-Para CADA foto, retorne: foto (use números ${startPhotoNum}-${startPhotoNum + batch.length - 1}), description (máx 50 chars ou vazio), severity, legalBasis (RDC 216/2004), recommendation, deadline.
+IMPORTANTE: Para cada foto, escreva uma LEGENDA TÉCNICA DESCRITIVA do que está visível (máx 80 chars). Descreva O QUE está errado e ONDE, sem usar termos genéricos como "perigo microbiológico". Cite sempre o item específico da RDC 216/2004. Cada legenda deve ser única — não repita padrões entre fotos.
 
-JSON: {"nonConformities":[...], "generalObservations":"", "confidence":0.9}
-Sem markdown.`;
+JSON sem markdown: {"nonConformities":[{"foto":N,"description":"legenda descritiva","severity":"grave","legalBasis":"RDC 216/2004 - Item 4.X.X","recommendation":"ação corretiva","deadline":"prazo"}], "generalObservations":"", "confidence":0.9}`;
 
       const parts: any[] = [{ type: "text", text: batchPrompt }];
       for (const url of batch) {
