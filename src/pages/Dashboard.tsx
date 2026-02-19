@@ -43,6 +43,7 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { RISK_LABELS } from '@/data/cnaeRiskTable';
+import { RiskMap } from '@/components/dashboard/RiskMap';
 
 const COLORS = ['#0F4C5C', '#14B8A6', '#2E8B57', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 const RISK_COLORS: Record<string, string> = {
@@ -635,8 +636,23 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* Top Bairros */}
-            {divisionBarData.length > 0 ? (
+            {/* Mapa de Risco Interativo */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-body font-semibold flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-info/10">
+                    <MapPin className="h-4 w-4 text-info" />
+                  </div>
+                  Mapa de Risco Sanitário — Goiânia
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RiskMap divisionActions={divisionActions} divisionDocuments={divisionDocuments} />
+              </CardContent>
+            </Card>
+
+            {/* Top Bairros - gráfico de barras complementar */}
+            {divisionBarData.length > 0 && (
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-body font-semibold flex items-center gap-2">
@@ -647,7 +663,7 @@ export default function Dashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[220px]">
+                  <div className="h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={divisionBarData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -658,20 +674,6 @@ export default function Dashboard() {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-body font-semibold flex items-center gap-2">
-                    <div className="p-2 rounded-xl bg-info/10">
-                      <MapPin className="h-4 w-4 text-info" />
-                    </div>
-                    Mapa de Risco por Bairro
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <EmptyState icon={MapPin} text="Requer mais dados de fiscalização" subtitle="Os bairros aparecerão conforme ações forem registradas" />
                 </CardContent>
               </Card>
             )}
