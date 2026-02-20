@@ -137,6 +137,8 @@ export default function CreateDocument() {
   const [aiUploadedPhotoUrls, setAiUploadedPhotoUrls] = useState<string[]>([]); // URLs from AI analysis upload
   const [showSaveConfirmDialog, setShowSaveConfirmDialog] = useState(false);
   const [showDenunciaResponse, setShowDenunciaResponse] = useState(false);
+  const [denunciaContext, setDenunciaContext] = useState('');
+  const denunciaFileInputRef = useRef<HTMLInputElement>(null);
   const [savedDocumentId, setSavedDocumentId] = useState<string | null>(null);
   const [savedDocumentNumber, setSavedDocumentNumber] = useState<string | null>(null);
   const [transportMode, setTransportMode] = useState<'MPL' | 'CO'>('MPL');
@@ -1052,6 +1054,9 @@ export default function CreateDocument() {
           document_date: documentDate,
           document_time: documentTime,
           transport_mode: transportMode,
+          ...(denunciaContext.trim() && {
+            denuncia_context: denunciaContext.trim(),
+          }),
           ...(method === 'checklist' && Object.keys(categoryObservations).some(k => categoryObservations[k]?.trim()) && {
             category_observations: categoryObservations,
           }),
@@ -1835,6 +1840,73 @@ export default function CreateDocument() {
               {saving ? 'Salvando...' : 'Salvar Réplica'}
             </Button>
           </>
+        )}
+
+        {/* Contexto da Denúncia - para Inspeção Investigativa */}
+        {motivo === 'investigativa' && (
+          <Card className="border-0 shadow-sm border-l-4 border-l-warning">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-warning" />
+                <div>
+                  <p className="font-semibold text-sm">Contexto da Denúncia / Demanda</p>
+                  <p className="text-xs text-muted-foreground">Cole o texto ou faça upload da denúncia que originou esta inspeção</p>
+                </div>
+              </div>
+              <Textarea
+                value={denunciaContext}
+                onChange={(e) => setDenunciaContext(e.target.value)}
+                placeholder="Cole aqui o texto da denúncia, ofício ou demanda que motivou esta inspeção investigativa..."
+                className="min-h-[120px] text-sm"
+              />
+              <div className="flex gap-2">
+                <input
+                  ref={denunciaFileInputRef}
+                  type="file"
+                  accept=".txt,.pdf,.doc,.docx,image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.type.startsWith('image/')) {
+                      toast({ title: 'Imagem selecionada', description: 'Para imagens, use a captura de fotos na seção de evidências.' });
+                      return;
+                    }
+                    try {
+                      const text = await file.text();
+                      setDenunciaContext(prev => prev ? prev + '\n\n---\n\n' + text : text);
+                      toast({ title: 'Arquivo importado', description: `Conteúdo de "${file.name}" adicionado ao contexto.` });
+                    } catch {
+                      toast({ title: 'Erro ao ler arquivo', description: 'Não foi possível extrair o texto do arquivo.', variant: 'destructive' });
+                    }
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => denunciaFileInputRef.current?.click()}
+                >
+                  <Upload className="h-4 w-4 mr-1" />
+                  Importar arquivo
+                </Button>
+                {denunciaContext && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDenunciaContext('')}
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Limpar
+                  </Button>
+                )}
+              </div>
+              {denunciaContext && (
+                <p className="text-xs text-muted-foreground">
+                  ✓ {denunciaContext.length} caracteres · Este texto será incluído no documento final
+                </p>
+              )}
+            </CardContent>
+          </Card>
         )}
 
         {/* Method Selection - for types without specific forms (termo_intimacao only now) */}
