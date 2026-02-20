@@ -305,10 +305,31 @@ export function RelatorioTecnicoForm({
         const photosWithLegends = legends.filter(l => l.legenda);
         
         console.log('[AI Analysis] Photos with legends:', photosWithLegends.length);
+
+        // Auto-populate irregularidades and descricao from AI legends
+        if (photosWithLegends.length > 0) {
+          const text = photosWithLegends.map((l, idx) => 
+            `${idx + 1}. ${l.legenda}${l.item_rdc ? ` (${l.item_rdc})` : ''}`
+          ).join('\n');
+          
+          const irregularidades = photosWithLegends.map((l, idx) => ({
+            id: `irr_ai_${idx}`,
+            descricao: l.legenda,
+            dispositivo: l.item_rdc || '',
+          }));
+
+          onChange({ 
+            ...value, 
+            photoLegends: legends,
+            descricao: text,
+            irregularidades,
+            isAnalyzing: false,
+          });
+        }
         
         toast({
           title: 'Análise concluída!',
-          description: `${nonConformities.length} irregularidades em ${photosWithLegends.length} fotos. Edite as legendas conforme necessário.`,
+          description: `${nonConformities.length} irregularidades em ${photosWithLegends.length} fotos. Edite as legendas abaixo.`,
         });
       } else if (legacyPhotoAnalysis && legacyPhotoAnalysis.length > 0) {
         // Fallback to legacy format
@@ -322,11 +343,33 @@ export function RelatorioTecnicoForm({
           };
         });
         
-        updateField('photoLegends', legends);
+        const photosWithLegends = legends.filter(l => l.legenda);
+        
+        if (photosWithLegends.length > 0) {
+          const text = photosWithLegends.map((l, idx) => 
+            `${idx + 1}. ${l.legenda}${l.item_rdc ? ` (${l.item_rdc})` : ''}`
+          ).join('\n');
+          
+          const irregularidades = photosWithLegends.map((l, idx) => ({
+            id: `irr_ai_${idx}`,
+            descricao: l.legenda,
+            dispositivo: l.item_rdc || '',
+          }));
+
+          onChange({ 
+            ...value, 
+            photoLegends: legends,
+            descricao: text,
+            irregularidades,
+            isAnalyzing: false,
+          });
+        } else {
+          updateField('photoLegends', legends);
+        }
         
         toast({
           title: 'Análise concluída!',
-          description: `${legends.filter(l => l.legenda).length} irregularidades identificadas. Edite as legendas conforme necessário.`,
+          description: `${photosWithLegends.length} irregularidades identificadas. Edite as legendas abaixo.`,
         });
       } else {
         // Fallback: create empty legends for editing
@@ -1053,13 +1096,22 @@ export function formatRelatorioTecnicoContent(data: RelatorioTecnicoData): strin
   }
 
   // Descrição
-  if (data.descricao || data.irregularidades.length > 0) {
+  if (data.descricao || data.irregularidades.length > 0 || data.photoLegends.filter(l => l.legenda.trim()).length > 0) {
     content += '7- DESCRIÇÃO\n';
     
     if (data.irregularidades.length > 0) {
       data.irregularidades.forEach((irr, idx) => {
         content += `${idx + 1}. ${irr.descricao}\n`;
         content += `   Base Legal: ${irr.dispositivo}\n`;
+      });
+      content += '\n';
+    } else if (data.photoLegends.filter(l => l.legenda.trim()).length > 0) {
+      // Fallback: use photo legends if no irregularidades were set
+      data.photoLegends.filter(l => l.legenda.trim()).forEach((l, idx) => {
+        content += `${idx + 1}. ${l.legenda}\n`;
+        if (l.item_rdc) {
+          content += `   Base Legal: ${l.item_rdc}\n`;
+        }
       });
       content += '\n';
     }

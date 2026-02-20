@@ -1597,8 +1597,11 @@ export default function CreateDocument() {
                 className="w-full" 
                 onClick={handleSave}
                 disabled={
-                  !relatorioTecnicoData.descricao.trim() && 
-                  relatorioTecnicoData.irregularidades.length === 0 || 
+                  (
+                    !relatorioTecnicoData.descricao.trim() && 
+                    relatorioTecnicoData.irregularidades.length === 0 &&
+                    relatorioTecnicoData.photoLegends.filter(l => l.legenda.trim()).length === 0
+                  ) || 
                   saving ||
                   relatorioTecnicoData.isAnalyzing
                 }
