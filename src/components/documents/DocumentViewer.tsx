@@ -1856,12 +1856,65 @@ _Enviado via FISCALIZ®_`;
               {/* Anexos - Fotos legendadas no corpo do documento */}
               {hasPhotoLegends && attachedPhotos.length > 0 && (
                 <div className="mt-6 pt-4 border-t">
-                  <Label className="text-sm font-semibold mb-3 block">Anexos - Registro Fotográfico:</Label>
+                  <div className="flex items-center justify-between mb-3">
+                    <Label className="text-sm font-semibold">Anexos - Registro Fotográfico:</Label>
+                    {canEdit && !isEditingLegends && (
+                      <Button variant="outline" size="sm" onClick={startEditingLegends} className="print:hidden">
+                        <Edit3 className="h-4 w-4 mr-1" />
+                        Editar Legendas
+                      </Button>
+                    )}
+                    {canEdit && isEditingLegends && (
+                      <div className="flex gap-2 print:hidden">
+                        <Button variant="outline" size="sm" onClick={() => setIsEditingLegends(false)}>
+                          Cancelar
+                        </Button>
+                        <Button size="sm" onClick={saveLegends}>
+                          <Save className="h-4 w-4 mr-1" />
+                          Salvar
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground mb-3">
                     Fotos numeradas conforme as irregularidades acima:
                   </p>
+                  
+                  {isEditingLegends ? (
+                    <div className="space-y-3 print:hidden">
+                      {editablePhotoLegends.map((legend, idx) => {
+                        const photoUrl = attachedPhotos[legend.photoIndex];
+                        if (!photoUrl) return null;
+                        return (
+                          <div key={idx} className="border rounded-lg p-3 space-y-2">
+                            <div className="flex items-center gap-3">
+                              <img src={photoUrl} alt={`Foto ${idx + 1}`} className="h-16 w-16 object-cover rounded" />
+                              <span className="font-bold text-sm text-muted-foreground">Foto {idx + 1}</span>
+                            </div>
+                            <div>
+                              <Label className="text-xs">Legenda</Label>
+                              <Textarea
+                                value={legend.legenda}
+                                onChange={(e) => updateLegend(idx, 'legenda', e.target.value)}
+                                className="text-sm min-h-[60px]"
+                                placeholder="Descrição da não conformidade..."
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs">Base Legal</Label>
+                              <Input
+                                value={legend.item_rdc}
+                                onChange={(e) => updateLegend(idx, 'item_rdc', e.target.value)}
+                                className="text-sm"
+                                placeholder="Ex: 4.1.3"
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
                   <div className="grid grid-cols-2 gap-3">
-                    {/* Filtrar apenas fotos com legendas e numerar na mesma ordem do texto */}
                     {photoLegends
                       .filter(legend => legend.legenda && legend.legenda.trim())
                       .map((legend, idx) => {
@@ -1871,7 +1924,6 @@ _Enviado via FISCALIZ®_`;
                         return (
                           <div key={idx} className="flex flex-col rounded-lg border overflow-hidden">
                             <div className="relative aspect-[4/3] overflow-hidden">
-                              {/* Badge com número da foto */}
                               <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5 rounded z-10">
                                 {itemNumber}
                               </div>
@@ -1892,6 +1944,7 @@ _Enviado via FISCALIZ®_`;
                         );
                       })}
                   </div>
+                  )}
                 </div>
               )}
             </div>

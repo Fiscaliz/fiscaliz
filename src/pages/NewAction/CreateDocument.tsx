@@ -2012,7 +2012,7 @@ export default function CreateDocument() {
               <Button 
                 className="flex-1" 
                 onClick={handleSave}
-                disabled={selectedItems.length === 0 || saving || (tipo === 'termo_intimacao' && !dengueInspection)}
+                disabled={(selectedItems.length === 0 && relatorioTecnicoData.photoLegends.filter(l => l.legenda.trim()).length === 0) || saving || (tipo === 'termo_intimacao' && !dengueInspection)}
               >
                 {saving ? 'Salvando...' : 'Salvar Documento'}
               </Button>
