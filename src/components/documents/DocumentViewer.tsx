@@ -1748,55 +1748,38 @@ _Enviado via FISCALIZ®_`;
                     Editar
                   </Button>
                 )}
-                {canEdit && hasPhotoLegends && !isEditingLegends && (
-                  <Button variant="ghost" size="sm" onClick={startEditingLegends} className="print:hidden">
-                    <Edit3 className="h-4 w-4 mr-1" />
-                    Editar Legendas
-                  </Button>
-                )}
-                {canEdit && isEditingLegends && (
-                  <div className="flex gap-2 print:hidden">
-                    <Button variant="outline" size="sm" onClick={() => setIsEditingLegends(false)}>
-                      Cancelar
-                    </Button>
-                    <Button size="sm" onClick={saveLegends}>
-                      <Save className="h-4 w-4 mr-1" />
-                      Salvar
-                    </Button>
-                  </div>
-                )}
+                
               </div>
               
               {/* Se tem legendas de fotos (IA), exibir texto formatado com referência cruzada */}
               {hasPhotoLegends && photoLegends.length > 0 ? (
-                isEditingLegends ? (
-                  <div className="space-y-3 print:hidden">
-                    <p className="text-sm text-muted-foreground">Edite a legenda e a base legal de cada foto:</p>
+                canEdit ? (
+                  <div className="space-y-3">
+                    <p className="text-xs text-muted-foreground print:hidden">Clique nas legendas para editar diretamente:</p>
                     {editablePhotoLegends.map((legend, idx) => (
-                      <div key={idx} className="border rounded-lg p-3 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-sm text-muted-foreground shrink-0">Foto {idx + 1}:</span>
-                          {attachedPhotos[legend.photoIndex] && (
-                            <img src={attachedPhotos[legend.photoIndex]} alt={`Foto ${idx + 1}`} className="h-10 w-10 object-cover rounded" />
-                          )}
-                        </div>
-                        <div>
-                          <Label className="text-xs">Legenda</Label>
+                      <div key={idx} className="flex gap-2 items-start">
+                        <span className="font-bold text-sm text-muted-foreground shrink-0 mt-2">{idx + 1}.</span>
+                        <div className="flex-1 space-y-1">
                           <Textarea
                             value={legend.legenda}
                             onChange={(e) => updateLegend(idx, 'legenda', e.target.value)}
-                            className="text-sm min-h-[60px]"
+                            onBlur={() => saveLegends()}
+                            className="text-sm min-h-[50px] resize-none print:hidden"
                             placeholder="Descrição da não conformidade..."
                           />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Base Legal (Item RDC)</Label>
                           <Input
                             value={legend.item_rdc}
                             onChange={(e) => updateLegend(idx, 'item_rdc', e.target.value)}
-                            className="text-sm"
-                            placeholder="Ex: 4.1.3"
+                            onBlur={() => saveLegends()}
+                            className="text-sm h-8 print:hidden"
+                            placeholder="Base legal (ex: 4.1.3)"
                           />
+                          {/* Print version */}
+                          <div className="hidden print:block text-sm text-justify">
+                            <span>{legend.legenda}</span>
+                            {legend.item_rdc && <span className="font-semibold"> (Item {legend.item_rdc})</span>}
+                            <span className="text-muted-foreground italic text-xs ml-1">[ver Foto {idx + 1}]</span>
+                          </div>
                         </div>
                       </div>
                     ))}
