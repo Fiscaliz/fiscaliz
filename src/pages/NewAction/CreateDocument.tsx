@@ -971,6 +971,11 @@ export default function CreateDocument() {
           transport_mode: transportMode,
         };
       } else if (isRelatorioTecnico) {
+        // Include photoLegends from RT form data when available
+        const rtPhotoLegends = relatorioTecnicoData.photoLegends
+          .filter(l => l.legenda?.trim())
+          .map(l => ({ photoIndex: l.photoIndex, legenda: l.legenda, item_rdc: l.item_rdc, previewUrl: l.previewUrl }));
+        
         contentObj = {
           text: content,
           method: relatorioTecnicoData.method || 'manual',
@@ -979,6 +984,7 @@ export default function CreateDocument() {
           document_time: relatorioTecnicoData.documentTime,
           equipe: relatorioTecnicoData.equipe,
           transport_mode: transportMode,
+          ...(rtPhotoLegends.length > 0 && { photoLegends: rtPhotoLegends }),
         };
       } else if (isColetaAmostra) {
         contentObj = {
@@ -1076,12 +1082,25 @@ export default function CreateDocument() {
           legislation: inf.dispositivo,
         }));
       } else if (isRelatorioTecnico) {
-        finalIrregularities = relatorioTecnicoData.irregularidades.map(irr => ({
-          id: irr.id,
-          text: irr.descricao,
-          category: 'Irregularidade',
-          legislation: irr.dispositivo,
-        }));
+        // Use manual irregularidades if available, otherwise auto-map from photoLegends
+        if (relatorioTecnicoData.irregularidades.length > 0) {
+          finalIrregularities = relatorioTecnicoData.irregularidades.map(irr => ({
+            id: irr.id,
+            text: irr.descricao,
+            category: 'Irregularidade',
+            legislation: irr.dispositivo,
+          }));
+        } else if (relatorioTecnicoData.photoLegends.filter(l => l.legenda?.trim()).length > 0) {
+          // Auto-map from AI photo legends
+          finalIrregularities = relatorioTecnicoData.photoLegends
+            .filter(l => l.legenda?.trim())
+            .map((l, idx) => ({
+              id: `ai_${idx}`,
+              text: l.legenda,
+              category: 'Irregularidade',
+              legislation: l.item_rdc || '',
+            }));
+        }
       } else if (isAdvertencia) {
         finalIrregularities = advertenciaData.irregularidades.map(item => ({
           id: item.id,
