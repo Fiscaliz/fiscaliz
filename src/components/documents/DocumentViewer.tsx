@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { QRCodeSVG } from 'qrcode.react';
@@ -195,6 +195,13 @@ export function DocumentViewer({
   
   // Flag to show photo analysis section
   const hasPhotoLegends = photoLegends.length > 0;
+
+  // Auto-initialize editable legends when photoLegends are available
+  useEffect(() => {
+    if (hasPhotoLegends && editablePhotoLegends.length === 0) {
+      setEditablePhotoLegends([...photoLegends]);
+    }
+  }, [hasPhotoLegends, photoLegends]);
 
   const isLocked = document.is_locked || document.status === 'sent';
   const canEdit = editable && !isLocked;
@@ -1856,67 +1863,13 @@ _Enviado via FISCALIZ®_`;
               {/* Anexos - Fotos legendadas no corpo do documento */}
               {hasPhotoLegends && attachedPhotos.length > 0 && (
                 <div className="mt-6 pt-4 border-t">
-                  <div className="flex items-center justify-between mb-3">
-                    <Label className="text-sm font-semibold">Anexos - Registro Fotográfico:</Label>
-                    {canEdit && !isEditingLegends && (
-                      <Button variant="outline" size="sm" onClick={startEditingLegends} className="print:hidden">
-                        <Edit3 className="h-4 w-4 mr-1" />
-                        Editar Legendas
-                      </Button>
-                    )}
-                    {canEdit && isEditingLegends && (
-                      <div className="flex gap-2 print:hidden">
-                        <Button variant="outline" size="sm" onClick={() => setIsEditingLegends(false)}>
-                          Cancelar
-                        </Button>
-                        <Button size="sm" onClick={saveLegends}>
-                          <Save className="h-4 w-4 mr-1" />
-                          Salvar
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+                  <Label className="text-sm font-semibold mb-3 block">Anexos - Registro Fotográfico:</Label>
                   <p className="text-xs text-muted-foreground mb-3">
                     Fotos numeradas conforme as irregularidades acima:
                   </p>
-                  
-                  {isEditingLegends ? (
-                    <div className="space-y-3 print:hidden">
-                      {editablePhotoLegends.map((legend, idx) => {
-                        const photoUrl = attachedPhotos[legend.photoIndex];
-                        if (!photoUrl) return null;
-                        return (
-                          <div key={idx} className="border rounded-lg p-3 space-y-2">
-                            <div className="flex items-center gap-3">
-                              <img src={photoUrl} alt={`Foto ${idx + 1}`} className="h-16 w-16 object-cover rounded" />
-                              <span className="font-bold text-sm text-muted-foreground">Foto {idx + 1}</span>
-                            </div>
-                            <div>
-                              <Label className="text-xs">Legenda</Label>
-                              <Textarea
-                                value={legend.legenda}
-                                onChange={(e) => updateLegend(idx, 'legenda', e.target.value)}
-                                className="text-sm min-h-[60px]"
-                                placeholder="Descrição da não conformidade..."
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs">Base Legal</Label>
-                              <Input
-                                value={legend.item_rdc}
-                                onChange={(e) => updateLegend(idx, 'item_rdc', e.target.value)}
-                                className="text-sm"
-                                placeholder="Ex: 4.1.3"
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
                   <div className="grid grid-cols-2 gap-3">
-                    {photoLegends
-                      .filter(legend => legend.legenda && legend.legenda.trim())
+                    {(canEdit ? editablePhotoLegends.length > 0 ? editablePhotoLegends : photoLegends : photoLegends)
+                      .filter(legend => canEdit || (legend.legenda && legend.legenda.trim()))
                       .map((legend, idx) => {
                         const photoUrl = attachedPhotos[legend.photoIndex];
                         if (!photoUrl) return null;
@@ -1933,18 +1886,50 @@ _Enviado via FISCALIZ®_`;
                                 className="w-full h-full object-cover"
                               />
                             </div>
-                            <div className="p-2 bg-muted/30 text-xs">
-                              <span className="font-bold">Foto {itemNumber}:</span>{' '}
-                              {legend.legenda}
-                              {legend.item_rdc && (
-                                <span className="font-semibold text-primary ml-1">(Item {legend.item_rdc})</span>
-                              )}
-                            </div>
+                            {canEdit ? (
+                              <div className="p-2 space-y-1.5 print:hidden">
+                                <Textarea
+                                  value={legend.legenda}
+                                  onChange={(e) => {
+                                    if (editablePhotoLegends.length === 0) {
+                                      setEditablePhotoLegends([...photoLegends]);
+                                    }
+                                    updateLegend(idx, 'legenda', e.target.value);
+                                  }}
+                                  onBlur={() => {
+                                    if (editablePhotoLegends.length > 0) saveLegends();
+                                  }}
+                                  className="text-xs min-h-[50px] resize-none"
+                                  placeholder="Legenda..."
+                                />
+                                <Input
+                                  value={legend.item_rdc}
+                                  onChange={(e) => {
+                                    if (editablePhotoLegends.length === 0) {
+                                      setEditablePhotoLegends([...photoLegends]);
+                                    }
+                                    updateLegend(idx, 'item_rdc', e.target.value);
+                                  }}
+                                  onBlur={() => {
+                                    if (editablePhotoLegends.length > 0) saveLegends();
+                                  }}
+                                  className="text-xs h-7"
+                                  placeholder="Base legal (ex: 4.1.3)"
+                                />
+                              </div>
+                            ) : (
+                              <div className="p-2 bg-muted/30 text-xs">
+                                <span className="font-bold">Foto {itemNumber}:</span>{' '}
+                                {legend.legenda}
+                                {legend.item_rdc && (
+                                  <span className="font-semibold text-primary ml-1">(Item {legend.item_rdc})</span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         );
                       })}
                   </div>
-                  )}
                 </div>
               )}
             </div>
