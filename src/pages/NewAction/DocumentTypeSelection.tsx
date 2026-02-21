@@ -130,6 +130,16 @@ export default function DocumentTypeSelection() {
     if (establishment) params.set('establishment', establishment);
     params.set('tipo', docType);
     
+    // Clear any existing draft for this document type to avoid restoring stale data
+    try {
+      const estData = establishment ? JSON.parse(establishment) : null;
+      const cnpj = estData?.cnpj || 'new';
+      const draftKey = `fiscaliz_draft_document_${docType}_${cnpj}`;
+      localStorage.removeItem(draftKey);
+    } catch (e) {
+      // ignore parse errors
+    }
+    
     // Navigate to document creation
     navigate(`/nova-acao/criar-documento?${params.toString()}`);
   };
