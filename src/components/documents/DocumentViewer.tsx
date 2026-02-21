@@ -148,12 +148,26 @@ export function DocumentViewer({
   const [showFullScreenSignature, setShowFullScreenSignature] = useState(false);
   const prepostoFileInputRef = useRef<HTMLInputElement>(null);
   const evidenceFileInputRef = useRef<HTMLInputElement>(null);
+  // Convert signed URLs to public URLs since bucket is public
+  const toPublicUrl = (url: string): string => {
+    if (!url) return url;
+    // Convert /object/sign/bucket/path?token=... to /object/public/bucket/path
+    const signedMarker = '/storage/v1/object/sign/';
+    const idx = url.indexOf(signedMarker);
+    if (idx !== -1) {
+      const afterMarker = url.substring(idx + signedMarker.length);
+      const pathWithoutToken = afterMarker.split('?')[0];
+      return url.substring(0, idx) + '/storage/v1/object/public/' + pathWithoutToken;
+    }
+    return url;
+  };
+
   const [evidencePhotos, setEvidencePhotos] = useState<string[]>(() => {
     // Initialize from document.attachments
     if (!document.attachments) return [];
     return (document.attachments as AttachmentPhoto[])
       .filter(a => a.url)
-      .map(a => a.url);
+      .map(a => toPublicUrl(a.url));
   });
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
   const [isAnalyzingAI, setIsAnalyzingAI] = useState(false);
@@ -163,13 +177,11 @@ export function DocumentViewer({
 
   // Get attached photos - use state (evidencePhotos) for live updates when editing
   const attachedPhotos: string[] = useMemo(() => {
-    // If we have evidence photos in state (user added/edited), use those
     if (evidencePhotos.length > 0) return evidencePhotos;
-    // Otherwise fall back to document.attachments
     if (!document.attachments) return [];
     return (document.attachments as AttachmentPhoto[])
       .filter(a => a.url)
-      .map(a => a.url);
+      .map(a => toPublicUrl(a.url));
   }, [evidencePhotos, document.attachments]);
 
   // Check if this is a Relatório Técnico with photo legends
@@ -182,9 +194,14 @@ export function DocumentViewer({
     Array.isArray(document.content?.photoLegends);
   
   const photoLegends: PhotoLegend[] = useMemo(() => {
-    // For Relatório Técnico
-    if (isRelatorioTecnico && relatorioTecnicoData?.photoLegends) {
-      return relatorioTecnicoData.photoLegends;
+    // For Relatório Técnico - check nested and top-level photoLegends
+    if (isRelatorioTecnico) {
+      if (relatorioTecnicoData?.photoLegends) {
+        return relatorioTecnicoData.photoLegends;
+      }
+      if (Array.isArray(document.content?.photoLegends)) {
+        return document.content.photoLegends;
+      }
     }
     // For Termo de Intimação with AI analysis
     if (isTermoIntimacaoWithAI && document.content?.photoLegends) {
@@ -1353,7 +1370,7 @@ _Enviado via FISCALIZ®_`;
                 {photoLegends
                   .filter(legend => legend.legenda && legend.legenda.trim())
                   .map((legend, idx) => {
-                    const photoUrl = attachedPhotos[legend.photoIndex];
+                    const photoUrl = attachedPhotos[legend.photoIndex] || legend.previewUrl;
                     if (!photoUrl) return null;
                     const itemNumber = idx + 1;
                     return (
@@ -1856,7 +1873,7 @@ _Enviado via FISCALIZ®_`;
                     {(canEdit ? editablePhotoLegends.length > 0 ? editablePhotoLegends : photoLegends : photoLegends)
                       .filter(legend => canEdit || (legend.legenda && legend.legenda.trim()))
                       .map((legend, idx) => {
-                        const photoUrl = attachedPhotos[legend.photoIndex];
+                        const photoUrl = attachedPhotos[legend.photoIndex] || legend.previewUrl;
                         if (!photoUrl) return null;
                         const itemNumber = idx + 1;
                         return (
