@@ -1450,33 +1450,87 @@ _Enviado via FISCALIZ®_`;
 
           {/* ASSINATURAS - Rubricas acima dos nomes, simétricas */}
           <div className="doc-section mt-6">
-            <div className={`grid ${document.document_type === 'relatorio_tecnico' ? 'grid-cols-1 max-w-[50%] mx-auto' : 'grid-cols-2'} gap-12`}>
-              {/* Coluna do Auditor Fiscal */}
-              <div className="text-center flex flex-col items-center">
-                {/* Rubrica do Auditor - ACIMA do nome */}
-                <div className="min-h-[50px] flex items-end justify-center mb-1">
-                  {document.profile?.signature_url ? (
-                    <img 
-                      src={document.profile.signature_url} 
-                      alt="Rubrica do Auditor" 
-                      className="h-12 max-w-[180px] object-contain"
-                    />
-                  ) : (
-                    <div className="signature-line" />
-                  )}
-                </div>
-                {/* Linha de assinatura */}
-                <div className="signature-line mb-1" />
-                {/* Dados do Auditor */}
-                <p className="font-bold text-sm">{document.profile?.full_name || 'Auditor Fiscal'}</p>
-                {document.profile?.registration_number && (
-                  <p className="text-xs">Matrícula: {document.profile.registration_number}</p>
-                )}
-                <p className="text-xs text-gray-600">Auditor Fiscal de Saúde Pública</p>
+            {/* Relatório Técnico: equipe de auditores */}
+            {document.document_type === 'relatorio_tecnico' ? (
+              <div>
+                {/* Main auditor + equipe members */}
+                {(() => {
+                  const equipe = relatorioTecnicoData?.equipe as Array<{ nome: string; cargo: string; matricula: string }> | undefined;
+                  const hasEquipe = equipe && equipe.length > 0 && equipe.some(m => m.nome?.trim());
+                  // All signers: main auditor first, then equipe members
+                  const allSigners = [
+                    {
+                      nome: document.profile?.full_name || 'Auditor Fiscal',
+                      cargo: 'Auditor Fiscal de Saúde Pública',
+                      matricula: document.profile?.registration_number || '',
+                      signatureUrl: document.profile?.signature_url,
+                      isMain: true,
+                    },
+                    ...(hasEquipe
+                      ? equipe!.filter(m => m.nome?.trim()).map(m => ({
+                          nome: m.nome,
+                          cargo: m.cargo || 'Auditor Fiscal de Saúde Pública',
+                          matricula: m.matricula || '',
+                          signatureUrl: undefined as string | undefined,
+                          isMain: false,
+                        }))
+                      : []),
+                  ];
+                  const cols = allSigners.length === 1 ? 'grid-cols-1 max-w-[50%] mx-auto' : allSigners.length === 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-3';
+                  return (
+                    <div className={`grid ${cols} gap-8`}>
+                      {allSigners.map((signer, idx) => (
+                        <div key={idx} className="text-center flex flex-col items-center">
+                          <div className="min-h-[50px] flex items-end justify-center mb-1">
+                            {signer.signatureUrl ? (
+                              <img
+                                src={signer.signatureUrl}
+                                alt={`Rubrica de ${signer.nome}`}
+                                className="h-12 max-w-[180px] object-contain"
+                              />
+                            ) : (
+                              <div className="signature-line" style={{ visibility: 'hidden' }} />
+                            )}
+                          </div>
+                          <div className="signature-line mb-1" />
+                          <p className="font-bold text-sm">{signer.nome}</p>
+                          {signer.matricula && (
+                            <p className="text-xs">Matrícula: {signer.matricula}</p>
+                          )}
+                          <p className="text-xs text-gray-600">{signer.cargo}</p>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
-              
-              {/* Coluna do Contribuinte/Preposto - oculta para Relatório Técnico */}
-              {document.document_type !== 'relatorio_tecnico' && (
+            ) : (
+              <div className="grid grid-cols-2 gap-12">
+                {/* Coluna do Auditor Fiscal */}
+                <div className="text-center flex flex-col items-center">
+                  {/* Rubrica do Auditor - ACIMA do nome */}
+                  <div className="min-h-[50px] flex items-end justify-center mb-1">
+                    {document.profile?.signature_url ? (
+                      <img 
+                        src={document.profile.signature_url} 
+                        alt="Rubrica do Auditor" 
+                        className="h-12 max-w-[180px] object-contain"
+                      />
+                    ) : (
+                      <div className="signature-line" />
+                    )}
+                  </div>
+                  {/* Linha de assinatura */}
+                  <div className="signature-line mb-1" />
+                  {/* Dados do Auditor */}
+                  <p className="font-bold text-sm">{document.profile?.full_name || 'Auditor Fiscal'}</p>
+                  {document.profile?.registration_number && (
+                    <p className="text-xs">Matrícula: {document.profile.registration_number}</p>
+                  )}
+                  <p className="text-xs text-gray-600">Auditor Fiscal de Saúde Pública</p>
+                </div>
+                
+                {/* Coluna do Contribuinte/Preposto */}
                 <div className="text-center flex flex-col items-center">
                   {/* Rubrica/Foto do Contribuinte - ACIMA do nome */}
                   <div className="min-h-[50px] flex items-end justify-center mb-1">
@@ -1504,8 +1558,8 @@ _Enviado via FISCALIZ®_`;
                     <p className="text-xs">{prepostoName}</p>
                   )}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* RODAPÉ OFICIAL */}
