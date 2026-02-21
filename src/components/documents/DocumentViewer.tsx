@@ -1457,7 +1457,8 @@ _Enviado via FISCALIZ®_`;
                 {(() => {
                   const equipe = relatorioTecnicoData?.equipe as Array<{ nome: string; cargo: string; matricula: string }> | undefined;
                   const hasEquipe = equipe && equipe.length > 0 && equipe.some(m => m.nome?.trim());
-                  // All signers: main auditor first, then equipe members
+                  const mainName = (document.profile?.full_name || '').trim().toLowerCase();
+                  // All signers: main auditor first, then equipe members (excluding duplicates)
                   const allSigners = [
                     {
                       nome: document.profile?.full_name || 'Auditor Fiscal',
@@ -1467,7 +1468,7 @@ _Enviado via FISCALIZ®_`;
                       isMain: true,
                     },
                     ...(hasEquipe
-                      ? equipe!.filter(m => m.nome?.trim()).map(m => ({
+                      ? equipe!.filter(m => m.nome?.trim() && m.nome.trim().toLowerCase() !== mainName).map(m => ({
                           nome: m.nome,
                           cargo: m.cargo || 'Auditor Fiscal de Saúde Pública',
                           matricula: m.matricula || '',
