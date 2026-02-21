@@ -1,5 +1,6 @@
 /// <reference lib="deno.ns" />
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,7 +8,6 @@ const corsHeaders = {
 };
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-const ALLOWED_URL_PREFIX = SUPABASE_URL ? `${SUPABASE_URL}/storage/v1/object/` : null;
 
 type Body = {
   documentType: string;
@@ -55,15 +55,76 @@ Analise cada foto e produza uma legenda técnica descritiva para cada não confo
   "generalObservations": "Síntese (máx 200 chars)",
   "confidence": 0.9
 }`;
-function validatePhotoUrls(photos: string[], corsHeaders: Record<string, string>): Response | null {
-  if (!ALLOWED_URL_PREFIX) {
-    console.warn("[analyze-photos] SUPABASE_URL not configured, skipping URL validation");
-    return null;
+
+async function verifyAuth(req: Request): Promise<{ userId: string } | Response> {
+  const authHeader = req.headers.get("authorization");
+  if (!authHeader?.startsWith('Bearer ')) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
-  for (const url of photos) {
-    if (!url.startsWith(ALLOWED_URL_PREFIX)) {
+
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_ANON_KEY')!,
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const token = authHeader.replace('Bearer ', '');
+  const { data, error } = await supabase.auth.getClaims(token);
+  if (error || !data?.claims) {
+    return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  return { userId: data.claims.sub as string };
+}
+
+function validatePhotoUrls(photos: string[]): Response | null {
+  if (!SUPABASE_URL) {
+    // FAIL CLOSED
+    return new Response(
+      JSON.stringify({ error: "Service configuration error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  if (photos.length > 50) {
+    return new Response(
+      JSON.stringify({ error: "Maximum 50 photos per request" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const allowedOrigin = new URL(SUPABASE_URL).origin;
+
+  for (const urlString of photos) {
+    try {
+      const url = new URL(urlString);
+      if (url.protocol !== 'https:') {
+        return new Response(
+          JSON.stringify({ error: "Only HTTPS URLs allowed" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (url.origin !== allowedOrigin) {
+        return new Response(
+          JSON.stringify({ error: "URL de foto inválida. Apenas URLs do storage são permitidas." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (!url.pathname.startsWith('/storage/v1/object/')) {
+        return new Response(
+          JSON.stringify({ error: "Invalid storage path" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } catch (_e) {
       return new Response(
-        JSON.stringify({ error: "URL de foto inválida. Apenas URLs do storage são permitidas." }),
+        JSON.stringify({ error: "Invalid URL format" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -76,13 +137,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Verify JWT
+    const authResult = await verifyAuth(req);
+    if (authResult instanceof Response) return authResult;
 
     const { documentType, photos, establishmentType, description, checklistItems } = (await req.json()) as Body;
     if (!documentType || !Array.isArray(photos) || photos.length === 0) {
@@ -93,7 +150,7 @@ serve(async (req) => {
     }
 
     // Validate photo URLs - prevent SSRF
-    const urlError = validatePhotoUrls(photos, corsHeaders);
+    const urlError = validatePhotoUrls(photos);
     if (urlError) return urlError;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -120,7 +177,7 @@ Consulte os itens:
 - 4.10.x: Exposição
 - 4.11.x: Documentação
 
-Retorne um JSON: {\"item_rdc\": \"4.X.X\", \"justificativa\": \"breve explicação\"}`;
+Retorne um JSON: {"item_rdc": "4.X.X", "justificativa": "breve explicação"}`;
 
       const suggestParts: any[] = [
         { type: "text", text: suggestPrompt },
