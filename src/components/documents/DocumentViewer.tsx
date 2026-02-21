@@ -1407,7 +1407,7 @@ _Enviado via FISCALIZ®_`;
           )}
 
           {/* FOTO DO CONTRIBUINTE/PREPOSTO - se houver separadamente */}
-          {contributorPhoto && (
+          {contributorPhoto && document.document_type !== 'relatorio_tecnico' && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">IDENTIFICAÇÃO DO RESPONSÁVEL PRESENTE</h3>
               <img 
@@ -1433,7 +1433,7 @@ _Enviado via FISCALIZ®_`;
 
           {/* ASSINATURAS - Rubricas acima dos nomes, simétricas */}
           <div className="doc-section mt-6">
-            <div className="grid grid-cols-2 gap-12">
+            <div className={`grid ${document.document_type === 'relatorio_tecnico' ? 'grid-cols-1 max-w-[50%] mx-auto' : 'grid-cols-2'} gap-12`}>
               {/* Coluna do Auditor Fiscal */}
               <div className="text-center flex flex-col items-center">
                 {/* Rubrica do Auditor - ACIMA do nome */}
@@ -1458,34 +1458,36 @@ _Enviado via FISCALIZ®_`;
                 <p className="text-xs text-gray-600">Auditor Fiscal de Saúde Pública</p>
               </div>
               
-              {/* Coluna do Contribuinte/Preposto */}
-              <div className="text-center flex flex-col items-center">
-                {/* Rubrica/Foto do Contribuinte - ACIMA do nome */}
-                <div className="min-h-[50px] flex items-end justify-center mb-1">
-                  {prepostoPhoto ? (
-                    <img 
-                      src={prepostoPhoto} 
-                      alt="Preposto" 
-                      className="w-12 h-12 object-cover rounded-full border"
-                    />
-                  ) : contributorSignatureUrl ? (
-                    <img 
-                      src={contributorSignatureUrl} 
-                      alt="Assinatura" 
-                      className="h-12 max-w-[180px] object-contain"
-                    />
-                  ) : (
-                    <div className="signature-line" style={{ visibility: 'hidden' }} />
+              {/* Coluna do Contribuinte/Preposto - oculta para Relatório Técnico */}
+              {document.document_type !== 'relatorio_tecnico' && (
+                <div className="text-center flex flex-col items-center">
+                  {/* Rubrica/Foto do Contribuinte - ACIMA do nome */}
+                  <div className="min-h-[50px] flex items-end justify-center mb-1">
+                    {prepostoPhoto ? (
+                      <img 
+                        src={prepostoPhoto} 
+                        alt="Preposto" 
+                        className="w-12 h-12 object-cover rounded-full border"
+                      />
+                    ) : contributorSignatureUrl ? (
+                      <img 
+                        src={contributorSignatureUrl} 
+                        alt="Assinatura" 
+                        className="h-12 max-w-[180px] object-contain"
+                      />
+                    ) : (
+                      <div className="signature-line" style={{ visibility: 'hidden' }} />
+                    )}
+                  </div>
+                  {/* Linha de assinatura */}
+                  <div className="signature-line mb-1" />
+                  {/* Dados do Contribuinte */}
+                  <p className="font-bold text-sm">Ciência do Contribuinte ou Preposto</p>
+                  {prepostoName && (
+                    <p className="text-xs">{prepostoName}</p>
                   )}
                 </div>
-                {/* Linha de assinatura */}
-                <div className="signature-line mb-1" />
-                {/* Dados do Contribuinte */}
-                <p className="font-bold text-sm">Ciência do Contribuinte ou Preposto</p>
-                {prepostoName && (
-                  <p className="text-xs">{prepostoName}</p>
-                )}
-              </div>
+              )}
             </div>
           </div>
 
@@ -2163,7 +2165,7 @@ _Enviado via FISCALIZ®_`;
             )}
 
             {/* Preposto/Responsável Section - Editable (apenas para documentos que não sejam certidão) */}
-            {canEdit && document.document_type !== 'certidao' && (
+            {canEdit && document.document_type !== 'certidao' && document.document_type !== 'relatorio_tecnico' && (
               <div className="p-4 bg-muted/30 rounded-lg space-y-4 print:hidden">
                 <p className="text-sm font-semibold flex items-center gap-2">
                   <User className="h-4 w-4" />
@@ -2350,7 +2352,7 @@ _Enviado via FISCALIZ®_`;
             )}
 
             {/* Signatures Area */}
-            <div className="grid grid-cols-2 gap-8 pt-8 border-t print:pt-6">
+            <div className={`grid ${document.document_type === 'relatorio_tecnico' ? 'grid-cols-1 max-w-[50%] mx-auto' : 'grid-cols-2'} gap-8 pt-8 border-t print:pt-6`}>
               <div className="text-center space-y-2">
                 {document.profile?.signature_url ? (
                   <img 
@@ -2371,27 +2373,29 @@ _Enviado via FISCALIZ®_`;
                   </div>
                 )}
               </div>
-              <div className="text-center space-y-2">
-                {prepostoPhoto ? (
-                  <img 
-                    src={prepostoPhoto} 
-                    alt="Preposto" 
-                    className="w-16 h-16 object-cover rounded-full border mx-auto"
-                  />
-                ) : contributorSignatureUrl ? (
-                  <img 
-                    src={contributorSignatureUrl} 
-                    alt="Assinatura" 
-                    className="h-12 mx-auto border-b border-muted-foreground"
-                  />
-                ) : (
-                  <div className="h-16 border-b border-dashed border-muted-foreground print:border-gray-400" />
-                )}
-                <p className="text-sm font-semibold">Ciência do Contribuinte ou Preposto</p>
-                {prepostoName && (
-                  <p className="text-xs text-muted-foreground print:text-gray-600">{prepostoName}</p>
-                )}
-              </div>
+              {document.document_type !== 'relatorio_tecnico' && (
+                <div className="text-center space-y-2">
+                  {prepostoPhoto ? (
+                    <img 
+                      src={prepostoPhoto} 
+                      alt="Preposto" 
+                      className="w-16 h-16 object-cover rounded-full border mx-auto"
+                    />
+                  ) : contributorSignatureUrl ? (
+                    <img 
+                      src={contributorSignatureUrl} 
+                      alt="Assinatura" 
+                      className="h-12 mx-auto border-b border-muted-foreground"
+                    />
+                  ) : (
+                    <div className="h-16 border-b border-dashed border-muted-foreground print:border-gray-400" />
+                  )}
+                  <p className="text-sm font-semibold">Ciência do Contribuinte ou Preposto</p>
+                  {prepostoName && (
+                    <p className="text-xs text-muted-foreground print:text-gray-600">{prepostoName}</p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Footer */}
