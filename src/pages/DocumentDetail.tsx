@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
@@ -44,6 +44,7 @@ export default function DocumentDetail() {
   const [document, setDocument] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const isInitialLoad = useRef(true);
 
   useEffect(() => {
     if (id && user) {
@@ -54,7 +55,10 @@ export default function DocumentDetail() {
   const loadDocument = async () => {
     if (!id) return;
     
-    setLoading(true);
+    // Only show skeleton on initial load, not on reloads after save/send
+    if (isInitialLoad.current) {
+      setLoading(true);
+    }
     
     // First get the document with establishment
     const { data: docData, error: docError } = await supabase
@@ -140,6 +144,7 @@ export default function DocumentDetail() {
     
     setDocument(formattedDoc);
     setLoading(false);
+    isInitialLoad.current = false;
   };
 
   const handleSave = async (updateData: any) => {
