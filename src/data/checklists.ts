@@ -412,8 +412,8 @@ export const checklistTemplates: ChecklistTemplate[] = [
   },
   {
     id: 'comercio_geral',
-    name: 'Comércio em Geral',
-    description: 'Estabelecimentos comerciais diversos',
+    name: 'Vistoria de Dengue (Lei Anti Dengue)',
+    description: 'Checklist da Lei Municipal nº 8.887/2010 - Controle de vetores',
     icon: 'Store',
     legislationBase: 'Lei Municipal nº 8.887/2010 e Decreto 506/2016',
     items: [
