@@ -24,7 +24,6 @@ import {
   Search,
   Shield,
   ShieldCheck,
-  ShieldX,
   UserCheck,
   UserX,
   Building,
@@ -86,7 +85,7 @@ export default function AdminUsers() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{
     userId: string;
-    action: 'activate' | 'deactivate';
+    action: 'remove';
     userName: string;
   } | null>(null);
 
@@ -166,10 +165,25 @@ export default function AdminUsers() {
     setLoading(false);
   };
 
-  const handleToggleActive = async (userId: string, activate: boolean) => {
+  const handleRemoveUser = async (userId: string) => {
+    // Delete user roles first, then profile
+    const { error: rolesError } = await supabase
+      .from('user_roles')
+      .delete()
+      .eq('user_id', userId);
+
+    if (rolesError) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível remover os papéis do usuário.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const { error } = await supabase
       .from('profiles')
-      .update({ is_active: activate } as any)
+      .delete()
       .eq('id', userId);
 
     if (error) {
@@ -182,15 +196,11 @@ export default function AdminUsers() {
     }
 
     toast({
-      title: activate ? 'Usuário ativado' : 'Usuário desativado',
-      description: activate
-        ? 'O usuário agora pode acessar o sistema.'
-        : 'O acesso do usuário foi bloqueado.',
+      title: 'Usuário removido',
+      description: 'O usuário foi removido do sistema com sucesso.',
     });
 
-    setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, is_active: activate } : u))
-    );
+    setUsers((prev) => prev.filter((u) => u.id !== userId));
     setConfirmAction(null);
   };
 
@@ -227,7 +237,7 @@ export default function AdminUsers() {
       <AppLayout>
         <Header title="Acesso Negado" showBack />
         <div className="p-5 text-center space-y-4">
-          <ShieldX className="h-16 w-16 mx-auto text-destructive/50" />
+          <Shield className="h-16 w-16 mx-auto text-destructive/50" />
           <p className="text-muted-foreground">
             Você não tem permissão para acessar esta página.
           </p>
@@ -398,39 +408,21 @@ export default function AdminUsers() {
                         {/* Actions */}
                         {!isCurrentUser && (
                           <div className="flex gap-2 pt-2">
-                            {u.is_active ? (
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                className="flex-1 gap-1"
-                                onClick={() =>
-                                  setConfirmAction({
-                                    userId: u.id,
-                                    action: 'deactivate',
-                                    userName: u.full_name,
-                                  })
-                                }
-                              >
-                                <UserX className="h-3.5 w-3.5" />
-                                Bloquear
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="default"
-                                size="sm"
-                                className="flex-1 gap-1"
-                                onClick={() =>
-                                  setConfirmAction({
-                                    userId: u.id,
-                                    action: 'activate',
-                                    userName: u.full_name,
-                                  })
-                                }
-                              >
-                                <ShieldCheck className="h-3.5 w-3.5" />
-                                Ativar
-                              </Button>
-                            )}
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="flex-1 gap-1"
+                              onClick={() =>
+                                setConfirmAction({
+                                  userId: u.id,
+                                  action: 'remove',
+                                  userName: u.full_name,
+                                })
+                              }
+                            >
+                              <UserX className="h-3.5 w-3.5" />
+                              Remover
+                            </Button>
                           </div>
                         )}
                       </div>
@@ -450,34 +442,20 @@ export default function AdminUsers() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {confirmAction?.action === 'deactivate'
-                ? 'Bloquear usuário?'
-                : 'Ativar usuário?'}
-            </AlertDialogTitle>
+            <AlertDialogTitle>Remover usuário?</AlertDialogTitle>
             <AlertDialogDescription>
-              {confirmAction?.action === 'deactivate'
-                ? `O usuário "${confirmAction?.userName}" não poderá mais acessar o sistema.`
-                : `O usuário "${confirmAction?.userName}" terá acesso restaurado ao sistema.`}
+              O usuário "{confirmAction?.userName}" será removido permanentemente do sistema. Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() =>
-                confirmAction &&
-                handleToggleActive(
-                  confirmAction.userId,
-                  confirmAction.action === 'activate'
-                )
+                confirmAction && handleRemoveUser(confirmAction.userId)
               }
-              className={
-                confirmAction?.action === 'deactivate'
-                  ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
-                  : ''
-              }
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {confirmAction?.action === 'deactivate' ? 'Bloquear' : 'Ativar'}
+              Remover
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
