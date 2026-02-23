@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -34,6 +34,7 @@ import {
   type LegislationReference,
   type ChecklistItem 
 } from '@/data/checklists';
+import { LegislationSelectDialog, DEFAULT_LEGISLATION } from '@/components/documents/LegislationSelectDialog';
 
 function convertToNegativeNarration(text: string): string {
   const trimmed = text.trim();
@@ -122,10 +123,11 @@ export function AutoInfracaoForm({
   const [signedUrls, setSignedUrls] = useState<string[]>([]);
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const [reanalyzingPhoto, setReanalyzingPhoto] = useState<number | null>(null);
+  const [showLegislationDialog, setShowLegislationDialog] = useState(false);
 
   // Re-analysis panel state
   const [showReanalysisPanel, setShowReanalysisPanel] = useState(false);
-  const [reanalysisLegislation, setReanalysisLegislation] = useState('RDC 216/2004');
+  const [reanalysisLegislation, setReanalysisLegislation] = useState(DEFAULT_LEGISLATION);
   const [reanalysisCustomLeg, setReanalysisCustomLeg] = useState('');
   const [reanalysisObservation, setReanalysisObservation] = useState('');
 
@@ -192,7 +194,8 @@ export function AutoInfracaoForm({
       return;
     }
     setAiAnalyzing(true);
-    const targetLegislation = overrideLeg || 'RDC 216/2004';
+    setShowLegislationDialog(false);
+    const targetLegislation = overrideLeg || DEFAULT_LEGISLATION;
     const observation = overrideObs || '';
 
     try {
@@ -423,7 +426,7 @@ export function AutoInfracaoForm({
           {photos.length > 0 && !analysisComplete && (
             <Button
               className="w-full h-12 bg-gradient-to-r from-primary to-secondary text-primary-foreground"
-              onClick={() => handleAIAnalysis()}
+              onClick={() => setShowLegislationDialog(true)}
               disabled={aiAnalyzing}
             >
               {aiAnalyzing ? (
@@ -433,6 +436,13 @@ export function AutoInfracaoForm({
               )}
             </Button>
           )}
+
+          <LegislationSelectDialog
+            open={showLegislationDialog}
+            onOpenChange={setShowLegislationDialog}
+            onConfirm={(leg, obs) => handleAIAnalysis(leg, obs)}
+            isLoading={aiAnalyzing}
+          />
 
           {photosRequired && photos.length === 0 && (
             <p className="text-xs text-destructive">⚠️ É obrigatório anexar pelo menos uma foto das irregularidades</p>

@@ -15,6 +15,8 @@ type Body = {
   establishmentType?: string;
   description?: string; // for single photo re-analysis
   checklistItems?: string[]; // checklist items for contextual analysis
+  targetLegislation?: string; // legislation focus override
+  observation?: string; // custom observation to guide analysis
 };
 
 const SYSTEM_PROMPT = `Você é um auditor fiscal da Vigilância Sanitária experiente em inspeções de estabelecimentos alimentícios.
@@ -22,19 +24,26 @@ const SYSTEM_PROMPT = `Você é um auditor fiscal da Vigilância Sanitária expe
 # TAREFA
 Analise cada foto e produza uma legenda técnica descritiva para cada não conformidade visível.
 
+# LEGISLAÇÃO BASE PADRÃO
+Por padrão, utilize como referência:
+- RDC 216/2004 (Boas Práticas para Serviços de Alimentação)
+- Lei Municipal 8741/2008 (Código Sanitário de Goiânia)
+Se o fiscal indicar outra legislação no campo "targetLegislation", priorize essa legislação na fundamentação.
+
 # REGRAS DAS LEGENDAS
 1. Descreva EXATAMENTE o que é visível — nunca generalize
 2. Linguagem DESCRITIVA: diga O QUE está errado e ONDE (ex: "Piso com revestimento solto na cozinha")
 3. PROIBIDO usar termos classificatórios genéricos como "perigo microbiológico", "perigo cruzado", "risco operacional"
-4. Cite o dispositivo legal específico (item da RDC ou artigo de lei)
+4. Cite o dispositivo legal específico (item da RDC, artigo da Lei Municipal 8741/08, ou outra legislação indicada)
 5. Máximo 80 caracteres — seja conciso e preciso
 6. Cada legenda deve ser ÚNICA entre as fotos
 
 # EXEMPLOS CORRETOS
-✅ "Piso da área de manipulação com revestimento solto e rejunte deteriorado" (Item 4.1.3)
-✅ "Caixas de papelão em contato direto com piso do depósito" (Item 4.7.6)
-✅ "Ralo sem dispositivo de fechamento na cozinha" (Item 4.1.5)
-✅ "Produtos fracionados sem identificação de validade" (Item 4.8.18)
+✅ "Piso da área de manipulação com revestimento solto e rejunte deteriorado" (RDC 216/04 Item 4.1.3)
+✅ "Caixas de papelão em contato direto com piso do depósito" (RDC 216/04 Item 4.7.6)
+✅ "Ralo sem dispositivo de fechamento na cozinha" (RDC 216/04 Item 4.1.5)
+✅ "Alvará sanitário vencido exposto no balcão" (LM 8741/08 Art. 81 Inc. XIX)
+✅ "Produtos fracionados sem identificação de validade" (RDC 216/04 Item 4.8.18)
 
 # EXEMPLOS ERRADOS (NÃO FAÇA)
 ❌ "Superfície com sujidade — perigo" (vago)
@@ -141,7 +150,7 @@ serve(async (req) => {
     const authResult = await verifyAuth(req);
     if (authResult instanceof Response) return authResult;
 
-    const { documentType, photos, establishmentType, description, checklistItems } = (await req.json()) as Body;
+    const { documentType, photos, establishmentType, description, checklistItems, targetLegislation, observation } = (await req.json()) as Body;
     if (!documentType || !Array.isArray(photos) || photos.length === 0) {
       return new Response(JSON.stringify({ error: "Invalid payload: documentType and photos required" }), {
         status: 400,
@@ -264,9 +273,17 @@ Retorne um JSON: {"item_rdc": "4.X.X", "justificativa": "breve explicação"}`;
         ? `\n\nCHECKLIST APLICADO (direcione a análise com base nestes itens):\n${limitedItems.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\nPRIORIZE não conformidades relacionadas ao checklist. Use a legislação citada quando aplicável.`
         : '';
 
+      const legislationContext = targetLegislation && targetLegislation !== 'RDC 216/2004 + Lei Municipal 8741/2008'
+        ? `\nLEGISLAÇÃO PRIORITÁRIA: ${targetLegislation}. Use preferencialmente os dispositivos desta legislação na fundamentação.`
+        : '\nLEGISLAÇÃO BASE: RDC 216/2004 e Lei Municipal 8741/2008. Use dispositivos de ambas conforme aplicável.';
+
+      const observationContext = observation
+        ? `\nOBSERVAÇÃO DO FISCAL: ${observation}. Direcione a análise conforme esta orientação.`
+        : '';
+
       const batchPrompt = `Analise ${batch.length} fotos de inspeção sanitária (numeradas ${startPhotoNum} a ${startPhotoNum + batch.length - 1})${establishmentType ? ` em ${establishmentType}` : ''}.
-${checklistContext}
-IMPORTANTE: Para cada foto, escreva uma LEGENDA TÉCNICA DESCRITIVA do que está visível (máx 80 chars). Descreva O QUE está errado e ONDE, sem usar termos genéricos como "perigo microbiológico". Cite sempre o dispositivo legal específico (item da RDC, artigo de lei, etc). Cada legenda deve ser única — não repita padrões entre fotos.
+${legislationContext}${observationContext}${checklistContext}
+IMPORTANTE: Para cada foto, escreva uma LEGENDA TÉCNICA DESCRITIVA do que está visível (máx 80 chars). Descreva O QUE está errado e ONDE, sem usar termos genéricos como "perigo microbiológico". Cite sempre o dispositivo legal específico (item da RDC, artigo da Lei Municipal 8741/08, ou da legislação indicada). Cada legenda deve ser única — não repita padrões entre fotos.
 
 JSON sem markdown: {"nonConformities":[{"foto":N,"description":"legenda descritiva","severity":"grave","legalBasis":"Legislação - Dispositivo específico","recommendation":"ação corretiva","deadline":"prazo"}], "generalObservations":"", "confidence":0.9}`;
 

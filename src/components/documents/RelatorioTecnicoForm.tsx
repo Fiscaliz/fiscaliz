@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { checklistTemplates, getAllCategories, type ChecklistItem } from '@/data/checklists';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { LegislationSelectDialog, DEFAULT_LEGISLATION } from '@/components/documents/LegislationSelectDialog';
 
 export type RelatorioTecnicoData = {
   // Método de criação
@@ -124,6 +125,7 @@ export function RelatorioTecnicoForm({
   const [showChecklistImport, setShowChecklistImport] = useState(false);
   const [selectedChecklist, setSelectedChecklist] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+  const [showLegislationDialog, setShowLegislationDialog] = useState(false);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => 
@@ -168,7 +170,7 @@ export function RelatorioTecnicoForm({
   };
 
   // Análise por IA - retorna legendas curtas para cada foto
-  const handleAnalyzeWithAI = async () => {
+  const handleAnalyzeWithAI = async (targetLeg?: string, obs?: string) => {
     if (photos.length === 0) {
       toast({
         title: 'Adicione fotos',
@@ -179,6 +181,7 @@ export function RelatorioTecnicoForm({
     }
 
     updateField('isAnalyzing', true);
+    setShowLegislationDialog(false);
 
     try {
       // Get authenticated user for RLS-compliant file paths
@@ -233,6 +236,8 @@ export function RelatorioTecnicoForm({
           photos: uploadedUrls,
           establishmentType: establishmentType || 'Estabelecimento de Alimentos',
           checklistItems: checklistItems && checklistItems.length > 0 ? checklistItems : undefined,
+          targetLegislation: targetLeg || DEFAULT_LEGISLATION,
+          observation: obs || undefined,
         },
       });
 
@@ -605,23 +610,31 @@ export function RelatorioTecnicoForm({
             )}
 
             {value.photoLegends.length === 0 && (
-              <Button 
-                onClick={handleAnalyzeWithAI}
-                disabled={photos.length === 0 || value.isAnalyzing}
-                className="w-full"
-              >
-                {value.isAnalyzing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Analisando fotos...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Analisar com IA ({photos.length} fotos)
-                  </>
-                )}
-              </Button>
+              <>
+                <Button 
+                  onClick={() => setShowLegislationDialog(true)}
+                  disabled={photos.length === 0 || value.isAnalyzing}
+                  className="w-full"
+                >
+                  {value.isAnalyzing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Analisando fotos...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Analisar com IA ({photos.length} fotos)
+                    </>
+                  )}
+                </Button>
+                <LegislationSelectDialog
+                  open={showLegislationDialog}
+                  onOpenChange={setShowLegislationDialog}
+                  onConfirm={(leg, obs) => handleAnalyzeWithAI(leg, obs)}
+                  isLoading={value.isAnalyzing}
+                />
+              </>
             )}
 
             {/* Editable photo legends after analysis */}
