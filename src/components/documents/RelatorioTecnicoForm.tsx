@@ -394,13 +394,12 @@ export function RelatorioTecnicoForm({
       }
     } catch (error: any) {
       console.error('AI analysis error:', error);
+      updateField('isAnalyzing', false);
       toast({
         title: 'Erro na análise',
         description: error.message || 'Não foi possível analisar as fotos.',
         variant: 'destructive',
       });
-    } finally {
-      updateField('isAnalyzing', false);
     }
   };
 
