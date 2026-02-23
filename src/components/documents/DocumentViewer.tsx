@@ -1324,13 +1324,6 @@ _Enviado via FISCALIZ®_`;
                         );
                       })}
                   </div>
-                  {/* Mostrar observações adicionais apenas se não for JSON bruto */}
-                  {content && content.trim() && !content.includes('"nonConformities"') && !content.startsWith('{') && (
-                    <div className="mt-4 pt-3 border-t border-gray-200">
-                      <p className="font-medium mb-1">Observações adicionais:</p>
-                      <p>{content}</p>
-                    </div>
-                  )}
                 </div>
               ) : (
                 content || 'Sem irregularidades especificadas.'
@@ -1893,13 +1886,7 @@ _Enviado via FISCALIZ®_`;
                           );
                         })}
                     </div>
-                    {/* Mostrar observações adicionais apenas se não for JSON bruto */}
-                    {content && content.trim() && !content.includes('"nonConformities"') && !content.startsWith('{') && (
-                      <div className="mt-4 pt-3 border-t border-muted">
-                        <p className="font-medium mb-1">Observações adicionais:</p>
-                        <p>{content}</p>
-                      </div>
-                    )}
+                    {/* Descrição livre removida - evita duplicar legendas */}
                   </div>
                 </div>
                 )
