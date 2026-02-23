@@ -1462,7 +1462,14 @@ _Enviado via FISCALIZ®_`;
                 {(() => {
                   const equipe = relatorioTecnicoData?.equipe as Array<{ nome: string; cargo: string; matricula: string }> | undefined;
                   const hasEquipe = equipe && equipe.length > 0 && equipe.some(m => m.nome?.trim());
-                  const mainName = (document.profile?.full_name || '').trim().toLowerCase();
+                  const mainName = (document.profile?.full_name || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                  const mainMatricula = (document.profile?.registration_number || '').trim();
+                  // De-duplicate: exclude equipe members matching main auditor by name OR matrícula
+                  const isDuplicate = (m: { nome: string; matricula?: string }) => {
+                    const mName = (m.nome || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                    const mMatricula = (m.matricula || '').trim();
+                    return mName === mainName || (mainMatricula && mMatricula === mainMatricula);
+                  };
                   // All signers: main auditor first, then equipe members (excluding duplicates)
                   const allSigners = [
                     {
@@ -1473,7 +1480,7 @@ _Enviado via FISCALIZ®_`;
                       isMain: true,
                     },
                     ...(hasEquipe
-                      ? equipe!.filter(m => m.nome?.trim() && m.nome.trim().toLowerCase() !== mainName).map(m => ({
+                      ? equipe!.filter(m => m.nome?.trim() && !isDuplicate(m)).map(m => ({
                           nome: m.nome,
                           cargo: m.cargo || 'Auditor Fiscal de Saúde Pública',
                           matricula: m.matricula || '',
