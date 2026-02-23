@@ -1363,38 +1363,45 @@ _Enviado via FISCALIZ®_`;
               <p className="text-xs text-gray-600 mb-4">
                 As irregularidades descritas acima são comprovadas pelas evidências fotográficas a seguir, numeradas conforme o texto:
               </p>
-              <div className="grid grid-cols-2 gap-4">
-                {/* Filtrar apenas fotos com legendas e numerar na mesma ordem do texto */}
-                {photoLegends
-                  .filter(legend => legend.legenda && legend.legenda.trim())
-                  .map((legend, idx) => {
-                    const photoUrl = attachedPhotos[legend.photoIndex] || legend.previewUrl;
-                    if (!photoUrl) return null;
-                    const itemNumber = idx + 1;
-                    return (
-                      <div key={idx} className="flex flex-col">
-                        <div className="relative aspect-[4/3] border border-gray-300 rounded overflow-hidden mb-2">
-                          {/* Número da foto no canto */}
-                          <div className="absolute top-1 left-1 bg-gray-800 text-white text-xs font-bold px-2 py-0.5 rounded">
-                            {itemNumber}
+              {/* 2 fotos por página com quebra automática */}
+              {(() => {
+                const filteredLegends = photoLegends.filter(legend => legend.legenda && legend.legenda.trim());
+                const pages: typeof filteredLegends[] = [];
+                for (let i = 0; i < filteredLegends.length; i += 2) {
+                  pages.push(filteredLegends.slice(i, i + 2));
+                }
+                return pages.map((page, pageIdx) => (
+                  <div key={pageIdx} className={`grid grid-cols-2 gap-4 ${pageIdx > 0 ? 'break-before-page pt-4' : ''}`}>
+                    {page.map((legend, idx) => {
+                      const globalIdx = pageIdx * 2 + idx;
+                      const photoUrl = attachedPhotos[legend.photoIndex] || legend.previewUrl;
+                      if (!photoUrl) return null;
+                      const itemNumber = globalIdx + 1;
+                      return (
+                        <div key={globalIdx} className="flex flex-col">
+                          <div className="relative aspect-[4/3] border border-gray-300 rounded overflow-hidden mb-2">
+                            <div className="absolute top-1 left-1 bg-gray-800 text-white text-xs font-bold px-2 py-0.5 rounded">
+                              {itemNumber}
+                            </div>
+                            <img 
+                              src={photoUrl} 
+                              alt={`Foto ${itemNumber}`} 
+                              className="w-full h-full object-cover"
+                            />
                           </div>
-                          <img 
-                            src={photoUrl} 
-                            alt={`Foto ${itemNumber}`} 
-                            className="w-full h-full object-cover"
-                          />
+                          <p className="text-[9pt] text-gray-700 leading-tight">
+                            <span className="font-bold">Foto {itemNumber}:</span>{' '}
+                            {legend.legenda}
+                            {legend.item_rdc && (
+                              <span className="font-semibold text-gray-900"> (Item {legend.item_rdc})</span>
+                            )}
+                          </p>
                         </div>
-                        <p className="text-[9pt] text-gray-700 leading-tight">
-                          <span className="font-bold">Foto {itemNumber}:</span>{' '}
-                          {legend.legenda}
-                          {legend.item_rdc && (
-                            <span className="font-semibold text-gray-900"> (Item {legend.item_rdc})</span>
-                          )}
-                        </p>
-                      </div>
-                    );
-                  })}
-              </div>
+                      );
+                    })}
+                  </div>
+                ));
+              })()}
             </div>
           )}
 
@@ -1923,15 +1930,23 @@ _Enviado via FISCALIZ®_`;
                   <p className="text-xs text-muted-foreground mb-3">
                     Fotos numeradas conforme as irregularidades acima:
                   </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {(canEdit ? editablePhotoLegends.length > 0 ? editablePhotoLegends : photoLegends : photoLegends)
-                      .filter(legend => canEdit || (legend.legenda && legend.legenda.trim()))
-                      .map((legend, idx) => {
-                        const photoUrl = attachedPhotos[legend.photoIndex] || legend.previewUrl;
-                        if (!photoUrl) return null;
-                        const itemNumber = idx + 1;
-                        return (
-                          <div key={idx} className="flex flex-col rounded-lg border overflow-hidden">
+                  {/* 2 fotos por página com quebra automática na impressão */}
+                  {(() => {
+                    const legends = (canEdit ? editablePhotoLegends.length > 0 ? editablePhotoLegends : photoLegends : photoLegends)
+                      .filter(legend => canEdit || (legend.legenda && legend.legenda.trim()));
+                    const pages: typeof legends[] = [];
+                    for (let i = 0; i < legends.length; i += 2) {
+                      pages.push(legends.slice(i, i + 2));
+                    }
+                    return pages.map((page, pageIdx) => (
+                      <div key={pageIdx} className={`grid grid-cols-2 gap-3 ${pageIdx > 0 ? 'print:break-before-page print:pt-4' : ''}`}>
+                        {page.map((legend, idx) => {
+                          const globalIdx = pageIdx * 2 + idx;
+                          const photoUrl = attachedPhotos[legend.photoIndex] || legend.previewUrl;
+                          if (!photoUrl) return null;
+                          const itemNumber = globalIdx + 1;
+                          return (
+                          <div key={globalIdx} className="flex flex-col rounded-lg border overflow-hidden">
                             <div className="relative aspect-[4/3] overflow-hidden">
                               <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5 rounded z-10">
                                 {itemNumber}
@@ -1950,7 +1965,7 @@ _Enviado via FISCALIZ®_`;
                                     if (editablePhotoLegends.length === 0) {
                                       setEditablePhotoLegends([...photoLegends]);
                                     }
-                                    updateLegend(idx, 'legenda', e.target.value);
+                                    updateLegend(globalIdx, 'legenda', e.target.value);
                                   }}
                                   onBlur={() => {
                                     if (editablePhotoLegends.length > 0) saveLegends();
@@ -1964,7 +1979,7 @@ _Enviado via FISCALIZ®_`;
                                     if (editablePhotoLegends.length === 0) {
                                       setEditablePhotoLegends([...photoLegends]);
                                     }
-                                    updateLegend(idx, 'item_rdc', e.target.value);
+                                    updateLegend(globalIdx, 'item_rdc', e.target.value);
                                   }}
                                   onBlur={() => {
                                     if (editablePhotoLegends.length > 0) saveLegends();
@@ -1983,9 +1998,11 @@ _Enviado via FISCALIZ®_`;
                               </div>
                             )}
                           </div>
-                        );
-                      })}
-                  </div>
+                          );
+                        })}
+                      </div>
+                    ));
+                  })()}
                 </div>
               )}
             </div>
