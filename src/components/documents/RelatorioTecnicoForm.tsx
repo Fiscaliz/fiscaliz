@@ -987,22 +987,40 @@ export function RelatorioTecnicoForm({
               </div>
             )}
 
-            {/* Irregularidades importadas */}
+            {/* Irregularidades editáveis */}
             {value.irregularidades.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs font-medium text-muted-foreground">
-                  Irregularidades selecionadas ({value.irregularidades.length})
+                  Irregularidades ({value.irregularidades.length})
                 </p>
                 {value.irregularidades.map((irr, idx) => (
                   <div key={irr.id} className="flex items-start gap-2 p-2 bg-destructive/5 rounded-lg border border-destructive/20">
-                    <span className="text-xs font-bold text-destructive">{idx + 1}.</span>
-                    <div className="flex-1">
-                      <p className="text-xs">{irr.descricao}</p>
-                      <p className="text-[10px] text-muted-foreground">{irr.dispositivo}</p>
+                    <span className="text-xs font-bold text-destructive mt-2">{idx + 1}.</span>
+                    <div className="flex-1 space-y-1">
+                      <Input
+                        value={irr.descricao}
+                        onChange={(e) => {
+                          const updated = [...value.irregularidades];
+                          updated[idx] = { ...updated[idx], descricao: e.target.value };
+                          updateField('irregularidades', updated);
+                        }}
+                        placeholder="Descrição da irregularidade..."
+                        className="text-xs h-8"
+                      />
+                      <Input
+                        value={irr.dispositivo}
+                        onChange={(e) => {
+                          const updated = [...value.irregularidades];
+                          updated[idx] = { ...updated[idx], dispositivo: e.target.value };
+                          updateField('irregularidades', updated);
+                        }}
+                        placeholder="Dispositivo legal (ex: RDC 216/04 item 4.1.3)"
+                        className="text-[11px] h-7 text-muted-foreground"
+                      />
                     </div>
                     <button
                       onClick={() => updateField('irregularidades', value.irregularidades.filter(i => i.id !== irr.id))}
-                      className="text-destructive"
+                      className="text-destructive mt-2"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -1011,12 +1029,15 @@ export function RelatorioTecnicoForm({
               </div>
             )}
 
-            <Textarea
-              placeholder="Descreva a situação encontrada no estabelecimento, incluindo irregularidades observadas em cada área vistoriada..."
-              value={value.descricao}
-              onChange={(e) => updateField('descricao', e.target.value)}
-              className="min-h-[150px] text-sm"
-            />
+            {/* Textarea só aparece quando não há irregularidades populadas */}
+            {value.irregularidades.length === 0 && (
+              <Textarea
+                placeholder="Descreva a situação encontrada no estabelecimento, incluindo irregularidades observadas em cada área vistoriada..."
+                value={value.descricao}
+                onChange={(e) => updateField('descricao', e.target.value)}
+                className="min-h-[150px] text-sm"
+              />
+            )}
           </CardContent>
         )}
       </Card>
@@ -1118,7 +1139,6 @@ export function formatRelatorioTecnicoContent(data: RelatorioTecnicoData): strin
       });
       content += '\n';
     } else if (data.photoLegends.filter(l => l.legenda.trim()).length > 0) {
-      // Fallback: use photo legends if no irregularidades were set
       data.photoLegends.filter(l => l.legenda.trim()).forEach((l, idx) => {
         content += `${idx + 1}. ${l.legenda}\n`;
         if (l.item_rdc) {
@@ -1126,9 +1146,7 @@ export function formatRelatorioTecnicoContent(data: RelatorioTecnicoData): strin
         }
       });
       content += '\n';
-    }
-    
-    if (data.descricao) {
+    } else if (data.descricao) {
       content += data.descricao + '\n\n';
     }
   }
