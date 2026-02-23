@@ -44,6 +44,7 @@ import { FullScreenSignature } from './FullScreenSignature';
 import { ColetaAmostraPDF } from './ColetaAmostraPDF';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { LegislationSelectDialog, DEFAULT_LEGISLATION } from './LegislationSelectDialog';
 
 interface AttachmentPhoto {
   id?: string;
@@ -171,6 +172,7 @@ export function DocumentViewer({
   });
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
   const [isAnalyzingAI, setIsAnalyzingAI] = useState(false);
+  const [showLegislationDialog, setShowLegislationDialog] = useState(false);
   const [isEditingLegends, setIsEditingLegends] = useState(false);
   const [editablePhotoLegends, setEditablePhotoLegends] = useState<PhotoLegend[]>([]);
   const { toast } = useToast();
@@ -911,7 +913,7 @@ _Enviado via FISCALIZ®_`;
   };
 
   // AI Photo Analysis for draft documents
-  const handleAIAnalysis = async () => {
+  const handleAIAnalysis = async (targetLeg?: string, obs?: string) => {
     if (evidencePhotos.length === 0) {
       toast({
         title: "Sem fotos",
@@ -923,6 +925,7 @@ _Enviado via FISCALIZ®_`;
 
     try {
       setIsAnalyzingAI(true);
+      setShowLegislationDialog(false);
       
       // Convert signed URLs to public URLs for the edge function
       const publicUrls = evidencePhotos.map(url => {
@@ -942,6 +945,8 @@ _Enviado via FISCALIZ®_`;
           documentType: document.document_type,
           photos: publicUrls,
           establishmentType: document.establishment?.nome_fantasia || document.establishment?.razao_social || '',
+          targetLegislation: targetLeg || DEFAULT_LEGISLATION,
+          observation: obs || undefined,
         }
       });
 
@@ -2213,25 +2218,33 @@ _Enviado via FISCALIZ®_`;
 
                 {/* AI Analysis Button */}
                 {evidencePhotos.length > 0 && (
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={handleAIAnalysis}
-                    disabled={isAnalyzingAI}
-                    className="w-full"
-                  >
-                    {isAnalyzingAI ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                        Analisando {evidencePhotos.length} foto(s)...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-4 w-4 mr-1" />
-                        Analisar com IA ({evidencePhotos.length} fotos)
-                      </>
-                    )}
-                  </Button>
+                  <>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => setShowLegislationDialog(true)}
+                      disabled={isAnalyzingAI}
+                      className="w-full"
+                    >
+                      {isAnalyzingAI ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          Analisando {evidencePhotos.length} foto(s)...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-1" />
+                          Analisar com IA ({evidencePhotos.length} fotos)
+                        </>
+                      )}
+                    </Button>
+                    <LegislationSelectDialog
+                      open={showLegislationDialog}
+                      onOpenChange={setShowLegislationDialog}
+                      onConfirm={(leg, obs) => handleAIAnalysis(leg, obs)}
+                      isLoading={isAnalyzingAI}
+                    />
+                  </>
                 )}
               </div>
             )}
