@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect } from 'react';
+import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { QRCodeSVG } from 'qrcode.react';
@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { getSignedUrl, extractStoragePath } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
 import marcaDaguaFiscaliz from '@/assets/marca-dagua-fiscaliz.png';
 import logoFiscaliz from '@/assets/logo-fiscaliz.png';
@@ -149,28 +150,48 @@ export function DocumentViewer({
   const [showFullScreenSignature, setShowFullScreenSignature] = useState(false);
   const prepostoFileInputRef = useRef<HTMLInputElement>(null);
   const evidenceFileInputRef = useRef<HTMLInputElement>(null);
-  // Convert signed URLs to public URLs since bucket is public
-  const toPublicUrl = (url: string): string => {
+  // Convert legacy public URLs to signed URLs since bucket is now private
+  const toSignedUrl = useCallback(async (url: string): Promise<string> => {
     if (!url) return url;
-    // Convert /object/sign/bucket/path?token=... to /object/public/bucket/path
-    const signedMarker = '/storage/v1/object/sign/';
-    const idx = url.indexOf(signedMarker);
-    if (idx !== -1) {
-      const afterMarker = url.substring(idx + signedMarker.length);
-      const pathWithoutToken = afterMarker.split('?')[0];
-      return url.substring(0, idx) + '/storage/v1/object/public/' + pathWithoutToken;
+    // If it's already a signed URL, return as-is
+    if (url.includes('/object/sign/')) return url;
+    // If it contains public URL marker, convert to signed
+    if (url.includes('/object/public/')) {
+      return getSignedUrl(url);
+    }
+    // For storage paths without full URL
+    if (!url.startsWith('http')) {
+      return getSignedUrl(url);
     }
     return url;
-  };
+  }, []);
 
-  const [evidencePhotos, setEvidencePhotos] = useState<string[]>(() => {
-    // Initialize from document.attachments
-    if (!document.attachments) return [];
-    return (document.attachments as AttachmentPhoto[])
-      .filter(a => a.url)
-      .map(a => toPublicUrl(a.url));
-  });
+  const [evidencePhotos, setEvidencePhotos] = useState<string[]>([]);
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
+
+  // Resolve attachment URLs on mount (convert public→signed)
+  useEffect(() => {
+    const resolveUrls = async () => {
+      if (!document.attachments) return;
+      const attachments = (document.attachments as AttachmentPhoto[]).filter(a => a.url);
+      const resolved = await Promise.all(attachments.map(a => toSignedUrl(a.url)));
+      setEvidencePhotos(resolved);
+    };
+    resolveUrls();
+  }, [document.attachments, toSignedUrl]);
+
+  // Resolve contributor signature URL
+  useEffect(() => {
+    const resolveSignature = async () => {
+      const sig = document.content?.contributor_signature;
+      if (sig && sig.includes('/object/public/')) {
+        const signed = await getSignedUrl(sig);
+        setContributorSignatureUrl(signed);
+      }
+    };
+    resolveSignature();
+  }, [document.content?.contributor_signature]);
+
   const [isAnalyzingAI, setIsAnalyzingAI] = useState(false);
   const [showLegislationDialog, setShowLegislationDialog] = useState(false);
   const [isEditingLegends, setIsEditingLegends] = useState(false);
@@ -179,12 +200,8 @@ export function DocumentViewer({
 
   // Get attached photos - use state (evidencePhotos) for live updates when editing
   const attachedPhotos: string[] = useMemo(() => {
-    if (evidencePhotos.length > 0) return evidencePhotos;
-    if (!document.attachments) return [];
-    return (document.attachments as AttachmentPhoto[])
-      .filter(a => a.url)
-      .map(a => toPublicUrl(a.url));
-  }, [evidencePhotos, document.attachments]);
+    return evidencePhotos;
+  }, [evidencePhotos]);
 
   // Check if this is a Relatório Técnico with photo legends
   const isRelatorioTecnico = document.document_type === 'relatorio_tecnico';

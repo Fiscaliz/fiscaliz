@@ -25,7 +25,7 @@ const AREAS_OPTIONS = [
   { value: 'medicamentos', label: 'Medicamentos' },
   { value: 'cosmeticos', label: 'Cosméticos' },
   { value: 'saneantes', label: 'Saneantes' },
-  { value: 'produtos_saude', label: 'Produtos para Saúde' },
+  
   { value: 'meio_ambiente', label: 'Meio Ambiente' },
   { value: 'saude_trabalhador', label: 'Saúde do Trabalhador' },
   { value: 'zoonoses', label: 'Zoonoses' },
