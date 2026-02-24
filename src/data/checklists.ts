@@ -390,27 +390,6 @@ export const checklistTemplates: ChecklistTemplate[] = [
     ]
   },
   {
-    id: 'industria',
-    name: 'Indústria de Alimentos',
-    description: 'Fabricação e processamento de alimentos',
-    icon: 'Factory',
-    legislationBase: 'RDC 216/04 e Lei Municipal nº 8.741/08',
-    items: [
-      { id: 'i1', text: 'Providenciar e afixar Alvará Sanitário válido', category: 'Documentação', legislation: 'Lei 8741/08' },
-      { id: 'i2', text: 'Manter Responsável Técnico com registro ativo no conselho profissional', category: 'Documentação', legislation: 'RDC 216/04' },
-      { id: 'i3', text: 'Elaborar e implementar Manual de Boas Práticas de Fabricação', category: 'Documentação', legislation: 'RDC 216/04' },
-      { id: 'i4', text: 'Elaborar e manter POPs implementados e disponíveis', category: 'Documentação', legislation: 'RDC 216/04' },
-      { id: 'i5', text: 'Documentar e manter programa de controle de pragas atualizado', category: 'Controle de Pragas', legislation: 'RDC 216/04' },
-      { id: 'i6', text: 'Implementar sistema de rastreabilidade de matérias-primas', category: 'Alimentos', legislation: 'RDC 216/04' },
-      { id: 'i7', text: 'Realizar e manter laudos de análise de produtos', category: 'Documentação', legislation: 'RDC 216/04' },
-      { id: 'i8', text: 'Separar área de produção dos sanitários e vestiários', category: 'Estrutura', legislation: 'RDC 216/04' },
-      { id: 'i9', text: 'Instalar sistema de ventilação adequado com filtros', category: 'Estrutura', legislation: 'RDC 216/04' },
-      { id: 'i10', text: 'Realizar e manter laudos de análise da água', category: 'Água', legislation: 'RDC 216/04' },
-      { id: 'i11', text: 'Calibrar equipamentos e manter registros de manutenção', category: 'Equipamentos', legislation: 'RDC 216/04' },
-      { id: 'i12', text: 'Realizar exames de saúde periódicos dos funcionários', category: 'Pessoal', legislation: 'RDC 216/04' },
-    ]
-  },
-  {
     id: 'industria_alimentos',
     name: 'Indústria de Alimentos (BPF)',
     description: 'Estabelecimentos industrializadores de alimentos - POPs e BPF',
