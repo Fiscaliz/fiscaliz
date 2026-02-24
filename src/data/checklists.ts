@@ -411,22 +411,6 @@ export const checklistTemplates: ChecklistTemplate[] = [
     ]
   },
   {
-    id: 'comercio_geral',
-    name: 'Vistoria de Dengue (Lei Anti Dengue)',
-    description: 'Checklist da Lei Municipal nº 8.887/2010 - Controle de vetores',
-    icon: 'Store',
-    legislationBase: 'Lei Municipal nº 8.887/2010 e Decreto 506/2016',
-    items: [
-      { id: 'cg1', text: 'Adotar medidas necessárias à manutenção do local isento de água parada', category: 'Controle de Vetores', legislation: 'Lei 8887/2010' },
-      { id: 'cg2', text: 'Manter local limpo, sem acúmulo de lixo e materiais inservíveis', category: 'Controle de Vetores', legislation: 'Lei 8887/2010' },
-      { id: 'cg3', text: 'Remover materiais que possam acumular água e propiciar proliferação do Aedes aegypti', category: 'Controle de Vetores', legislation: 'Lei 8887/2010' },
-      { id: 'cg4', text: 'Evitar condições que propiciem a instalação e proliferação do Aedes aegypti', category: 'Controle de Vetores', legislation: 'LM 8887/2010' },
-      { id: 'cg5', text: 'Permitir acesso dos agentes de saúde para inspeção e combate ao Aedes aegypti', category: 'Controle de Vetores', legislation: 'LM 9631/2015' },
-      { id: 'cg6', text: 'Eliminar recipientes que possam acumular água parada', category: 'Controle de Vetores', legislation: 'LM 9731/2015' },
-      { id: 'cg7', text: 'Implementar ações periódicas de vistoria e eliminação de criadouros do mosquito', category: 'Controle de Vetores', legislation: 'LM 9904/2016' },
-    ]
-  },
-  {
     id: 'industria_alimentos',
     name: 'Indústria de Alimentos (BPF)',
     description: 'Estabelecimentos industrializadores de alimentos - POPs e BPF',
