@@ -62,13 +62,13 @@ export default function PublicDocumentView() {
       setEstablishment(est);
       setStatus('found');
 
-      // Bucket é público: usar URL permanente diretamente (ideal para QR Code em documentos impressos)
+      // Bucket is private: use long-lived signed URL for public document sharing
       if (data.pdf_url) {
-        const { data: urlData } = supabase.storage
+        const { data: signedData } = await supabase.storage
           .from('fiscal-photos')
-          .getPublicUrl(data.pdf_url);
-        if (urlData?.publicUrl) {
-          setPdfPublicUrl(urlData.publicUrl);
+          .createSignedUrl(data.pdf_url, 31536000); // 1 year expiry
+        if (signedData?.signedUrl) {
+          setPdfPublicUrl(signedData.signedUrl);
         }
       }
     };
