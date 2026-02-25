@@ -2250,6 +2250,110 @@ export default function MonthlyReport() {
           
           {/* Resumo */}
           <TabsContent value="resumo" className="space-y-4">
+            {/* OS e Meta */}
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Briefcase className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">Ordem de Serviço</span>
+                  </div>
+                  {osNumber && (
+                    <Badge variant="secondary" className="text-xs">Nº {osNumber}</Badge>
+                  )}
+                </div>
+                
+                {/* Meta */}
+                <div className={cn(
+                  "p-3 rounded-lg border-2 text-center",
+                  metaAtingida ? "border-success bg-success/10" : osProgramadas > 0 ? "border-warning bg-warning/10" : "border-muted bg-muted/30"
+                )}>
+                  <div className="flex items-center justify-around">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Programada</p>
+                      <p className="text-xl font-bold">{osProgramadas}</p>
+                    </div>
+                    <div className="text-xl font-bold text-muted-foreground">→</div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Cumprida</p>
+                      <p className={cn("text-xl font-bold", metaAtingida ? "text-success" : "text-foreground")}>{osCumprida}</p>
+                    </div>
+                  </div>
+                  {osProgramadas > 0 && (
+                    <p className={cn("text-xs font-medium mt-2", metaAtingida ? "text-success" : "text-warning")}>
+                      {metaAtingida ? '✅ Meta atingida!' : `⚠️ Faltam ${osProgramadas - osCumprida} pontos`}
+                    </p>
+                  )}
+                  {reducaoCargaHoraria && reducaoPercentual && (
+                    <p className="text-[10px] text-muted-foreground mt-1">Redução de carga horária: {reducaoPercentual}%</p>
+                  )}
+                </div>
+
+                {daysToWork && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Dias a cumprir</span>
+                    <span className="font-medium">{daysToWork}</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Afastamento */}
+            {selectedLicenseType && (
+              <Card className="border-0 shadow-sm border-l-4 border-l-warning">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertCircle className="h-4 w-4 text-warning" />
+                    <span className="text-sm font-medium">Afastamento no Período</span>
+                  </div>
+                  <p className="text-sm">{licenseTypes.find(l => l.id === selectedLicenseType)?.label}</p>
+                  {selectedLicenseType === 'compensacao_horas' ? (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Banco: {compensationOriginDate ? format(compensationOriginDate, 'dd/MM/yyyy') : '-'} → Gozo: {compensationEnjoyDate ? format(compensationEnjoyDate, 'dd/MM/yyyy') : '-'}
+                    </p>
+                  ) : (
+                    (licenseStartDate || licenseEndDate) && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {licenseStartDate ? format(licenseStartDate, 'dd/MM/yyyy') : '-'} a {licenseEndDate ? format(licenseEndDate, 'dd/MM/yyyy') : '-'}
+                      </p>
+                    )
+                  )}
+                  {licenseAttachment && (
+                    <Badge variant="outline" className="text-[10px] mt-2">📎 Atestado anexado</Badge>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* PFE */}
+            {pfeEntries.length > 0 && (
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clock className="h-4 w-4 text-info" />
+                    <span className="text-sm font-medium">Plantão Fiscal Especial</span>
+                    <Badge variant="secondary" className="text-[10px]">{pfeEntries.length}</Badge>
+                  </div>
+                  <div className="space-y-1">
+                    {pfeEntries.map((pfe, idx) => {
+                      const dayOfWeek = pfe.date ? new Date(pfe.date + 'T12:00:00').getDay() : 1;
+                      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                      return (
+                        <div key={idx} className="flex items-center justify-between text-xs">
+                          <span>{pfe.date ? format(new Date(pfe.date + 'T12:00:00'), 'dd/MM/yyyy') : '-'}</span>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-[10px]">{pfe.period}h</Badge>
+                            <Badge variant="outline" className="text-[10px]">{isWeekend ? 'FDS' : 'Sem.'}</Badge>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Cards de métricas */}
             <div className="grid grid-cols-2 gap-3">
               <Card className="border-0 shadow-sm">
                 <CardContent className="p-4">
@@ -2307,6 +2411,24 @@ export default function MonthlyReport() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Dias internos + CO */}
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-4 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Dias internos</span>
+                  <span className="font-medium">{finalInternalDays}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Saídas CO</span>
+                  <span className="font-medium">{finalCoDays}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">OS agrupadas</span>
+                  <span className="font-medium">{groupedOS.length}</span>
+                </div>
+              </CardContent>
+            </Card>
 
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-2">
