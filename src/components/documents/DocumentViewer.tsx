@@ -944,23 +944,35 @@ _Enviado via FISCALIZ®_`;
       setIsAnalyzingAI(true);
       setShowLegislationDialog(false);
       
-      // Convert signed URLs to public URLs for the edge function
-      const publicUrls = evidencePhotos.map(url => {
+      // Generate fresh signed URLs for the edge function (bucket is private)
+      const photoPaths = evidencePhotos.map(url => {
+        // Extract storage path from signed or public URLs
         const signedMarker = '/storage/v1/object/sign/fiscal-photos/';
-        const idx = url.indexOf(signedMarker);
-        if (idx !== -1) {
-          const pathWithQuery = url.substring(idx + signedMarker.length);
-          const path = pathWithQuery.split('?')[0];
-          const baseUrl = url.substring(0, idx);
-          return `${baseUrl}/storage/v1/object/public/fiscal-photos/${path}`;
+        const publicMarker = '/storage/v1/object/public/fiscal-photos/';
+        for (const marker of [signedMarker, publicMarker]) {
+          const idx = url.indexOf(marker);
+          if (idx !== -1) {
+            const pathWithQuery = url.substring(idx + marker.length);
+            return pathWithQuery.split('?')[0];
+          }
         }
         return url;
       });
 
+      const { data: signedUrlsData, error: signedUrlsError } = await supabase.storage
+        .from('fiscal-photos')
+        .createSignedUrls(photoPaths, 3600);
+
+      if (signedUrlsError || !signedUrlsData) {
+        throw new Error('Falha ao gerar URLs assinadas para as fotos');
+      }
+
+      const signedPhotoUrls = signedUrlsData.map((d, i) => d.signedUrl || evidencePhotos[i]);
+
       const { data, error } = await supabase.functions.invoke('analyze-photos', {
         body: {
           documentType: document.document_type,
-          photos: publicUrls,
+          photos: signedPhotoUrls,
           establishmentType: document.establishment?.nome_fantasia || document.establishment?.razao_social || '',
           targetLegislation: targetLeg || DEFAULT_LEGISLATION,
           observation: obs || undefined,
@@ -975,7 +987,7 @@ _Enviado via FISCALIZ®_`;
           photoIndex: item.foto - 1,
           legenda: item.legenda || '',
           item_rdc: item.item_rdc || '',
-          previewUrl: publicUrls[item.foto - 1] || '',
+          previewUrl: signedPhotoUrls[item.foto - 1] || '',
         }));
 
         // Build irregularities from analysis
