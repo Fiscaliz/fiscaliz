@@ -11,7 +11,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 
 type Body = {
   documentType: string;
-  photos: string[]; // public URLs
+  photos: string[]; // signed URLs from storage
   establishmentType?: string;
   description?: string; // for single photo re-analysis
   checklistItems?: string[]; // checklist items for contextual analysis
