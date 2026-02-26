@@ -173,7 +173,7 @@ export default function CreateRA() {
         <Card className="mb-4 border-primary/20 bg-primary/5">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
-              {atividadeId !== 'O20' && atividadeId !== 'PFE' && (
+              {atividadeId !== 'O21' && atividadeId !== 'PFE' && (
                 <span className="text-sm font-bold text-primary bg-primary/20 px-2 py-1 rounded">
                   {atividadeId}
                 </span>
