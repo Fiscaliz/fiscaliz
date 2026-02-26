@@ -809,6 +809,12 @@ export default function MonthlyReport() {
   const fetchMissingCnaes = async (establishments: Map<string, string>) => {
     for (const [estId, cnpj] of establishments) {
       try {
+        // Validar CNPJ antes de chamar API - deve ter exatamente 14 dígitos numéricos
+        const cleanCnpj = cnpj.replace(/\D/g, '');
+        if (cleanCnpj.length !== 14) {
+          console.warn(`CNPJ inválido para estabelecimento ${estId}: ${cnpj} (${cleanCnpj.length} dígitos)`);
+          continue;
+        }
         // Delay entre chamadas para evitar rate limiting
         await new Promise(resolve => setTimeout(resolve, 500));
         
@@ -878,6 +884,11 @@ export default function MonthlyReport() {
     let updated = 0;
     for (const est of ests) {
       try {
+        const cleanCnpj = est.cnpj.replace(/\D/g, '');
+        if (cleanCnpj.length !== 14) {
+          console.warn(`CNPJ inválido para ${est.id}: ${est.cnpj} (${cleanCnpj.length} dígitos)`);
+          continue;
+        }
         await new Promise(resolve => setTimeout(resolve, 500));
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-cnae-by-cnpj`,
