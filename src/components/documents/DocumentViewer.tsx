@@ -336,20 +336,62 @@ export function DocumentViewer({
 
     console.log('[PDF Generation] Found preview container, generating canvas...');
 
+    // Helper: converte imagem para base64 data URL
+    const imgToBase64 = (imgEl: HTMLImageElement): Promise<string | null> => {
+      return new Promise((resolve) => {
+        try {
+          const tempImg = new Image();
+          tempImg.crossOrigin = 'anonymous';
+          tempImg.onload = () => {
+            try {
+              const c = window.document.createElement('canvas');
+              c.width = tempImg.naturalWidth;
+              c.height = tempImg.naturalHeight;
+              const ctx = c.getContext('2d');
+              if (ctx) {
+                ctx.drawImage(tempImg, 0, 0);
+                resolve(c.toDataURL('image/png'));
+              } else {
+                resolve(null);
+              }
+            } catch {
+              resolve(null);
+            }
+          };
+          tempImg.onerror = () => resolve(null);
+          // Adicionar cache-buster para evitar CORS de cache
+          const src = imgEl.src;
+          tempImg.src = src.includes('?') ? `${src}&_cb=${Date.now()}` : `${src}?_cb=${Date.now()}`;
+        } catch {
+          resolve(null);
+        }
+      });
+    };
+
     const canvas = await html2canvas(previewElement, {
       scale: 2,
       useCORS: true,
-      allowTaint: true,
+      allowTaint: false,
       backgroundColor: '#ffffff',
       logging: true,
       windowWidth: previewElement.scrollWidth,
       windowHeight: previewElement.scrollHeight,
-      onclone: (clonedDoc) => {
+      onclone: async (clonedDoc) => {
         const clonedPreview = clonedDoc.querySelector('.pdf-preview-container') as HTMLElement;
         if (clonedPreview) {
           clonedPreview.style.position = 'relative';
           clonedPreview.style.display = 'block';
         }
+        // Converter todas as imagens para base64 no clone para evitar CORS/taint
+        const clonedImages = clonedDoc.querySelectorAll('img');
+        const conversionPromises = Array.from(clonedImages).map(async (clonedImg) => {
+          if (clonedImg.src.startsWith('data:')) return; // já é base64
+          const base64 = await imgToBase64(clonedImg);
+          if (base64) {
+            clonedImg.src = base64;
+          }
+        });
+        await Promise.all(conversionPromises);
       }
     });
 
