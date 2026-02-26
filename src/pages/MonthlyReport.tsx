@@ -31,10 +31,33 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { format, lastDayOfMonth, isWeekend, subDays, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BRASAO_GOIANIA_SVG, SUS_LOGO_SVG } from '@/lib/logos';
 import { getRiskByCNAE } from '@/data/cnaeRiskTable';
+
+// Calcula o último dia útil de um mês
+function getLastBusinessDay(year: number, month: number): Date {
+  let date = lastDayOfMonth(new Date(year, month - 1));
+  while (isWeekend(date)) {
+    date = subDays(date, 1);
+  }
+  return date;
+}
+
+// Calcula o N-ésimo dia útil de um mês (1-indexed)
+function getNthBusinessDay(year: number, month: number, n: number): Date {
+  let date = new Date(year, month - 1, 1);
+  let count = 0;
+  while (count < n) {
+    if (!isWeekend(date)) {
+      count++;
+      if (count === n) return date;
+    }
+    date = addDays(date, 1);
+  }
+  return date;
+}
 
 interface DocumentSummary {
   termo_intimacao: number;
@@ -506,6 +529,7 @@ export default function MonthlyReport() {
       setLicenseStartDate(data.license_start_date ? new Date(data.license_start_date) : undefined);
       setLicenseEndDate(data.license_end_date ? new Date(data.license_end_date) : undefined);
       setLicenseAttachment(data.license_attachment_url || null);
+      setSelectedLicenseType(data.license_type || null);
       
       // Carregar redução de carga horária do internal_activities
       const internalAct = data.internal_activities as any;
@@ -1120,16 +1144,24 @@ export default function MonthlyReport() {
             <div className="info-row"><span className="info-label">Matrícula:</span><span className="info-value">{profile?.registration_number || '-'}</span></div>
             <div className="info-row"><span className="info-label">Coordenação:</span><span className="info-value">{profile?.division || 'CFA'}</span></div>
             <div className="info-row"><span className="info-label">Nº OS:</span><span className="info-value">{osNumber || '-'}</span></div>
+            <div className="info-row"><span className="info-label">Data de Emissão da OS:</span><span className="info-value">
+              {format(getLastBusinessDay(selectedMonth === 1 ? selectedYear - 1 : selectedYear, selectedMonth === 1 ? 12 : selectedMonth - 1), 'dd/MM/yyyy')}
+              {' '}(último dia útil de {months[(selectedMonth - 2 + 12) % 12]})
+            </span></div>
+            <div className="info-row"><span className="info-label">Data de Devolução da OS:</span><span className="info-value">
+              {format(getNthBusinessDay(selectedMonth === 12 ? selectedYear + 1 : selectedYear, selectedMonth === 12 ? 1 : selectedMonth + 1, 3), 'dd/MM/yyyy')}
+              {' '}(3º dia útil de {months[selectedMonth % 12]})
+            </span></div>
             <div className="info-row"><span className="info-label">Período:</span><span className="info-value">01 a {new Date(selectedYear, selectedMonth, 0).getDate()}/{selectedMonth.toString().padStart(2, '0')}/{selectedYear}</span></div>
           </div>
 
-          {/* Licença (se houver) */}
+          {/* Licença / Afastamento (se houver) - DESTAQUE */}
           {selectedLicenseType && (
-            <div className="mb-6">
-              <div className="section-title">AFASTAMENTO NO PERÍODO</div>
+            <div className="mb-6" style={{ border: '2px solid #b45309', backgroundColor: '#fffbeb', padding: '12px', borderRadius: '4px' }}>
+              <div className="section-title" style={{ background: '#b45309' }}>⚠️ AFASTAMENTO NO PERÍODO</div>
               <div className="info-row">
                 <span className="info-label">Tipo:</span>
-                <span className="info-value">{licenseTypes.find(l => l.id === selectedLicenseType)?.label}</span>
+                <span className="info-value" style={{ fontWeight: 'bold', fontSize: '12pt' }}>{licenseTypes.find(l => l.id === selectedLicenseType)?.label?.toUpperCase()}</span>
               </div>
               {selectedLicenseType === 'compensacao_horas' ? (
                 <>
@@ -1147,11 +1179,27 @@ export default function MonthlyReport() {
                   </div>
                 </>
               ) : (
+                <>
+                  <div className="info-row">
+                    <span className="info-label">Período de Gozo:</span>
+                    <span className="info-value" style={{ fontWeight: 'bold' }}>
+                      {licenseStartDate ? format(licenseStartDate, 'dd/MM/yyyy') : '-'} a {licenseEndDate ? format(licenseEndDate, 'dd/MM/yyyy') : '-'}
+                    </span>
+                  </div>
+                  {licenseStartDate && licenseEndDate && (
+                    <div className="info-row">
+                      <span className="info-label">Total de dias:</span>
+                      <span className="info-value" style={{ fontWeight: 'bold' }}>
+                        {Math.ceil((licenseEndDate.getTime() - licenseStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1} dias
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+              {licenseAttachment && (
                 <div className="info-row">
-                  <span className="info-label">Período de Gozo:</span>
-                  <span className="info-value">
-                    {licenseStartDate ? format(licenseStartDate, 'dd/MM/yyyy') : '-'} a {licenseEndDate ? format(licenseEndDate, 'dd/MM/yyyy') : '-'}
-                  </span>
+                  <span className="info-label">Comprovante:</span>
+                  <span className="info-value">📎 Documento anexado</span>
                 </div>
               )}
             </div>
@@ -2261,6 +2309,18 @@ export default function MonthlyReport() {
                   {osNumber && (
                     <Badge variant="secondary" className="text-xs">Nº {osNumber}</Badge>
                   )}
+                </div>
+                
+                {/* Datas da OS */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="p-2 rounded-lg bg-muted/50">
+                    <p className="text-muted-foreground">Emissão</p>
+                    <p className="font-medium">{format(getLastBusinessDay(selectedMonth === 1 ? selectedYear - 1 : selectedYear, selectedMonth === 1 ? 12 : selectedMonth - 1), 'dd/MM/yyyy')}</p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-muted/50">
+                    <p className="text-muted-foreground">Devolução</p>
+                    <p className="font-medium">{format(getNthBusinessDay(selectedMonth === 12 ? selectedYear + 1 : selectedYear, selectedMonth === 12 ? 1 : selectedMonth + 1, 3), 'dd/MM/yyyy')}</p>
+                  </div>
                 </div>
                 
                 {/* Meta */}
