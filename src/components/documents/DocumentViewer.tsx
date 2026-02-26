@@ -142,7 +142,7 @@ export function DocumentViewer({
   const pdfContentRef = useRef<HTMLDivElement>(null);
   const pdfPreviewRef = useRef<HTMLDivElement>(null);
   const [contributorSignatureUrl, setContributorSignatureUrl] = useState<string | null>(document.content?.contributor_signature || null);
-  const [documentDate, setDocumentDate] = useState(document.content?.document_date || new Date(document.created_at).toISOString().split('T')[0]);
+  const [documentDate, setDocumentDate] = useState(document.content?.document_date || (document as any).action_date || new Date(document.created_at).toISOString().split('T')[0]);
   const [documentTime, setDocumentTime] = useState(document.content?.document_time || new Date(document.created_at).toTimeString().slice(0, 5));
   const [observations, setObservations] = useState(document.content?.observations || '');
   const documentRef = useRef<HTMLDivElement>(null);
