@@ -53,8 +53,8 @@ serve(async (req) => {
     }
 
     // Limpar CNPJ - apenas números
-    const cleanCnpj = cnpj.replace(/\D/g, "");
-    if (cleanCnpj.length < 14) {
+    const cleanCnpj = cnpj.replace(/\D/g, "").slice(0, 14);
+    if (cleanCnpj.length !== 14) {
       return new Response(JSON.stringify({ error: "CNPJ inválido" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
