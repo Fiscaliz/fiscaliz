@@ -1157,17 +1157,15 @@ export default function MonthlyReport() {
             <div className="info-row"><span className="info-label">Nº OS:</span><span className="info-value">{osNumber || '-'}</span></div>
             <div className="info-row"><span className="info-label">Data de Emissão da OS:</span><span className="info-value">
               {format(getLastBusinessDay(selectedMonth === 1 ? selectedYear - 1 : selectedYear, selectedMonth === 1 ? 12 : selectedMonth - 1), 'dd/MM/yyyy')}
-              {' '}(último dia útil de {months[(selectedMonth - 2 + 12) % 12]})
             </span></div>
             <div className="info-row"><span className="info-label">Data de Devolução da OS:</span><span className="info-value">
               {format(getNthBusinessDay(selectedMonth === 12 ? selectedYear + 1 : selectedYear, selectedMonth === 12 ? 1 : selectedMonth + 1, 3), 'dd/MM/yyyy')}
-              {' '}(3º dia útil de {months[selectedMonth % 12]})
             </span></div>
             <div className="info-row"><span className="info-label">Período:</span><span className="info-value">01 a {new Date(selectedYear, selectedMonth, 0).getDate()}/{selectedMonth.toString().padStart(2, '0')}/{selectedYear}</span></div>
           </div>
 
           {/* Licença / Afastamento (se houver) - DESTAQUE */}
-          {selectedLicenseType && (
+          {(selectedLicenseType || (licenseStartDate && licenseEndDate)) && (
             <div className="mb-6" style={{ border: '2px solid #b45309', backgroundColor: '#fffbeb', padding: '12px', borderRadius: '4px' }}>
               <div className="section-title" style={{ background: '#b45309' }}>⚠️ AFASTAMENTO NO PERÍODO</div>
               <div className="info-row">
@@ -2370,7 +2368,7 @@ export default function MonthlyReport() {
             </Card>
 
             {/* Afastamento */}
-            {selectedLicenseType && (
+            {(selectedLicenseType || (licenseStartDate && licenseEndDate)) && (
               <Card className="border-0 shadow-sm border-l-4 border-l-warning">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-2">
