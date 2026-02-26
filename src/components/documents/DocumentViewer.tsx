@@ -1143,14 +1143,14 @@ _Enviado via FISCALIZ®_`;
           prepostoCpf={prepostoCpf}
         />
         {/* Botões (ocultos na impressão) */}
-        <div className="no-print fixed bottom-4 right-4 flex gap-2">
-          <Button variant="outline" onClick={() => setShowPDFPreview(false)}>
+        <div className="no-print fixed bottom-0 left-0 right-0 z-[10000] bg-white border-t shadow-lg p-4 flex gap-3 justify-center">
+          <Button variant="outline" size="lg" onClick={() => setShowPDFPreview(false)}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Voltar
           </Button>
-          <Button onClick={() => window.print()}>
+          <Button size="lg" onClick={() => window.print()}>
             <Printer className="h-4 w-4 mr-2" />
-            Imprimir PDF
+            Imprimir / Salvar PDF
           </Button>
         </div>
       </div>
@@ -1618,14 +1618,14 @@ _Enviado via FISCALIZ®_`;
         </div>
 
         {/* Botões (ocultos na impressão) */}
-        <div className="no-print fixed bottom-4 right-4 flex gap-2">
-          <Button variant="outline" onClick={() => setShowPDFPreview(false)}>
+        <div className="no-print fixed bottom-0 left-0 right-0 z-[10000] bg-white border-t shadow-lg p-4 flex gap-3 justify-center">
+          <Button variant="outline" size="lg" onClick={() => setShowPDFPreview(false)}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Voltar
           </Button>
-          <Button onClick={() => window.print()}>
+          <Button size="lg" onClick={() => window.print()}>
             <Printer className="h-4 w-4 mr-2" />
-            Imprimir PDF
+            Imprimir / Salvar PDF
           </Button>
         </div>
       </div>
