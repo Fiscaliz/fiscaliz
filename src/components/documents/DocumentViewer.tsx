@@ -1195,15 +1195,15 @@ _Enviado via FISCALIZ®_`;
           <div className="mb-6 border-b-2 border-gray-800 pb-4">
             <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
               <colgroup>
-                <col style={{ width: '70px' }} />
+                <col style={{ width: '65px' }} />
                 <col />
-                <col style={{ width: '60px' }} />
+                <col style={{ width: '65px' }} />
               </colgroup>
               <tbody>
                 <tr>
                   {/* Brasão à esquerda */}
                   <td style={{ verticalAlign: 'middle', textAlign: 'center', padding: '0' }}>
-                    <img src={BRASAO_GOIANIA_SVG} alt="Prefeitura de Goiânia" style={{ height: '65px', width: 'auto', display: 'inline-block' }} />
+                    <img src={BRASAO_GOIANIA_SVG} alt="Prefeitura de Goiânia" style={{ height: '55px', width: 'auto', display: 'inline-block' }} />
                   </td>
                   
                   {/* Textos centralizados */}
@@ -1217,7 +1217,7 @@ _Enviado via FISCALIZ®_`;
                   
                   {/* Logo SUS à direita */}
                   <td style={{ verticalAlign: 'middle', textAlign: 'center', padding: '0' }}>
-                    <img src={SUS_LOGO_SVG} alt="SUS" style={{ height: '40px', width: 'auto', display: 'inline-block' }} />
+                    <img src={SUS_LOGO_SVG} alt="SUS" style={{ height: '50px', width: 'auto', display: 'inline-block' }} />
                   </td>
                 </tr>
               </tbody>
