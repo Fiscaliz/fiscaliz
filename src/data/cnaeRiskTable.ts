@@ -75,6 +75,8 @@ export const MEDIUM_RISK_CNAES: CNAERiskEntry[] = [
   { cnae: '1099-6/02', description: 'Pós para pudins e gelatinas', riskLevel: 'II', justification: 'Ingredientes secos, baixo risco.' },
   { cnae: '1099-6/07', description: 'Alimentos dietéticos', riskLevel: 'II', justification: 'Controle rigoroso de rótulos; baixo risco micro.' },
   { cnae: '1099-6/99', description: 'Outros alimentos', riskLevel: 'II', justification: 'Categoria ampla, risco médio.' },
+  { cnae: '4711-3/01', description: 'Hipermercados', riskLevel: 'II', justification: 'Grande variedade de alimentos, incluindo perecíveis e manipulados.' },
+  { cnae: '4711-3/02', description: 'Supermercados', riskLevel: 'II', justification: 'Venda de alimentos perecíveis com possível manipulação.' },
   { cnae: '4721-1/03', description: 'Varejo de laticínios e frios', riskLevel: 'II', justification: 'Risco no fracionamento e temperatura.' },
   { cnae: '5611-2/03', description: 'Lanchonetes e similares', riskLevel: 'II', justification: 'Preparo mais simples que restaurantes.' },
   { cnae: '5611-2/04', description: 'Bares sem entretenimento', riskLevel: 'II', justification: 'Manipulação simples de alimentos.' },
