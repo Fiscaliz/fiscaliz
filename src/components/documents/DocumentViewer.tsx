@@ -1312,6 +1312,17 @@ _Enviado via FISCALIZ®_`;
             </div>
           )}
 
+          {/* CONTEXTO DA DENÚNCIA - Apenas para ações investigativas/denúncia */}
+          {document.content?.denuncia_context && (
+            <div className="doc-section border border-gray-300 p-4 mb-6">
+              <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">CONTEXTO DA DENÚNCIA</h3>
+              <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                <p>Em resposta à denúncia a respeito de: <em>{document.content.denuncia_context}</em></p>
+                <p className="mt-2">Segue a ação fiscal realizada:</p>
+              </div>
+            </div>
+          )}
+
           {/* ESPECIFICAÇÃO DAS IRREGULARIDADES */}
           <div className="doc-section border border-gray-300 p-4 mb-6">
             <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">
