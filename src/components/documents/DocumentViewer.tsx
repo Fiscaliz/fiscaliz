@@ -150,20 +150,13 @@ export function DocumentViewer({
   const [showFullScreenSignature, setShowFullScreenSignature] = useState(false);
   const prepostoFileInputRef = useRef<HTMLInputElement>(null);
   const evidenceFileInputRef = useRef<HTMLInputElement>(null);
-  // Convert legacy public URLs to signed URLs since bucket is now private
+  // Convert any storage URL (public, signed, or raw path) to a fresh signed URL
   const toSignedUrl = useCallback(async (url: string): Promise<string> => {
     if (!url) return url;
-    // If it's already a signed URL, return as-is
-    if (url.includes('/object/sign/')) return url;
-    // If it contains public URL marker, convert to signed
-    if (url.includes('/object/public/')) {
-      return getSignedUrl(url);
-    }
-    // For storage paths without full URL
-    if (!url.startsWith('http')) {
-      return getSignedUrl(url);
-    }
-    return url;
+    // Already a data URL (base64), skip
+    if (url.startsWith('data:')) return url;
+    // Always generate a fresh signed URL (handles expired signed URLs, public URLs, and raw paths)
+    return getSignedUrl(url);
   }, []);
 
   const [evidencePhotos, setEvidencePhotos] = useState<string[]>([]);
@@ -909,20 +902,26 @@ _Enviado via FISCALIZ®_`;
           continue;
         }
 
-        const { data: signedData } = await supabase.storage
-          .from('fiscal-photos')
-          .createSignedUrl(fileName, 3600);
-
-        if (signedData?.signedUrl) uploadedUrls.push(signedData.signedUrl);
+        // Store the raw storage path (NOT signed URL) so it never expires
+        uploadedUrls.push(fileName);
       }
 
-      const newPhotos = [...evidencePhotos, ...uploadedUrls];
-      setEvidencePhotos(newPhotos);
+      // Generate signed URLs for display
+      const signedForDisplay = await Promise.all(
+        uploadedUrls.map(path => getSignedUrl(path))
+      );
 
-      // Save to database
-      const attachments = newPhotos.map((url, idx) => ({
+      const newDisplayPhotos = [...evidencePhotos, ...signedForDisplay];
+      setEvidencePhotos(newDisplayPhotos);
+
+      // Save RAW PATHS to database (not signed URLs)
+      const existingPaths = (document.attachments as AttachmentPhoto[] || [])
+        .filter(a => a.url)
+        .map(a => extractStoragePath(a.url));
+      const allPaths = [...existingPaths, ...uploadedUrls];
+      const attachments = allPaths.map((path, idx) => ({
         id: `img_${idx}`,
-        url,
+        url: path,
         type: 'image'
       }));
 
@@ -954,10 +953,10 @@ _Enviado via FISCALIZ®_`;
     const newPhotos = evidencePhotos.filter((_, idx) => idx !== index);
     setEvidencePhotos(newPhotos);
 
-    // Save to database
+    // Save RAW PATHS to database (extract from signed URLs)
     const attachments = newPhotos.map((url, idx) => ({
       id: `img_${idx}`,
-      url,
+      url: extractStoragePath(url),
       type: 'image'
     }));
 
