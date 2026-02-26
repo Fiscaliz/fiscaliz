@@ -1369,6 +1369,30 @@ _Enviado via FISCALIZ®_`;
             </div>
           )}
 
+          {/* MEDIDAS LEGAIS ADOTADAS - Relatório Técnico */}
+          {isRelatorioTecnico && relatorioTecnicoData?.medidasLegais && (
+            <div className="doc-section border border-gray-300 p-4 mb-6">
+              <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">
+                {hasPhotoLegends ? '4' : '3'}. MEDIDAS LEGAIS ADOTADAS
+              </h3>
+              <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                {relatorioTecnicoData.medidasLegais}
+              </div>
+            </div>
+          )}
+
+          {/* CONCLUSÃO FINAL - Relatório Técnico */}
+          {isRelatorioTecnico && relatorioTecnicoData?.conclusao && (
+            <div className="doc-section border border-gray-300 p-4 mb-6">
+              <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">
+                {hasPhotoLegends ? '5' : '4'}. CONCLUSÃO FINAL
+              </h3>
+              <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                {relatorioTecnicoData.conclusao}
+              </div>
+            </div>
+          )}
+
           {/* PRAZO PARA ADEQUAÇÃO - Apenas para Termo de Intimação */}
           {isTermoIntimacao && (deadlineDate || document.deadline_date) && (
             <div className="doc-section border border-yellow-400 bg-yellow-50 p-4 mb-6">
@@ -1386,7 +1410,7 @@ _Enviado via FISCALIZ®_`;
           {hasPhotoLegends && attachedPhotos.length > 0 && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">
-                {isRelatorioTecnico ? '3. ANEXOS - REGISTRO FOTOGRÁFICO' : 'ANEXOS - REGISTRO FOTOGRÁFICO'}
+                {isRelatorioTecnico ? `${(relatorioTecnicoData?.medidasLegais ? 1 : 0) + (relatorioTecnicoData?.conclusao ? 1 : 0) + 3}. ANEXOS - REGISTRO FOTOGRÁFICO` : 'ANEXOS - REGISTRO FOTOGRÁFICO'}
               </h3>
               <p className="text-xs text-gray-600 mb-4">
                 As irregularidades descritas acima são comprovadas pelas evidências fotográficas a seguir, numeradas conforme o texto:
