@@ -672,11 +672,12 @@ export function RelatorioTecnicoForm({
                           className="h-7 text-xs w-28 px-2"
                         />
                       </div>
-                      <Input
+                      <Textarea
                         placeholder="Legenda da irregularidade..."
                         value={legend.legenda}
                         onChange={(e) => updatePhotoLegend(idx, 'legenda', e.target.value)}
-                        className="text-sm"
+                        className="text-sm min-h-[56px] resize-none"
+                        rows={2}
                       />
                     </div>
                   </div>
