@@ -1102,100 +1102,16 @@ _Enviado via FISCALIZ®_`;
     });
   };
 
-  const handleGeneratePDF = async () => {
-    try {
-      toast({
-        title: 'Gerando PDF...',
-        description: 'Aguarde enquanto o documento é preparado.'
-      });
-
-      setShowPDFPreview(true);
-
-      const previewElement = await waitForPdfPreviewRef();
-
-      // Aguardar imagens carregarem
-      const images = previewElement.querySelectorAll('img');
-      const imagePromises = Array.from(images).map((img) => {
-        if (img.complete) return Promise.resolve();
-        return new Promise<void>((resolve) => {
-          img.onload = () => resolve();
-          img.onerror = () => resolve();
-        });
-      });
-      await Promise.all(imagePromises);
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      const canvas = await html2canvas(previewElement, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        windowWidth: previewElement.scrollWidth,
-        windowHeight: previewElement.scrollHeight,
-        onclone: (clonedDoc) => {
-          const clonedPreview = clonedDoc.querySelector('.pdf-preview-container') as HTMLElement;
-          if (clonedPreview) {
-            clonedPreview.style.position = 'relative';
-            clonedPreview.style.display = 'block';
-          }
-        }
-      });
-
-      const imgData = canvas.toDataURL('image/jpeg', 0.92);
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const imgX = (pdfWidth - imgWidth * ratio) / 2;
-      const scaledHeight = imgHeight * ratio;
-
-      if (scaledHeight > pdfHeight) {
-        let remainingHeight = imgHeight;
-        let currentY = 0;
-        const pageHeightInPixels = pdfHeight / ratio;
-
-        while (remainingHeight > 0) {
-          if (currentY > 0) pdf.addPage();
-          const pageCanvas = window.document.createElement('canvas');
-          pageCanvas.width = canvas.width;
-          pageCanvas.height = Math.min(pageHeightInPixels, remainingHeight);
-          const ctx = pageCanvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(canvas, 0, currentY, canvas.width, pageCanvas.height, 0, 0, pageCanvas.width, pageCanvas.height);
-            const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.92);
-            pdf.addImage(pageImgData, 'JPEG', imgX, 0, imgWidth * ratio, pageCanvas.height * ratio);
-          }
-          currentY += pageHeightInPixels;
-          remainingHeight -= pageHeightInPixels;
-        }
+  const handleGeneratePDF = () => {
+    setShowPDFPreview(true);
+    setTimeout(() => {
+      // Call the parent's onGeneratePDF if provided (print dialog - permite imprimir/salvar)
+      if (onGeneratePDF) {
+        onGeneratePDF();
       } else {
-        pdf.addImage(imgData, 'JPEG', imgX, 0, imgWidth * ratio, scaledHeight);
+        window.print();
       }
-
-      setShowPDFPreview(false);
-
-      // Baixar PDF diretamente no dispositivo
-      const docType = documentTypeLabels[document.document_type] || 'Documento';
-      const docNumber = document.document_number || document.id.slice(0, 8);
-      const fileName = `${docType}_${docNumber}.pdf`.replace(/\s+/g, '_');
-      pdf.save(fileName);
-
-      toast({
-        title: 'PDF salvo!',
-        description: 'O arquivo foi baixado para o seu dispositivo.'
-      });
-    } catch (error: any) {
-      console.error('[PDF Save] Error:', error);
-      setShowPDFPreview(false);
-      toast({
-        title: 'Erro ao gerar PDF',
-        description: error?.message || 'Tente novamente.',
-        variant: 'destructive'
-      });
-    }
+    }, 500);
   };
 
   const formatDateFull = (dateStr: string) => {
