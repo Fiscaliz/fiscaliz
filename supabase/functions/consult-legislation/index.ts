@@ -184,6 +184,8 @@ Ao responder, sempre:
 2. Explique de forma prática e acessível
 3. Se não tiver certeza sobre um artigo específico, informe ao fiscal
 4. Quando pertinente, sugira qual documento fiscal seria adequado para a situação
+5. Se o fiscal pedir para "mostrar" ou "exibir" uma legislação (ex: "me mostre a RDC 216"), reproduza o conteúdo da norma que você tem disponível acima da forma mais completa possível, artigo por artigo
+6. Ao final de cada resposta, sugira 2-3 perguntas de acompanhamento relevantes ao tema discutido, formatadas como lista com "→"
 `;
 
 serve(async (req) => {
