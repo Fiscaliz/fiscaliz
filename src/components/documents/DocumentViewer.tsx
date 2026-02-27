@@ -46,6 +46,7 @@ import { ColetaAmostraPDF } from './ColetaAmostraPDF';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { LegislationSelectDialog, DEFAULT_LEGISLATION } from './LegislationSelectDialog';
+import { TeamMembersSection, TeamMembersSignatures, type TeamMember } from './TeamMembersSection';
 
 interface AttachmentPhoto {
   id?: string;
@@ -145,6 +146,7 @@ export function DocumentViewer({
   const [documentDate, setDocumentDate] = useState(document.content?.document_date || (document as any).action_date || new Date(document.created_at).toISOString().split('T')[0]);
   const [documentTime, setDocumentTime] = useState(document.content?.document_time || new Date(document.created_at).toTimeString().slice(0, 5));
   const [observations, setObservations] = useState(document.content?.observations || '');
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(document.content?.team_members || []);
   const documentRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showFullScreenSignature, setShowFullScreenSignature] = useState(false);
@@ -248,7 +250,8 @@ export function DocumentViewer({
           preposto_cpf: prepostoCpf,
           document_date: documentDate,
           document_time: documentTime,
-          observations: observations,
+           observations: observations,
+           team_members: teamMembers,
         } 
       });
     }
@@ -1049,7 +1052,8 @@ _Enviado via FISCALIZ®_`;
               text: content,
               photoLegends: newLegends,
               method: 'ai',
-              observations: observations,
+               observations: observations,
+               team_members: teamMembers,
               document_date: documentDate,
               document_time: documentTime,
               ...(document.document_type === 'relatorio_tecnico' ? {
@@ -1110,6 +1114,7 @@ _Enviado via FISCALIZ®_`;
           observations,
           document_date: documentDate,
           document_time: documentTime,
+          team_members: teamMembers,
         }
       };
       if (isRelatorioTecnico) {
@@ -1137,7 +1142,8 @@ _Enviado via FISCALIZ®_`;
           preposto_cpf: prepostoCpf,
           document_date: documentDate,
           document_time: documentTime,
-          observations: observations,
+           observations: observations,
+           team_members: teamMembers,
         } 
       });
     }
@@ -2365,6 +2371,16 @@ _Enviado via FISCALIZ®_`;
               </div>
             )}
 
+            {/* Equipe da Ação Fiscal - Auditores e Testemunhas adicionais */}
+            {canEdit && document.document_type !== 'relatorio_atividade' && (
+              <TeamMembersSection
+                members={teamMembers}
+                onChange={setTeamMembers}
+                documentId={document.id}
+                editable={canEdit}
+              />
+            )}
+
             {/* Preposto/Responsável Section - Editable (apenas para documentos que não sejam certidão) */}
             {canEdit && document.document_type !== 'certidao' && document.document_type !== 'relatorio_tecnico' && (
               <div className="p-4 bg-muted/30 rounded-lg space-y-4 print:hidden">
@@ -2454,7 +2470,8 @@ _Enviado via FISCALIZ®_`;
                                     preposto_cpf: prepostoCpf,
                                     document_date: documentDate,
                                     document_time: documentTime,
-                                    observations: observations,
+                                     observations: observations,
+                                     team_members: teamMembers,
                                   } 
                                 });
                               }
@@ -2553,7 +2570,13 @@ _Enviado via FISCALIZ®_`;
             )}
 
             {/* Signatures Area */}
-            <div className={`grid ${document.document_type === 'relatorio_tecnico' ? 'grid-cols-1 max-w-[50%] mx-auto' : 'grid-cols-2'} gap-8 pt-8 border-t print:pt-6`}>
+            <div className={`grid ${
+              document.document_type === 'relatorio_tecnico' && teamMembers.length === 0
+                ? 'grid-cols-1 max-w-[50%] mx-auto' 
+                : teamMembers.length > 0 
+                  ? `grid-cols-2 md:grid-cols-${Math.min(2 + teamMembers.length, 4)}`
+                  : 'grid-cols-2'
+            } gap-8 pt-8 border-t print:pt-6`}>
               <div className="text-center space-y-2">
                 {document.profile?.signature_url ? (
                   <img 
@@ -2597,6 +2620,8 @@ _Enviado via FISCALIZ®_`;
                   )}
                 </div>
               )}
+              {/* Team Members Signatures */}
+              <TeamMembersSignatures members={teamMembers} />
             </div>
 
             {/* Footer */}
@@ -2845,7 +2870,8 @@ _Enviado via FISCALIZ®_`;
                 preposto_cpf: prepostoCpf,
                 document_date: documentDate,
                 document_time: documentTime,
-                observations: observations,
+                 observations: observations,
+                 team_members: teamMembers,
               } 
             });
           }

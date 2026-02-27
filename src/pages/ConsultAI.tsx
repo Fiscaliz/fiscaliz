@@ -28,6 +28,16 @@ type Message = {
 // Sugestões agrupadas por contexto
 const SUGGESTION_GROUPS = [
   {
+    label: 'Compêndio de Leis',
+    icon: '📖',
+    questions: [
+      'Me mostre a Resolução 20 DIVISA/SES-GO na íntegra',
+      'Me mostre a RDC 216/2004 completa',
+      'Me mostre a Lei 8741/2008 - Código Sanitário de Goiânia',
+      'Quais são todas as legislações disponíveis?',
+    ],
+  },
+  {
     label: 'Documentos & Prazos',
     icon: '📋',
     questions: [
