@@ -1817,7 +1817,7 @@ export default function CreateDocument() {
               onRemovePhoto={removeImage}
             />
             <TransportModeSelector value={transportMode} onChange={setTransportMode} />
-            <Button className="w-full" onClick={handleSave} disabled={coletaAmostraData.amostras.length === 0 || saving}>
+            <Button className="w-full" onClick={handleSave} disabled={coletaAmostraData.produtos.length === 0 || saving}>
               {saving ? 'Salvando...' : 'Salvar Coleta de Amostra'}
             </Button>
           </>
