@@ -53,67 +53,63 @@ export function ColetaAmostraPDF({
     catch { return d; }
   };
 
-  // Shared border style
   const bd = '1px solid #000';
 
   const cellBase: React.CSSProperties = {
     border: bd,
     padding: '1px 3px',
-    fontSize: '9pt',
+    fontSize: '8pt',
     verticalAlign: 'top',
-    lineHeight: '1.3',
+    lineHeight: '1.25',
   };
 
   const lbl: React.CSSProperties = {
-    fontSize: '6.5pt',
+    fontSize: '6pt',
     fontWeight: 'normal',
     color: '#000',
     display: 'block',
-    lineHeight: '1.2',
+    lineHeight: '1.1',
   };
 
   const val: React.CSSProperties = {
-    fontSize: '10pt',
+    fontSize: '9pt',
     display: 'block',
-    minHeight: '13px',
-    lineHeight: '1.3',
+    minHeight: '12px',
+    lineHeight: '1.25',
   };
 
-  // Compute total unidades from invólucros
   const getTotalUnidades = (produto: any) => {
     return (produto.involucros || []).reduce((sum: number, inv: any) => sum + (parseInt(inv.unidades) || 0), 0);
   };
 
   return (
-    <div style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '10pt', color: '#000', padding: '10px 15px', maxWidth: '210mm', margin: '0 auto', background: '#fff' }}>
+    <div style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '9pt', color: '#000', padding: '8mm 10mm', maxWidth: '210mm', margin: '0 auto', background: '#fff' }}>
       {produtos.map((produto: any, prodIdx: number) => (
         <div key={prodIdx} style={{ pageBreakAfter: prodIdx < produtos.length - 1 ? 'always' : 'auto', marginBottom: prodIdx < produtos.length - 1 ? '40px' : '0' }}>
 
           {/* ========== CABEÇALHO ========== */}
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '4px' }}>
-            <colgroup>
-              <col style={{ width: '60px' }} />
-              <col />
-              <col style={{ width: '130px' }} />
-            </colgroup>
+          <table style={{ width: '100%', borderCollapse: 'collapse', border: bd }}>
             <tbody>
               <tr>
-                <td style={{ verticalAlign: 'middle', textAlign: 'center', padding: '0' }}>
-                  <img src={BRASAO_GOIANIA_SVG} alt="Brasão" style={{ height: '52px', width: 'auto' }} />
+                {/* Brasão */}
+                <td style={{ width: '55px', verticalAlign: 'middle', textAlign: 'center', padding: '4px', borderRight: bd }}>
+                  <img src={BRASAO_GOIANIA_SVG} alt="Brasão" style={{ height: '48px', width: 'auto' }} />
                 </td>
-                <td style={{ verticalAlign: 'middle', textAlign: 'center', padding: '0 6px' }}>
-                  <div style={{ fontSize: '10pt', fontWeight: 'bold', lineHeight: '1.3' }}>PREFEITURA DE GOIÂNIA</div>
-                  <div style={{ fontSize: '8.5pt', fontWeight: 'bold', lineHeight: '1.3' }}>SECRETARIA MUNICIPAL DE SAÚDE</div>
+                {/* Textos centrais */}
+                <td style={{ verticalAlign: 'middle', textAlign: 'center', padding: '2px 6px', borderRight: bd }}>
+                  <div style={{ fontSize: '9pt', fontWeight: 'bold', lineHeight: '1.3' }}>PREFEITURA DE GOIÂNIA</div>
+                  <div style={{ fontSize: '8pt', fontWeight: 'bold', lineHeight: '1.3' }}>SECRETARIA MUNICIPAL DE SAÚDE</div>
                   <div style={{ fontSize: '7pt', fontWeight: 'bold', lineHeight: '1.3' }}>DIRETORIA DE VIGILÂNCIA SANITÁRIA E AMBIENTAL</div>
-                  <div style={{ fontSize: '6pt', color: '#333', marginTop: '1px', lineHeight: '1.2' }}>Av Universitária Nº 644 Qd 107 Lot 03 Setor Leste Universitário - Goiânia -GO</div>
+                  <div style={{ fontSize: '5.5pt', color: '#333', marginTop: '1px', lineHeight: '1.2' }}>
+                    Av Universitária Nº 644 Qd 107 Lot 03 Setor Leste Universitário– Goiânia -GO
+                  </div>
                 </td>
-                <td style={{ verticalAlign: 'top', textAlign: 'right', padding: '0' }}>
-                  {/* Número do documento */}
-                  <div style={{ border: bd, padding: '3px 6px', fontSize: '13pt', fontWeight: 'bold', textAlign: 'center', marginBottom: '3px' }}>
+                {/* Número + vias */}
+                <td style={{ width: '120px', verticalAlign: 'top', padding: '4px 6px' }}>
+                  <div style={{ fontSize: '14pt', fontWeight: 'bold', textAlign: 'right', marginBottom: '4px', letterSpacing: '1px' }}>
                     {document.document_number || ''}
                   </div>
-                  {/* Vias */}
-                  <div style={{ fontSize: '5.5pt', lineHeight: '1.5', textAlign: 'left', paddingLeft: '2px' }}>
+                  <div style={{ fontSize: '5pt', lineHeight: '1.5', textAlign: 'left' }}>
                     <div>1ª Via <strong>LABORATÓRIO</strong></div>
                     <div>2ª Via <strong>PONTO DE COLETA</strong></div>
                     <div>3ª Via <strong>FISCAL</strong></div>
@@ -125,24 +121,22 @@ export function ColetaAmostraPDF({
           </table>
 
           {/* COORDENAÇÃO */}
-          <div style={{ fontSize: '9pt', marginBottom: '3px' }}>
-            <strong>COORDENAÇÃO:</strong>{' '}
-            <span style={{ borderBottom: bd, display: 'inline-block', minWidth: '180px', paddingBottom: '1px' }}>
-              {document.profile?.division || 'CFA'}
-            </span>
+          <div style={{ fontSize: '8pt', margin: '3px 0 2px', borderBottom: bd, paddingBottom: '1px' }}>
+            <span style={{ fontWeight: 'bold', fontSize: '7pt' }}>COORDENAÇÃO:</span>{' '}
+            <span style={{ fontSize: '9pt' }}>{document.profile?.division || 'CFA'}</span>
           </div>
 
           {/* TÍTULO */}
-          <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '11pt', margin: '8px 0 6px', letterSpacing: '0.5px' }}>
+          <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '12pt', margin: '10px 0 8px', letterSpacing: '1px' }}>
             TERMO DE COLETA PARA ANÁLISE
           </div>
 
-          {/* CATEGORIAS - Checkboxes em linha */}
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2px' }}>
+          {/* CATEGORIAS */}
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '0' }}>
             <tbody>
               <tr>
                 {categorias.map((cat) => (
-                  <td key={cat} style={{ textAlign: 'center', padding: '2px 4px', fontSize: '7pt', border: bd }}>
+                  <td key={cat} style={{ textAlign: 'center', padding: '2px 3px', fontSize: '6.5pt', border: bd, fontWeight: 'bold' }}>
                     <span style={{
                       display: 'inline-block', width: '10px', height: '10px', border: bd,
                       textAlign: 'center', lineHeight: '10px', fontSize: '8pt', fontWeight: 'bold',
@@ -162,9 +156,8 @@ export function ColetaAmostraPDF({
           {/* ========== 1- LOCAL DA COLETA ========== */}
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <tbody>
-              {/* Cabeçalho da seção */}
               <tr>
-                <td colSpan={6} style={{ ...cellBase, fontWeight: 'bold', fontSize: '8pt', padding: '2px 4px', borderBottom: bd }}>
+                <td colSpan={6} style={{ ...cellBase, fontWeight: 'bold', fontSize: '7.5pt', padding: '2px 3px', borderTop: bd }}>
                   1- LOCAL DA COLETA
                 </td>
               </tr>
@@ -185,8 +178,8 @@ export function ColetaAmostraPDF({
                   <span style={lbl}>Atividade:</span>
                   <span style={val}>{(est as any)?.cnae_principal || ''}</span>
                 </td>
-                <td style={{ ...cellBase, width: '50px' }}>
-                  <span style={lbl}>Nº:</span>
+                <td style={{ ...cellBase, width: '40px' }}>
+                  <span style={lbl}>Nº</span>
                   <span style={val}></span>
                 </td>
               </tr>
@@ -226,47 +219,47 @@ export function ColetaAmostraPDF({
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <tbody>
               <tr>
-                <td colSpan={8} style={{ ...cellBase, fontWeight: 'bold', fontSize: '8pt', padding: '2px 4px' }}>
+                <td colSpan={12} style={{ ...cellBase, fontWeight: 'bold', fontSize: '7.5pt', padding: '2px 3px' }}>
                   2- IDENTIFICAÇÃO DO PRODUTO
                 </td>
               </tr>
               {/* Nome */}
               <tr>
-                <td colSpan={8} style={cellBase}>
+                <td colSpan={12} style={cellBase}>
                   <span style={lbl}>Nome:</span>
                   <span style={val}>{produto.nome || ''}</span>
                 </td>
               </tr>
               {/* Marca | Natureza | Apresentação */}
               <tr>
-                <td colSpan={3} style={cellBase}>
+                <td colSpan={4} style={cellBase}>
                   <span style={lbl}>Marca:</span>
                   <span style={val}>{produto.marca || ''}</span>
                 </td>
-                <td colSpan={3} style={cellBase}>
+                <td colSpan={4} style={cellBase}>
                   <span style={lbl}>Natureza:</span>
                   <span style={val}>{produto.natureza || ''}</span>
                 </td>
-                <td colSpan={2} style={cellBase}>
+                <td colSpan={4} style={cellBase}>
                   <span style={lbl}>Apresentação:</span>
                   <span style={val}>{produto.apresentacao || ''}</span>
                 </td>
               </tr>
-              {/* Datas | Lote | NºReg | Volume/Peso | Temperatura */}
+              {/* Data fabricação | Data validade | Lote | Nº Reg. | Volume/Peso | Temperatura */}
               <tr>
-                <td style={cellBase}>
+                <td colSpan={2} style={cellBase}>
                   <span style={lbl}>Data de fabricação:</span>
                   <span style={val}>{produto.dataFabricacao ? formatDateBR(produto.dataFabricacao) : ''}</span>
                 </td>
-                <td style={cellBase}>
+                <td colSpan={2} style={cellBase}>
                   <span style={lbl}>Data de validade:</span>
                   <span style={val}>{produto.dataValidade ? formatDateBR(produto.dataValidade) : ''}</span>
                 </td>
-                <td style={cellBase}>
+                <td colSpan={2} style={cellBase}>
                   <span style={lbl}>Lote:</span>
                   <span style={val}>{produto.lote || ''}</span>
                 </td>
-                <td style={cellBase}>
+                <td colSpan={2} style={cellBase}>
                   <span style={lbl}>Nº Reg.:</span>
                   <span style={val}>{produto.numeroRegistro || ''}</span>
                 </td>
@@ -282,29 +275,41 @@ export function ColetaAmostraPDF({
 
               {/* Fabricante | CNPJ */}
               <tr>
-                <td colSpan={5} style={cellBase}>
+                <td colSpan={7} style={cellBase}>
                   <span style={lbl}>Fabricante:</span>
                   <span style={val}>{produto.fabricante || ''}</span>
                 </td>
-                <td colSpan={3} style={cellBase}>
+                <td colSpan={5} style={cellBase}>
                   <span style={lbl}>CNPJ:</span>
                   <span style={val}>{produto.fabricanteCnpj || ''}</span>
                 </td>
               </tr>
-              {/* Endereço fabricante */}
+              {/* Endereço do fabricante | Qd | Lot. | Nº */}
               <tr>
-                <td colSpan={8} style={cellBase}>
+                <td colSpan={7} style={cellBase}>
                   <span style={lbl}>Endereço:</span>
                   <span style={val}>{produto.fabricanteEndereco || ''}</span>
+                </td>
+                <td colSpan={2} style={cellBase}>
+                  <span style={lbl}>Qd</span>
+                  <span style={val}>{produto.fabricanteQd || ''}</span>
+                </td>
+                <td colSpan={1} style={cellBase}>
+                  <span style={lbl}>Lot.</span>
+                  <span style={val}>{produto.fabricanteLot || ''}</span>
+                </td>
+                <td colSpan={2} style={cellBase}>
+                  <span style={lbl}>Nº:</span>
+                  <span style={val}>{produto.fabricanteNumero || ''}</span>
                 </td>
               </tr>
               {/* Localidade/setor | Município | UF */}
               <tr>
-                <td colSpan={3} style={cellBase}>
+                <td colSpan={5} style={cellBase}>
                   <span style={lbl}>Localidade/ setor:</span>
                   <span style={val}>{produto.fabricanteLocalidade || ''}</span>
                 </td>
-                <td colSpan={3} style={cellBase}>
+                <td colSpan={5} style={cellBase}>
                   <span style={lbl}>Município:</span>
                   <span style={val}>{produto.fabricanteMunicipio || ''}</span>
                 </td>
@@ -322,7 +327,7 @@ export function ColetaAmostraPDF({
               <tr>
                 <td style={cellBase}>
                   <span style={lbl}>Fundamentação legal:</span>
-                  <span style={{ ...val, minHeight: '16px' }}>{produto.fundamentacaoLegal || ''}</span>
+                  <span style={{ ...val, minHeight: '14px' }}>{produto.fundamentacaoLegal || ''}</span>
                 </td>
               </tr>
             </tbody>
@@ -332,22 +337,22 @@ export function ColetaAmostraPDF({
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <tbody>
               <tr>
-                <td style={{ ...cellBase, paddingBottom: '6px' }}>
+                <td style={{ ...cellBase, paddingBottom: '4px' }}>
                   <span style={lbl}>Especificação da Notificação:</span>
-                  <div style={{ fontSize: '9pt', marginTop: '3px', lineHeight: '1.7' }}>
+                  <div style={{ fontSize: '8.5pt', marginTop: '3px', lineHeight: '1.8' }}>
                     {'Ficam coletadas para fins de Análise '}
-                    <span style={{ borderBottom: bd, fontWeight: 'bold', padding: '0 6px', display: 'inline-block', minWidth: '120px' }}>
+                    <span style={{ borderBottom: bd, fontWeight: 'bold', padding: '0 4px', display: 'inline-block', minWidth: '100px' }}>
                       {produto.tipoAnalise || ''}
                     </span>
-                    {' '}
-                    <span style={{ borderBottom: bd, padding: '0 6px', display: 'inline-block', minWidth: '40px', textAlign: 'center' }}>
+                    {', '}
+                    <span style={{ borderBottom: bd, padding: '0 4px', display: 'inline-block', minWidth: '30px', textAlign: 'center' }}>
                       {getTotalUnidades(produto) || ''}
                     </span>
                     {' unidade(s) do'}
                     <br />
                     {'produto acima identificado, distribuídos em '}
-                    <span style={{ borderBottom: bd, fontWeight: 'bold', padding: '0 6px', display: 'inline-block', minWidth: '30px', textAlign: 'center' }}>
-                      {produto.quantidadeInvolucros || ''}
+                    <span style={{ borderBottom: bd, fontWeight: 'bold', padding: '0 4px', display: 'inline-block', minWidth: '25px', textAlign: 'center' }}>
+                      {produto.quantidadeInvolucros || (produto.involucros || []).filter((i: any) => i.lacreNumero || i.unidades).length || ''}
                     </span>
                     {' invólucros, assim discriminados:'}
                   </div>
@@ -361,20 +366,20 @@ export function ColetaAmostraPDF({
             <tbody>
               {(produto.involucros || []).map((inv: any, invIdx: number) => (
                 <tr key={invIdx}>
-                  <td style={{ ...cellBase, fontWeight: 'bold', width: '95px', fontSize: '7.5pt', textAlign: 'center' }}>
+                  <td style={{ ...cellBase, fontWeight: 'bold', width: '90px', fontSize: '7pt', textAlign: 'center' }}>
                     INVÓLUCRO {inv.numero || String(invIdx + 1).padStart(2, '0')}
                   </td>
-                  <td style={{ ...cellBase, width: '120px', fontSize: '7.5pt' }}>
+                  <td style={{ ...cellBase, width: '130px', fontSize: '7pt' }}>
                     <strong>LACRE Nº</strong>{' '}
                     <span>{inv.lacreNumero || '—'}</span>
                   </td>
-                  <td style={{ ...cellBase, width: '50px', textAlign: 'center', fontSize: '7.5pt' }}>
+                  <td style={{ ...cellBase, width: '35px', textAlign: 'center', fontSize: '7pt' }}>
                     {inv.unidades || '—'}
                   </td>
-                  <td style={{ ...cellBase, width: '55px', fontSize: '7.5pt' }}>
+                  <td style={{ ...cellBase, width: '50px', fontSize: '7pt' }}>
                     Unidades
                   </td>
-                  <td style={{ ...cellBase, fontSize: '7.5pt' }}>
+                  <td style={{ ...cellBase, fontSize: '7pt' }}>
                     <strong>DESTINO</strong>{' '}
                     {inv.destino || '—'}
                   </td>
@@ -384,8 +389,8 @@ export function ColetaAmostraPDF({
           </table>
 
           {/* Apenas para amostras com contra prova */}
-          <div style={{ border: bd, borderTop: 'none', padding: '5px 6px', fontSize: '7pt', lineHeight: '1.5' }}>
-            <strong>APENAS PARA AMOSTRAS COM CONTRA PROVA</strong><br />
+          <div style={{ border: bd, borderTop: 'none', padding: '4px 5px', fontSize: '6.5pt', lineHeight: '1.5' }}>
+            <strong style={{ fontSize: '6pt', textDecoration: 'underline' }}>APENAS PARA AMOSTRAS COM CONTRA PROVA</strong><br />
             {'Recebi o INVÓLUCRO Nº 03 contendo amostras do produto identificado para efeito de possível perícia de contra-prova, obrigando-me a mantê-la e conservá-la adequadamente, conforme o recomendado, na condição de fiel depositário.'}
           </div>
 
@@ -393,18 +398,18 @@ export function ColetaAmostraPDF({
           <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
             <tbody>
               <tr>
-                <td style={{ fontSize: '10pt', verticalAlign: 'bottom' }}>
+                <td style={{ fontSize: '9pt', verticalAlign: 'bottom' }}>
                   <strong>GOIÂNIA</strong>
                 </td>
-                <td style={{ fontSize: '10pt', textAlign: 'right', verticalAlign: 'bottom' }}>
+                <td style={{ fontSize: '9pt', textAlign: 'right', verticalAlign: 'bottom' }}>
                   Data:{' '}
-                  <span style={{ borderBottom: bd, display: 'inline-block', minWidth: '110px', padding: '0 4px', textAlign: 'center' }}>
+                  <span style={{ borderBottom: bd, display: 'inline-block', minWidth: '100px', padding: '0 4px', textAlign: 'center' }}>
                     {documentDate ? formatDateBR(documentDate) : ''}
                   </span>
                 </td>
-                <td style={{ fontSize: '10pt', textAlign: 'right', verticalAlign: 'bottom', width: '140px' }}>
+                <td style={{ fontSize: '9pt', textAlign: 'right', verticalAlign: 'bottom', width: '130px' }}>
                   Hora:{' '}
-                  <span style={{ borderBottom: bd, display: 'inline-block', minWidth: '60px', padding: '0 4px', textAlign: 'center' }}>
+                  <span style={{ borderBottom: bd, display: 'inline-block', minWidth: '55px', padding: '0 4px', textAlign: 'center' }}>
                     {documentTime || ''}
                   </span>
                 </td>
@@ -413,58 +418,57 @@ export function ColetaAmostraPDF({
           </table>
 
           {/* ========== ASSINATURAS ========== */}
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '12px', border: bd }}>
             <tbody>
               {/* Linha 1: Autoridade Sanitária | Assinatura do notificado */}
               <tr>
-                <td style={{ width: '50%', verticalAlign: 'bottom', padding: '0 8px 0 0' }}>
+                <td style={{ width: '50%', verticalAlign: 'bottom', padding: '3px 6px', borderRight: bd, borderBottom: bd }}>
                   <div style={{ textAlign: 'center' }}>
-                    {/* Rubrica/assinatura do fiscal */}
-                    <div style={{ minHeight: '40px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                    <div style={{ fontSize: '6pt', marginBottom: '2px' }}>Autoridade Sanitária:</div>
+                    <div style={{ minHeight: '35px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
                       {document.profile?.signature_url && (
-                        <img src={document.profile.signature_url} alt="Assinatura" style={{ height: '40px', maxWidth: '170px', objectFit: 'contain' }} />
+                        <img src={document.profile.signature_url} alt="Assinatura" style={{ height: '35px', maxWidth: '160px', objectFit: 'contain' }} />
                       )}
                     </div>
-                    <div style={{ fontSize: '6.5pt', fontStyle: 'italic', marginBottom: '2px' }}>Autoridade Sanitária:</div>
-                    <div style={{ borderTop: bd, paddingTop: '2px' }}>
-                      <div style={{ fontSize: '9pt', fontWeight: 'bold' }}>{document.profile?.full_name || ''}</div>
+                    <div style={{ borderTop: bd, paddingTop: '2px', marginTop: '2px' }}>
+                      <div style={{ fontSize: '8pt', fontWeight: 'bold' }}>{document.profile?.full_name || ''}</div>
                       {document.profile?.registration_number && (
-                        <div style={{ fontSize: '6.5pt' }}>Auditor{document.profile?.full_name?.match(/^[A-Z]/) ? 'a' : ''} Fiscal de Saúde Pública</div>
+                        <div style={{ fontSize: '5.5pt' }}>Auditor(a) Fiscal de Saúde Pública</div>
                       )}
                       {document.profile?.registration_number && (
-                        <div style={{ fontSize: '6.5pt' }}>Matrícula {document.profile.registration_number}</div>
+                        <div style={{ fontSize: '5.5pt' }}>Matrícula {document.profile.registration_number}</div>
                       )}
                     </div>
                   </div>
                 </td>
-                <td style={{ width: '50%', verticalAlign: 'bottom', padding: '0 0 0 8px' }}>
+                <td style={{ width: '50%', verticalAlign: 'bottom', padding: '3px 6px', borderBottom: bd }}>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ minHeight: '40px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                    <div style={{ fontSize: '6pt', marginBottom: '2px' }}>Assinatura do notificado</div>
+                    <div style={{ minHeight: '35px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
                       {contributorSignatureUrl && (
-                        <img src={contributorSignatureUrl} alt="Assinatura" style={{ height: '40px', maxWidth: '170px', objectFit: 'contain' }} />
+                        <img src={contributorSignatureUrl} alt="Assinatura" style={{ height: '35px', maxWidth: '160px', objectFit: 'contain' }} />
                       )}
                     </div>
-                    <div style={{ fontSize: '6.5pt', fontStyle: 'italic', marginBottom: '2px' }}>Assinatura do notificado</div>
-                    <div style={{ borderTop: bd, paddingTop: '2px' }}>
-                      {prepostoName && <div style={{ fontSize: '9pt' }}>{prepostoName}</div>}
-                      {prepostoCpf && <div style={{ fontSize: '6.5pt' }}>CPF: {prepostoCpf}</div>}
-                      {!prepostoName && <div style={{ minHeight: '14px' }}></div>}
+                    <div style={{ borderTop: bd, paddingTop: '2px', marginTop: '2px' }}>
+                      {prepostoName && <div style={{ fontSize: '8pt' }}>{prepostoName}</div>}
+                      {prepostoCpf && <div style={{ fontSize: '5.5pt' }}>CPF: {prepostoCpf}</div>}
+                      {!prepostoName && <div style={{ minHeight: '12px' }}></div>}
                     </div>
                   </div>
                 </td>
               </tr>
               {/* Linha 2: Testemunhas */}
               <tr>
-                <td style={{ paddingTop: '18px', paddingRight: '8px' }}>
+                <td style={{ padding: '3px 6px', borderRight: bd }}>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '6.5pt', fontStyle: 'italic', marginBottom: '2px' }}>Assinatura da Testemunha:</div>
-                    <div style={{ borderTop: bd, minHeight: '10px' }}></div>
+                    <div style={{ fontSize: '6pt', marginBottom: '2px' }}>Assinatura da Testemunha:</div>
+                    <div style={{ borderTop: bd, minHeight: '10px', marginTop: '25px' }}></div>
                   </div>
                 </td>
-                <td style={{ paddingTop: '18px', paddingLeft: '8px' }}>
+                <td style={{ padding: '3px 6px' }}>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '6.5pt', fontStyle: 'italic', marginBottom: '2px' }}>Assinatura da Testemunha:</div>
-                    <div style={{ borderTop: bd, minHeight: '10px' }}></div>
+                    <div style={{ fontSize: '6pt', marginBottom: '2px' }}>Assinatura da Testemunha:</div>
+                    <div style={{ borderTop: bd, minHeight: '10px', marginTop: '25px' }}></div>
                   </div>
                 </td>
               </tr>
@@ -473,14 +477,14 @@ export function ColetaAmostraPDF({
 
           {/* Observações (se houver) */}
           {produto.observacoes && (
-            <div style={{ marginTop: '6px', fontSize: '7pt', fontStyle: 'italic' }}>
+            <div style={{ marginTop: '4px', fontSize: '6.5pt', fontStyle: 'italic' }}>
               <strong>Obs:</strong> {produto.observacoes}
             </div>
           )}
 
-          {/* Rodapé - código do formulário */}
-          <div style={{ marginTop: '6px', fontSize: '5.5pt', color: '#888' }}>
-            COD. 04320-9 — Gerado por FISCALIZ®
+          {/* Rodapé */}
+          <div style={{ marginTop: '4px', fontSize: '5pt', color: '#888' }}>
+            COD. 04320-9
           </div>
         </div>
       ))}
