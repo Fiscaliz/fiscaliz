@@ -50,7 +50,7 @@ import { DocumentCommonFields } from '@/components/documents/DocumentCommonField
 import { VisitaFiscalForm, formatVisitaFiscalContent, type VisitaFiscalData } from '@/components/documents/VisitaFiscalForm';
 import { AutoInfracaoForm, formatAutoInfracaoContent, type AutoInfracaoData } from '@/components/documents/AutoInfracaoForm';
 import { RelatorioTecnicoForm, formatRelatorioTecnicoContent, type RelatorioTecnicoData } from '@/components/documents/RelatorioTecnicoForm';
-import { ColetaAmostraForm, formatColetaAmostraContent, type ColetaAmostraData } from '@/components/documents/ColetaAmostraForm';
+import { ColetaAmostraForm, formatColetaAmostraContent, createEmptyProduto, type ColetaAmostraData } from '@/components/documents/ColetaAmostraForm';
 import { InutilizacaoForm, formatInutilizacaoContent, type InutilizacaoData } from '@/components/documents/InutilizacaoForm';
 import { ApreensaoForm, formatApreensaoContent, type ApreensaoData } from '@/components/documents/ApreensaoForm';
 import { InterdicaoForm, formatInterdicaoContent, type InterdicaoData } from '@/components/documents/InterdicaoForm';
@@ -279,6 +279,7 @@ export default function CreateDocument() {
   const replicaDefesaFileInputRef = useRef<HTMLInputElement>(null);
   const replicaDefesaCameraRef = useRef<HTMLInputElement>(null);
   const [defesaPhotos, setDefesaPhotos] = useState<{ id: string; file: File; previewUrl: string }[]>([]);
+  const [extractingColetaData, setExtractingColetaData] = useState(false);
 
   // Auto-save state
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
@@ -1690,6 +1691,96 @@ export default function CreateDocument() {
                       <FolderOpen className="h-5 w-5 mr-2" />
                       Galeria
                     </Button>
+                  </div>
+                )}
+
+                {/* Action buttons after upload */}
+                {uploadedImages.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-border/50">
+                    <p className="text-xs text-muted-foreground font-medium">O que deseja fazer com o documento?</p>
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        type="button"
+                        variant="premium"
+                        size="sm"
+                        className="w-full h-12"
+                        disabled={extractingColetaData}
+                        onClick={async () => {
+                          setExtractingColetaData(true);
+                          try {
+                            const imagesBase64: string[] = [];
+                            for (const img of uploadedImages) {
+                              const reader = new FileReader();
+                              const base64 = await new Promise<string>((resolve) => {
+                                reader.onload = () => resolve(reader.result as string);
+                                reader.readAsDataURL(img.file);
+                              });
+                              imagesBase64.push(base64);
+                            }
+
+                            const { data: fnData, error: fnError } = await supabase.functions.invoke('extract-coleta-data', {
+                              body: { imagesBase64 },
+                            });
+
+                            if (fnError) throw fnError;
+                            if (fnData?.error) throw new Error(fnData.error);
+
+                            const extracted = fnData?.data;
+                            if (extracted?.produtos && extracted.produtos.length > 0) {
+                              const produtos = extracted.produtos.map((p: any, idx: number) => ({
+                                ...createEmptyProduto(),
+                                ...Object.fromEntries(
+                                  Object.entries(p).filter(([_, v]) => v !== null && v !== undefined && v !== '')
+                                ),
+                                id: `prod_${Date.now()}_${idx}`,
+                                involucros: p.involucros?.length > 0 ? p.involucros : createEmptyProduto().involucros,
+                              }));
+
+                              setColetaAmostraData(prev => ({
+                                ...prev,
+                                categoriaProduto: extracted.categoriaProduto || prev.categoriaProduto,
+                                produtos,
+                              }));
+
+                              toast({
+                                title: 'Dados extraídos com sucesso!',
+                                description: `${produtos.length} produto(s) identificado(s). Revise os dados no formulário abaixo.`,
+                              });
+                            } else {
+                              toast({
+                                title: 'Nenhum produto encontrado',
+                                description: 'Não foi possível identificar produtos na imagem. Preencha manualmente.',
+                                variant: 'destructive',
+                              });
+                            }
+                          } catch (err: any) {
+                            console.error('Extract coleta data error:', err);
+                            toast({
+                              title: 'Erro na extração',
+                              description: err.message || 'Não foi possível extrair os dados. Tente com uma foto mais clara.',
+                              variant: 'destructive',
+                            });
+                          } finally {
+                            setExtractingColetaData(false);
+                          }
+                        }}
+                      >
+                        {extractingColetaData ? (
+                          <>
+                            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                            Extraindo dados...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-5 w-5 mr-2" />
+                            Preencher formulário por IA
+                          </>
+                        )}
+                      </Button>
+                      <p className="text-[10px] text-muted-foreground text-center">
+                        A IA vai ler o documento e preencher o formulário automaticamente
+                      </p>
+                    </div>
                   </div>
                 )}
               </CardContent>
