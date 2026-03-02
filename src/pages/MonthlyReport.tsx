@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -186,12 +186,15 @@ const licenseTypes = [
 
 export default function MonthlyReport() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
   
   const currentDate = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
+  const paramMonth = searchParams.get('month');
+  const paramYear = searchParams.get('year');
+  const [selectedMonth, setSelectedMonth] = useState(paramMonth ? parseInt(paramMonth) : currentDate.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(paramYear ? parseInt(paramYear) : currentDate.getFullYear());
   
   const [report, setReport] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
