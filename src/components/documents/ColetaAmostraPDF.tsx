@@ -260,7 +260,7 @@ export function ColetaAmostraPDF({
                   <span style={val}>{produto.lote || ''}</span>
                 </td>
                 <td colSpan={2} style={cellBase}>
-                  <span style={lbl}>Nº Reg.:</span>
+                  <span style={lbl}>Nº Reg. no Min. da Saúde:</span>
                   <span style={val}>{produto.numeroRegistro || ''}</span>
                 </td>
                 <td colSpan={2} style={cellBase}>
