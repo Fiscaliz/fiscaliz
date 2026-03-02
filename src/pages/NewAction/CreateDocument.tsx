@@ -280,6 +280,7 @@ export default function CreateDocument() {
   const replicaDefesaCameraRef = useRef<HTMLInputElement>(null);
   const [defesaPhotos, setDefesaPhotos] = useState<{ id: string; file: File; previewUrl: string }[]>([]);
   const [extractingColetaData, setExtractingColetaData] = useState(false);
+  const [surtoNumber, setSurtoNumber] = useState('');
 
   // Auto-save state
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
@@ -828,6 +829,7 @@ export default function CreateDocument() {
           user_id: currentUser.id,
           establishment_id: establishmentId,
           reason: motivo as any,
+          ...(motivo === 'surto' && surtoNumber.trim() ? { reason_details: `Surto nº ${surtoNumber.trim()}` } : {}),
         })
         .select()
         .single();
@@ -1215,6 +1217,26 @@ export default function CreateDocument() {
       </div>
       
       <div className="p-4 space-y-4">
+        {/* Número do Surto - quando motivo é surto */}
+        {motivo === 'surto' && (
+          <Card className="border-0 shadow-sm bg-destructive/5">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <Badge variant="destructive" className="text-xs">SURTO</Badge>
+                <div className="flex-1">
+                  <Label htmlFor="surtoNumber" className="text-xs font-medium text-muted-foreground">Nº do Surto</Label>
+                  <Input
+                    id="surtoNumber"
+                    value={surtoNumber}
+                    onChange={(e) => setSurtoNumber(e.target.value)}
+                    placeholder="Ex: 2/2026"
+                    className="h-8 mt-1"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         {/* Certidão Form - auto-shown for certidao type */}
         {isCertidao && (
           <>
