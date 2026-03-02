@@ -1474,24 +1474,24 @@ _Enviado via FISCALIZ®_`;
               <p className="text-xs text-gray-600 mb-4">
                 As irregularidades descritas acima são comprovadas pelas evidências fotográficas a seguir, numeradas conforme o texto:
               </p>
-              {/* 2 fotos por página com quebra automática */}
+              {/* 4 fotos por página (2 linhas x 2 colunas) com quebra automática */}
               {(() => {
                 const filteredLegends = photoLegends.filter(legend => legend.legenda && legend.legenda.trim());
                 const pages: typeof filteredLegends[] = [];
-                for (let i = 0; i < filteredLegends.length; i += 2) {
-                  pages.push(filteredLegends.slice(i, i + 2));
+                for (let i = 0; i < filteredLegends.length; i += 4) {
+                  pages.push(filteredLegends.slice(i, i + 4));
                 }
                 return pages.map((page, pageIdx) => (
-                  <div key={pageIdx} className={`grid grid-cols-2 gap-4 ${pageIdx > 0 ? 'break-before-page pt-4' : ''}`}>
+                  <div key={pageIdx} className={`grid grid-cols-2 gap-3 ${pageIdx > 0 ? 'break-before-page pt-4' : ''}`}>
                     {page.map((legend, idx) => {
-                      const globalIdx = pageIdx * 2 + idx;
+                      const globalIdx = pageIdx * 4 + idx;
                       const photoUrl = attachedPhotos[legend.photoIndex] || legend.previewUrl;
                       if (!photoUrl) return null;
                       const itemNumber = globalIdx + 1;
                       return (
                         <div key={globalIdx} className="flex flex-col">
-                          <div className="relative aspect-[4/3] border border-gray-300 rounded overflow-hidden mb-2">
-                            <div className="absolute top-1 left-1 bg-gray-800 text-white text-xs font-bold px-2 py-0.5 rounded">
+                          <div className="relative aspect-[4/3] border border-gray-300 rounded overflow-hidden mb-1">
+                            <div className="absolute top-1 left-1 bg-gray-800 text-white text-xs font-bold px-1.5 py-0.5 rounded" style={{ fontSize: '7pt' }}>
                               {itemNumber}
                             </div>
                             <img 
@@ -1500,7 +1500,7 @@ _Enviado via FISCALIZ®_`;
                               className="w-full h-full object-cover"
                             />
                           </div>
-                          <p className="text-[9pt] text-gray-700 leading-tight">
+                          <p className="text-[8pt] text-gray-700 leading-tight">
                             <span className="font-bold">Foto {itemNumber}:</span>{' '}
                             {legend.legenda}
                             {legend.item_rdc && (
@@ -1520,22 +1520,29 @@ _Enviado via FISCALIZ®_`;
           {!hasPhotoLegends && attachedPhotos.length > 0 && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">REGISTRO FOTOGRÁFICO</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {attachedPhotos.map((photoUrl, idx) => (
-                  <div key={idx} className="aspect-[4/3] border border-gray-200 rounded overflow-hidden">
-                    <img 
-                      src={photoUrl} 
-                      alt={`Foto ${idx + 1}`} 
-                      className="w-full h-full object-cover"
-                    />
+              {/* 4 fotos por página (2x2) */}
+              {(() => {
+                const pages: string[][] = [];
+                for (let i = 0; i < attachedPhotos.length; i += 4) {
+                  pages.push(attachedPhotos.slice(i, i + 4));
+                }
+                return pages.map((page, pageIdx) => (
+                  <div key={pageIdx} className={`grid grid-cols-2 gap-3 ${pageIdx > 0 ? 'break-before-page pt-4' : ''}`}>
+                    {page.map((photoUrl, idx) => {
+                      const globalIdx = pageIdx * 4 + idx;
+                      return (
+                        <div key={globalIdx} className="aspect-[4/3] border border-gray-200 rounded overflow-hidden">
+                          <img 
+                            src={photoUrl} 
+                            alt={`Foto ${globalIdx + 1}`} 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
-              {attachedPhotos.length > 8 && (
-                <p className="text-xs text-gray-500 mt-2 text-center">
-                  Página 1 de {Math.ceil(attachedPhotos.length / 8)}
-                </p>
-              )}
+                ));
+              })()}
             </div>
           )}
 
