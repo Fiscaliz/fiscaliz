@@ -99,7 +99,7 @@ const tiposAnalise = [
   'Análise de Contraprova',
 ];
 
-const createEmptyProduto = (): ProdutoColetaData => ({
+export const createEmptyProduto = (): ProdutoColetaData => ({
   id: `prod_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
   nome: '',
   marca: '',
