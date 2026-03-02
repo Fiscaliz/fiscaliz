@@ -47,6 +47,9 @@ export interface ProdutoColetaData {
   fabricante: string;
   fabricanteCnpj: string;
   fabricanteEndereco: string;
+  fabricanteQd: string;
+  fabricanteLot: string;
+  fabricanteNumero: string;
   fabricanteLocalidade: string;
   fabricanteMunicipio: string;
   fabricanteUf: string;
@@ -114,6 +117,9 @@ export const createEmptyProduto = (): ProdutoColetaData => ({
   fabricante: '',
   fabricanteCnpj: '',
   fabricanteEndereco: '',
+  fabricanteQd: '',
+  fabricanteLot: '',
+  fabricanteNumero: '',
   fabricanteLocalidade: '',
   fabricanteMunicipio: '',
   fabricanteUf: '',
@@ -402,6 +408,36 @@ export function ColetaAmostraForm({
                         onChange={(e) => updateProduto(produto.id, 'fabricanteEndereco', e.target.value)}
                         className="text-sm"
                       />
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Qd</Label>
+                        <Input
+                          placeholder="Quadra"
+                          value={produto.fabricanteQd || ''}
+                          onChange={(e) => updateProduto(produto.id, 'fabricanteQd', e.target.value)}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Lot.</Label>
+                        <Input
+                          placeholder="Lote"
+                          value={produto.fabricanteLot || ''}
+                          onChange={(e) => updateProduto(produto.id, 'fabricanteLot', e.target.value)}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Nº</Label>
+                        <Input
+                          placeholder="Número"
+                          value={produto.fabricanteNumero || ''}
+                          onChange={(e) => updateProduto(produto.id, 'fabricanteNumero', e.target.value)}
+                          className="text-sm"
+                        />
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-3 gap-2">
