@@ -1238,11 +1238,6 @@ _Enviado via FISCALIZ®_`;
             .pdf-preview-container * { display: revert; visibility: visible !important; opacity: 1 !important; }
             .pdf-print-content { padding: 10mm !important; }
             .break-before-page { break-before: page; page-break-before: always; }
-            .grid-cols-2 { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 0.5rem !important; }
-            .photo-grid-page { height: calc(100vh - 20mm); display: grid !important; grid-template-columns: repeat(2, 1fr) !important; grid-template-rows: repeat(2, 1fr) !important; gap: 0.5rem !important; }
-            .photo-grid-page .photo-cell { height: 100% !important; }
-            .photo-grid-page .photo-cell img { width: 100% !important; height: 100% !important; object-fit: cover !important; }
-            .photo-grid-page .photo-cell .photo-legend { max-height: 2.5em; overflow: hidden; }
           }
           @media screen {
             .pdf-preview-container { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; overflow: auto; }
@@ -1499,16 +1494,16 @@ _Enviado via FISCALIZ®_`;
                   pages.push(filteredLegends.slice(i, i + 4));
                 }
                 return pages.map((page, pageIdx) => (
-                  <div key={pageIdx} className={`photo-grid-page grid grid-cols-2 gap-2 ${pageIdx > 0 ? 'break-before-page pt-2' : ''}`}>
+                  <div key={pageIdx} className={`grid grid-cols-2 gap-3 ${pageIdx > 0 ? 'break-before-page pt-4' : ''}`}>
                     {page.map((legend, idx) => {
                       const globalIdx = pageIdx * 4 + idx;
                       const photoUrl = attachedPhotos[legend.photoIndex] || legend.previewUrl;
                       if (!photoUrl) return null;
                       const itemNumber = globalIdx + 1;
                       return (
-                        <div key={globalIdx} className="photo-cell flex flex-col min-h-0">
-                          <div className="relative flex-1 border border-gray-300 rounded overflow-hidden mb-1 min-h-0">
-                            <div className="absolute top-1 left-1 bg-gray-800 text-white text-xs font-bold px-1.5 py-0.5 rounded z-10" style={{ fontSize: '7pt' }}>
+                        <div key={globalIdx} className="flex flex-col">
+                          <div className="relative aspect-[4/3] border border-gray-300 rounded overflow-hidden mb-1">
+                            <div className="absolute top-1 left-1 bg-gray-800 text-white text-xs font-bold px-1.5 py-0.5 rounded" style={{ fontSize: '7pt' }}>
                               {itemNumber}
                             </div>
                             <img 
@@ -1517,7 +1512,7 @@ _Enviado via FISCALIZ®_`;
                               className="w-full h-full object-cover"
                             />
                           </div>
-                          <p className="photo-legend text-[8pt] text-gray-700 leading-tight">
+                          <p className="text-[8pt] text-gray-700 leading-tight">
                             <span className="font-bold">Foto {itemNumber}:</span>{' '}
                             {legend.legenda}
                             {legend.item_rdc && (
@@ -1544,11 +1539,11 @@ _Enviado via FISCALIZ®_`;
                   pages.push(attachedPhotos.slice(i, i + 4));
                 }
                 return pages.map((page, pageIdx) => (
-                  <div key={pageIdx} className={`photo-grid-page grid grid-cols-2 gap-2 ${pageIdx > 0 ? 'break-before-page pt-2' : ''}`}>
+                  <div key={pageIdx} className={`grid grid-cols-2 gap-3 ${pageIdx > 0 ? 'break-before-page pt-4' : ''}`}>
                     {page.map((photoUrl, idx) => {
                       const globalIdx = pageIdx * 4 + idx;
                       return (
-                        <div key={globalIdx} className="photo-cell border border-gray-200 rounded overflow-hidden min-h-0">
+                        <div key={globalIdx} className="aspect-[4/3] border border-gray-200 rounded overflow-hidden">
                           <img 
                             src={photoUrl} 
                             alt={`Foto ${globalIdx + 1}`} 
