@@ -30,7 +30,8 @@ const internalActivities = [
   { id: 'O18', label: 'Avaliação de Risco a Saúde' },
   { id: 'O19', label: 'Apoio técnico/Suporte a fiscalização' },
   { id: 'O20', label: 'Relatório consolidado mensal' },
-  { id: 'O21', label: 'Outras atividades determinadas pela Chefia', allowCustom: true },
+  { id: 'O21', label: 'Análise de Projetos' },
+  { id: 'O22', label: 'Outras atividades determinadas pela Chefia', allowCustom: true },
 ];
 
 export default function InternalActivitySelection() {
@@ -59,7 +60,7 @@ export default function InternalActivitySelection() {
 
   const handleConfirmCustomActivity = () => {
     if (!customDescription.trim()) return;
-    navigate(`/nova-acao/criar-ra?motivo=${motivo}&atividade=O21&atividade_descricao=${encodeURIComponent(customDescription)}`);
+    navigate(`/nova-acao/criar-ra?motivo=${motivo}&atividade=O22&atividade_descricao=${encodeURIComponent(customDescription)}`);
   };
 
   return (
@@ -122,7 +123,7 @@ export default function InternalActivitySelection() {
               <CardContent className="p-4 space-y-4">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-bold text-primary bg-primary/10 px-2 py-1 rounded">
-                    O21
+                    O22
                   </span>
                   <span className="font-medium text-sm">Descreva a atividade</span>
                 </div>
