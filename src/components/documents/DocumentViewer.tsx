@@ -1185,12 +1185,14 @@ _Enviado via FISCALIZ®_`;
       <div ref={pdfPreviewRef} className="min-h-screen bg-white text-black print:text-black pdf-preview-container" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11pt' }}>
         <style>{`
           @page {
-            margin: 10mm 10mm 10mm 10mm;
+            margin: 0;
+            size: A4;
           }
           @media print {
-            body { margin: 0; padding: 0; }
+            html, body { margin: 0; padding: 0; }
             .no-print { display: none !important; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .pdf-preview-container { position: static !important; }
           }
           @media screen {
             .pdf-preview-container { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; overflow: auto; }
@@ -1225,13 +1227,16 @@ _Enviado via FISCALIZ®_`;
       <div ref={pdfPreviewRef} className="min-h-screen bg-white text-black print:text-black pdf-preview-container" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11pt' }}>
         <style>{`
           @page {
-            margin: 10mm 10mm 10mm 10mm;
+            margin: 0;
+            size: A4;
           }
           @media print {
-            body { margin: 0; padding: 0; }
+            html, body { margin: 0; padding: 0; }
             .no-print, nav, .bottom-nav, [class*="bottom-"], [class*="BottomNav"], footer:not(.doc-footer), header:not(.doc-header) { display: none !important; visibility: hidden !important; opacity: 0 !important; height: 0 !important; overflow: hidden !important; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .pdf-preview-container { position: static !important; }
             .pdf-preview-container * { display: revert; visibility: visible !important; opacity: 1 !important; }
+            .pdf-print-content { padding: 10mm !important; }
             .break-before-page { break-before: page; page-break-before: always; }
             .grid-cols-2 { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 0.75rem !important; }
             .aspect-\\[4\\/3\\] { aspect-ratio: 4/3 !important; }
@@ -1246,7 +1251,7 @@ _Enviado via FISCALIZ®_`;
           .signature-line { border-top: 1px solid #333; width: 220px; margin: 0 auto; }
         `}</style>
 
-        <div className="p-8 max-w-4xl mx-auto bg-white">
+        <div className="p-8 max-w-4xl mx-auto bg-white pdf-print-content">
           {/* CABEÇALHO OFICIAL - 3 colunas: Brasão | Textos | SUS */}
           <div className="mb-6 border-b-2 border-gray-800 pb-4">
             <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
