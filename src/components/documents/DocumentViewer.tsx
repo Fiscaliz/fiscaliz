@@ -1801,8 +1801,21 @@ _Enviado via FISCALIZ®_`;
           </CardHeader>
           
           <CardContent className="p-6 space-y-6 print:p-4">
-            {/* Establishment Info - Reorganized: Razão Social, Nome Fantasia, Inscrição Municipal, CNPJ, Telefone, Email, Atividade, Resp Técnico, Responsável. Endereço à direita */}
-            {document.establishment && (
+            {/* Coleta de Amostra - Renderiza o template oficial diretamente */}
+            {isColetaAmostra && (
+              <div className="border rounded-lg overflow-hidden bg-white">
+                <ColetaAmostraPDF
+                  document={document}
+                  documentDate={documentDate}
+                  documentTime={documentTime}
+                  contributorSignatureUrl={contributorSignatureUrl}
+                  prepostoName={prepostoName}
+                  prepostoCpf={prepostoCpf}
+                />
+              </div>
+            )}
+            {/* Establishment Info - Reorganized - Não exibir para Coleta de Amostra (já renderizado no template) */}
+            {!isColetaAmostra && document.establishment && (
               <div className="p-4 bg-muted/30 rounded-lg text-sm print:bg-gray-50 print:border print:border-gray-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Coluna esquerda - dados do estabelecimento */}
@@ -1955,8 +1968,8 @@ _Enviado via FISCALIZ®_`;
               </div>
             )}
 
-            {/* Document Content */}
-            <div className="space-y-4">
+            {/* Document Content - Não exibir para Coleta de Amostra */}
+            {!isColetaAmostra && <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-semibold">Especificação das Irregularidades:</Label>
                 {canEdit && !isEditing && !hasPhotoLegends && (
@@ -2136,7 +2149,7 @@ _Enviado via FISCALIZ®_`;
                   })()}
                 </div>
               )}
-            </div>
+            </div>}
 
             {/* Deadline Section - Apenas para Termo de Intimação */}
             {isTermoIntimacao && (
