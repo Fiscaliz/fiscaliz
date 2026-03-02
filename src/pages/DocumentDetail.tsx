@@ -60,91 +60,98 @@ export default function DocumentDetail() {
       setLoading(true);
     }
     
-    // First get the document with establishment
-    const { data: docData, error: docError } = await supabase
-      .from('fiscal_documents')
-      .select(`
-        *,
-        establishment:establishments(*)
-      `)
-      .eq('id', id)
-      .maybeSingle();
+    try {
+      // First get the document with establishment
+      const { data: docData, error: docError } = await supabase
+        .from('fiscal_documents')
+        .select(`
+          *,
+          establishment:establishments(*)
+        `)
+        .eq('id', id)
+        .maybeSingle();
 
-    if (docError || !docData) {
-      console.error('Error loading document:', docError);
+      if (docError || !docData) {
+        console.error('Error loading document:', docError);
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível carregar o documento',
+          variant: 'destructive'
+        });
+        navigate(-1);
+        return;
+      }
+
+      // Then get the profile separately
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('full_name, registration_number, division, signature_url')
+        .eq('id', docData.user_id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error('Error loading profile:', profileError);
+      }
+
+      // Se for o próprio usuário logado, SEMPRE usar metadata (fonte mais atualizada)
+      const isCurrentUser = user?.id === docData.user_id;
+      const userMeta = user?.user_metadata as any;
+
+      let finalProfile: { full_name: string; registration_number?: string; division?: string; signature_url?: string } | null;
+
+      if (isCurrentUser && userMeta?.full_name) {
+        finalProfile = {
+          full_name: userMeta.full_name,
+          registration_number: userMeta.registration_number || profileData?.registration_number,
+          division: userMeta.division || profileData?.division,
+          signature_url: profileData?.signature_url,
+        };
+      } else if (profileData?.full_name) {
+        finalProfile = {
+          full_name: profileData.full_name,
+          registration_number: profileData.registration_number,
+          division: profileData.division,
+          signature_url: profileData.signature_url,
+        };
+      } else if (isCurrentUser) {
+        finalProfile = {
+          full_name: user?.email?.split('@')[0] || 'Autoridade Fiscal',
+          registration_number: undefined,
+          division: undefined,
+          signature_url: undefined,
+        };
+      } else {
+        finalProfile = null;
+      }
+
+      // Resolve signature signed URL if needed
+      if (finalProfile?.signature_url) {
+        try {
+          finalProfile.signature_url = await getSignedUrl(finalProfile.signature_url);
+        } catch (e) {
+          console.error('Failed to get signed URL for signature:', e);
+        }
+      }
+
+      // Format document for viewer
+      const formattedDoc = {
+        ...docData,
+        establishment: Array.isArray(docData.establishment) ? docData.establishment[0] : docData.establishment,
+        profile: finalProfile,
+      };
+      
+      setDocument(formattedDoc);
+    } catch (error) {
+      console.error('Unexpected error loading document:', error);
       toast({
         title: 'Erro',
-        description: 'Não foi possível carregar o documento',
+        description: 'Erro inesperado ao carregar o documento',
         variant: 'destructive'
       });
-      navigate(-1);
-      return;
+    } finally {
+      setLoading(false);
+      isInitialLoad.current = false;
     }
-
-    // Then get the profile separately
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('full_name, registration_number, division, signature_url')
-      .eq('id', docData.user_id)
-      .maybeSingle();
-
-    if (profileError) {
-      console.error('Error loading profile:', profileError);
-    }
-
-    // Se for o próprio usuário logado, SEMPRE usar metadata (fonte mais atualizada)
-    const isCurrentUser = user?.id === docData.user_id;
-    const userMeta = user?.user_metadata as any;
-
-    let finalProfile: { full_name: string; registration_number?: string; division?: string; signature_url?: string } | null;
-
-    if (isCurrentUser && userMeta?.full_name) {
-      // Prioridade 1: Metadata do usuário logado (mais atual)
-      finalProfile = {
-        full_name: userMeta.full_name,
-        registration_number: userMeta.registration_number || profileData?.registration_number,
-        division: userMeta.division || profileData?.division,
-        signature_url: profileData?.signature_url,
-      };
-    } else if (profileData?.full_name) {
-      // Prioridade 2: Dados da tabela profiles
-      finalProfile = {
-        full_name: profileData.full_name,
-        registration_number: profileData.registration_number,
-        division: profileData.division,
-        signature_url: profileData.signature_url,
-      };
-    } else if (isCurrentUser) {
-      // Fallback: email do usuário
-      finalProfile = {
-        full_name: user?.email?.split('@')[0] || 'Autoridade Fiscal',
-        registration_number: undefined,
-        division: undefined,
-        signature_url: undefined,
-      };
-    } else {
-      finalProfile = null;
-    }
-
-    // Resolve signature signed URL if needed
-    if (finalProfile?.signature_url) {
-      try {
-        finalProfile.signature_url = await getSignedUrl(finalProfile.signature_url);
-      } catch (e) {
-        console.error('Failed to get signed URL for signature:', e);
-      }
-    }
-
-    // Format document for viewer
-    const formattedDoc = {
-      ...docData,
-      establishment: Array.isArray(docData.establishment) ? docData.establishment[0] : docData.establishment,
-      profile: finalProfile,
-    };
-    
-    setDocument(formattedDoc);
-    setLoading(false);
-    isInitialLoad.current = false;
   };
 
   const handleSave = async (updateData: any) => {
