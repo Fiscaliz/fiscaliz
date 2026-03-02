@@ -1652,6 +1652,49 @@ export default function CreateDocument() {
             </Card>
             <input ref={coletaFileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleImageUpload(e, false)} />
             <input ref={coletaCameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleImageUpload(e, false)} />
+            {/* Upload de documento em papel */}
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center gap-3 mb-1">
+                  <Upload className="h-5 w-5 text-secondary" />
+                  <div>
+                    <h3 className="font-semibold text-sm">Upload de Documento em Papel</h3>
+                    <p className="text-xs text-muted-foreground">Tire foto do formulário preenchido à mão</p>
+                  </div>
+                </div>
+
+                {uploadedImages.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {uploadedImages.map((img, idx) => (
+                      <div key={idx} className="relative aspect-[3/4] rounded-lg overflow-hidden border border-border">
+                        <img src={img.previewUrl} alt={`Documento ${idx + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(idx)}
+                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 shadow-md"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {uploadedImages.length < 10 && (
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => coletaCameraRef.current?.click()} className="flex-1 h-12">
+                      <Camera className="h-5 w-5 mr-2" />
+                      Capturar
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => coletaFileInputRef.current?.click()} className="flex-1 h-12">
+                      <FolderOpen className="h-5 w-5 mr-2" />
+                      Galeria
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             <ColetaAmostraForm
               value={coletaAmostraData}
               onChange={setColetaAmostraData}
