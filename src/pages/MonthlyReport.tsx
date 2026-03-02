@@ -1191,6 +1191,14 @@ export default function MonthlyReport() {
           th { background: #f0f0f0; font-weight: bold; }
           .editable-field { background: #fffbeb; }
           .editable-input { background: #fffbeb; border: 1px solid #f59e0b; padding: 2px 4px; font-size: 10pt; }
+          .folha-fotos { width: 100%; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8mm; box-sizing: border-box; aspect-ratio: 186 / 273; }
+          @media print { .folha-fotos { height: calc(297mm - 24mm); aspect-ratio: auto; } }
+          .folha-fotos .foto-cell { display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+          .folha-fotos .foto-cell .foto-img-wrap { flex: 1; min-height: 0; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; position: relative; }
+          .folha-fotos .foto-cell .foto-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+          .folha-fotos .foto-cell .foto-img-wrap .foto-badge { position: absolute; top: 4px; left: 4px; background: #1f2937; color: #fff; font-size: 7pt; font-weight: bold; padding: 2px 6px; border-radius: 3px; font-family: Arial, sans-serif; }
+          .folha-fotos .foto-cell .foto-legend { font-family: Arial, sans-serif; font-size: 9pt; color: #374151; line-height: 1.3; margin-top: 3px; text-align: center; }
+          .break-before-page { break-before: page; page-break-before: always; }
         `}</style>
 
         <div className="p-8 max-w-4xl mx-auto">
@@ -1849,22 +1857,39 @@ export default function MonthlyReport() {
                     </div>
                   )}
 
-                  {doc.attachments && Array.isArray(doc.attachments) && (doc.attachments as any[]).length > 0 && (
-                    <div className="border border-gray-300 p-3 mb-4">
-                      <h4 className="font-bold bg-gray-100 -m-3 mb-2 p-2 border-b border-gray-300 text-xs">REGISTRO FOTOGRÁFICO</h4>
-                      <div className="grid grid-cols-2 gap-2">
-                        {(doc.attachments as any[]).map((att: any, attIdx: number) => (
-                          <div key={attIdx} className="flex flex-col">
-                            <div className="relative aspect-[4/3] border border-gray-200 rounded overflow-hidden">
-                              <div className="absolute top-1 left-1 bg-gray-800 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">{attIdx + 1}</div>
-                              <img src={getResolvedUrl(att.url)} alt={`Foto ${attIdx + 1}`} className="w-full h-full object-cover" />
-                            </div>
-                            {att.caption && <p className="text-[8pt] text-gray-600 mt-1 leading-tight"><strong>Foto {attIdx + 1}:</strong> {att.caption}</p>}
+                  {doc.attachments && Array.isArray(doc.attachments) && (doc.attachments as any[]).length > 0 && (() => {
+                    const allPhotos = (doc.attachments as any[]);
+                    const chunks: any[][] = [];
+                    for (let i = 0; i < allPhotos.length; i += 4) {
+                      chunks.push(allPhotos.slice(i, i + 4));
+                    }
+                    return chunks.map((chunk, chunkIdx) => (
+                      <div key={chunkIdx} className={chunkIdx > 0 ? 'break-before-page' : ''}>
+                        {chunkIdx === 0 && (
+                          <div className="mb-2">
+                            <h4 className="font-bold bg-gray-100 p-2 border border-gray-300 text-xs">REGISTRO FOTOGRÁFICO</h4>
                           </div>
-                        ))}
+                        )}
+                        <div className="folha-fotos">
+                          {chunk.map((att: any, attIdx: number) => {
+                            const globalIdx = chunkIdx * 4 + attIdx;
+                            return (
+                              <div key={globalIdx} className="foto-cell">
+                                <div className="foto-img-wrap">
+                                  <div className="foto-badge">{globalIdx + 1}</div>
+                                  <img src={getResolvedUrl(att.url)} alt={`Foto ${globalIdx + 1}`} />
+                                </div>
+                                <div className="foto-legend">
+                                  <strong>FOTO {String(globalIdx + 1).padStart(2, '0')}</strong>
+                                  {att.caption ? ` — ${att.caption}` : ''}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    ));
+                  })()}
 
                   <div className="text-xs text-gray-600 text-right mt-2 mb-6">
                     <p>Goiânia, {doc.content?.document_date 
