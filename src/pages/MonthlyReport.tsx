@@ -623,6 +623,7 @@ export default function MonthlyReport() {
   };
 
   const [fullDocuments, setFullDocuments] = useState<any[]>([]);
+  const [resolvedUrls, setResolvedUrls] = useState<Map<string, string>>(new Map());
 
   const loadDailyActions = async () => {
     if (!user) return;
@@ -924,6 +925,77 @@ export default function MonthlyReport() {
     }
     setUpdatingAllCnaes(false);
     toast({ title: `CNAEs atualizados: ${updated}/${ests.length}` });
+  };
+
+  // Resolve storage paths to signed URLs for PDF photos
+  useEffect(() => {
+    if (!showPDFPreview || fullDocuments.length === 0) return;
+    
+    const resolveAllUrls = async () => {
+      const urlsToResolve: string[] = [];
+      
+      fullDocuments.forEach(doc => {
+        if (doc.attachments && Array.isArray(doc.attachments)) {
+          (doc.attachments as any[]).forEach((att: any) => {
+            if (att.url && !att.url.startsWith('http') && !att.url.startsWith('data:')) {
+              urlsToResolve.push(att.url);
+            }
+          });
+        }
+        // Also resolve contributor signatures and preposto photos
+        const content = doc.content || {};
+        if (content.contributor_signature && !content.contributor_signature.startsWith('data:')) {
+          urlsToResolve.push(content.contributor_signature);
+        }
+        if (content.preposto_photo && !content.preposto_photo.startsWith('data:')) {
+          urlsToResolve.push(content.preposto_photo);
+        }
+      });
+      
+      if (urlsToResolve.length === 0) return;
+      
+      const newMap = new Map<string, string>();
+      
+      // Resolve in batches of 5
+      for (let i = 0; i < urlsToResolve.length; i += 5) {
+        const batch = urlsToResolve.slice(i, i + 5);
+        await Promise.all(batch.map(async (rawUrl) => {
+          try {
+            // Extract storage path from various URL formats
+            let storagePath = rawUrl;
+            if (rawUrl.includes('/storage/v1/object/')) {
+              const match = rawUrl.match(/\/storage\/v1\/object\/(?:public|sign)\/fiscal-photos\/(.+?)(\?|$)/);
+              if (match) storagePath = decodeURIComponent(match[1]);
+            }
+            
+            const { data } = await supabase.storage
+              .from('fiscal-photos')
+              .createSignedUrl(storagePath, 3600);
+            
+            if (data?.signedUrl) {
+              newMap.set(rawUrl, data.signedUrl);
+            }
+          } catch (e) {
+            console.error('[PDF] Error resolving URL:', rawUrl, e);
+          }
+        }));
+      }
+      
+      setResolvedUrls(prev => {
+        const merged = new Map(prev);
+        newMap.forEach((v, k) => merged.set(k, v));
+        return merged;
+      });
+    };
+    
+    resolveAllUrls();
+  }, [showPDFPreview, fullDocuments]);
+
+  // Helper to get resolved URL
+  const getResolvedUrl = (url: string): string => {
+    if (!url) return '';
+    if (url.startsWith('data:')) return url;
+    return resolvedUrls.get(url) || url;
   };
 
   // Função para atualizar uma ação na tabela
@@ -1780,7 +1852,7 @@ export default function MonthlyReport() {
                           <div key={attIdx} className="flex flex-col">
                             <div className="relative aspect-[4/3] border border-gray-200 rounded overflow-hidden">
                               <div className="absolute top-1 left-1 bg-gray-800 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">{attIdx + 1}</div>
-                              <img src={att.url} alt={`Foto ${attIdx + 1}`} className="w-full h-full object-cover" />
+                              <img src={getResolvedUrl(att.url)} alt={`Foto ${attIdx + 1}`} className="w-full h-full object-cover" />
                             </div>
                             {att.caption && <p className="text-[8pt] text-gray-600 mt-1 leading-tight"><strong>Foto {attIdx + 1}:</strong> {att.caption}</p>}
                           </div>
@@ -1812,9 +1884,9 @@ export default function MonthlyReport() {
                       <div className="text-center flex flex-col items-center">
                         <div className="min-h-[50px] flex items-end justify-center mb-1">
                           {doc.content?.contributor_signature ? (
-                            <img src={doc.content.contributor_signature} alt="Assinatura Contribuinte" style={{ maxHeight: '50px', maxWidth: '180px', objectFit: 'contain' }} />
+                            <img src={getResolvedUrl(doc.content.contributor_signature)} alt="Assinatura Contribuinte" style={{ maxHeight: '50px', maxWidth: '180px', objectFit: 'contain' }} />
                           ) : doc.content?.preposto_photo ? (
-                            <img src={doc.content.preposto_photo} alt="Preposto" className="w-12 h-12 object-cover rounded-full border" />
+                            <img src={getResolvedUrl(doc.content.preposto_photo)} alt="Preposto" className="w-12 h-12 object-cover rounded-full border" />
                           ) : null}
                         </div>
                         <div style={{ borderTop: '1px solid #333', width: '220px', marginBottom: '4px' }} />
