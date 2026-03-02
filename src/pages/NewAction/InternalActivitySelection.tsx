@@ -30,7 +30,7 @@ const internalActivities = [
   { id: 'O18', label: 'Avaliação de Risco a Saúde' },
   { id: 'O19', label: 'Apoio técnico/Suporte a fiscalização' },
   { id: 'O20', label: 'Relatório consolidado mensal' },
-  { id: 'O21', label: 'Análise de Projetos' },
+  { id: 'O21', label: 'Análise de Projeto Arquitetônico' },
   { id: 'O22', label: 'Outras atividades determinadas pela Chefia', allowCustom: true },
 ];
 
