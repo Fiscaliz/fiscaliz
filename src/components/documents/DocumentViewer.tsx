@@ -1236,8 +1236,14 @@ _Enviado via FISCALIZ®_`;
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             .pdf-preview-container { position: static !important; }
             .pdf-preview-container * { display: revert; visibility: visible !important; opacity: 1 !important; }
-            .pdf-print-content { padding: 10mm !important; }
+            .pdf-print-content { padding: 12mm !important; }
             .break-before-page { break-before: page; page-break-before: always; }
+            .folha-fotos { width: 100%; height: calc(297mm - 24mm); display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8mm; box-sizing: border-box; }
+            .folha-fotos .foto-cell { display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+            .folha-fotos .foto-cell .foto-img-wrap { flex: 1; min-height: 0; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; position: relative; }
+            .folha-fotos .foto-cell .foto-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+            .folha-fotos .foto-cell .foto-img-wrap .foto-badge { position: absolute; top: 4px; left: 4px; background: #1f2937; color: #fff; font-size: 7pt; font-weight: bold; padding: 2px 6px; border-radius: 3px; font-family: Arial, sans-serif; }
+            .folha-fotos .foto-cell .foto-legend { font-family: Arial, sans-serif; font-size: 9pt; color: #374151; line-height: 1.3; margin-top: 3px; text-align: center; }
           }
           @media screen {
             .pdf-preview-container { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; overflow: auto; }
@@ -1486,7 +1492,7 @@ _Enviado via FISCALIZ®_`;
               <p className="text-xs text-gray-600 mb-4">
                 As irregularidades descritas acima são comprovadas pelas evidências fotográficas a seguir, numeradas conforme o texto:
               </p>
-              {/* 4 fotos por página (2 linhas x 2 colunas) com quebra automática */}
+              {/* 4 fotos por página — layout preciso A4 com CSS puro */}
               {(() => {
                 const filteredLegends = photoLegends.filter(legend => legend.legenda && legend.legenda.trim());
                 const pages: typeof filteredLegends[] = [];
@@ -1494,30 +1500,23 @@ _Enviado via FISCALIZ®_`;
                   pages.push(filteredLegends.slice(i, i + 4));
                 }
                 return pages.map((page, pageIdx) => (
-                  <div key={pageIdx} className={`grid grid-cols-2 gap-3 ${pageIdx > 0 ? 'break-before-page pt-4' : ''}`}>
+                  <div key={pageIdx} className={`folha-fotos ${pageIdx > 0 ? 'break-before-page' : ''}`}>
                     {page.map((legend, idx) => {
                       const globalIdx = pageIdx * 4 + idx;
                       const photoUrl = attachedPhotos[legend.photoIndex] || legend.previewUrl;
                       if (!photoUrl) return null;
                       const itemNumber = globalIdx + 1;
                       return (
-                        <div key={globalIdx} className="flex flex-col">
-                          <div className="relative aspect-[4/3] border border-gray-300 rounded overflow-hidden mb-1">
-                            <div className="absolute top-1 left-1 bg-gray-800 text-white text-xs font-bold px-1.5 py-0.5 rounded" style={{ fontSize: '7pt' }}>
-                              {itemNumber}
-                            </div>
-                            <img 
-                              src={photoUrl} 
-                              alt={`Foto ${itemNumber}`} 
-                              className="w-full h-full object-cover"
-                            />
+                        <div key={globalIdx} className="foto-cell">
+                          <div className="foto-img-wrap">
+                            <span className="foto-badge">{itemNumber}</span>
+                            <img src={photoUrl} alt={`Foto ${itemNumber}`} />
                           </div>
-                          <p className="text-[8pt] text-gray-700 leading-tight">
-                            <span className="font-bold">Foto {itemNumber}:</span>{' '}
+                          <p className="foto-legend">
+                            <strong>FOTO {String(itemNumber).padStart(2, '0')}</strong>
+                            {legend.item_rdc && <> — <strong>ITEM: {legend.item_rdc}</strong></>}
+                            <br />
                             {legend.legenda}
-                            {legend.item_rdc && (
-                              <span className="font-semibold text-gray-900"> (Item {legend.item_rdc})</span>
-                            )}
                           </p>
                         </div>
                       );
@@ -1532,23 +1531,24 @@ _Enviado via FISCALIZ®_`;
           {!hasPhotoLegends && attachedPhotos.length > 0 && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">REGISTRO FOTOGRÁFICO</h3>
-              {/* 4 fotos por página (2x2) */}
               {(() => {
                 const pages: string[][] = [];
                 for (let i = 0; i < attachedPhotos.length; i += 4) {
                   pages.push(attachedPhotos.slice(i, i + 4));
                 }
                 return pages.map((page, pageIdx) => (
-                  <div key={pageIdx} className={`grid grid-cols-2 gap-3 ${pageIdx > 0 ? 'break-before-page pt-4' : ''}`}>
+                  <div key={pageIdx} className={`folha-fotos ${pageIdx > 0 ? 'break-before-page' : ''}`}>
                     {page.map((photoUrl, idx) => {
                       const globalIdx = pageIdx * 4 + idx;
                       return (
-                        <div key={globalIdx} className="aspect-[4/3] border border-gray-200 rounded overflow-hidden">
-                          <img 
-                            src={photoUrl} 
-                            alt={`Foto ${globalIdx + 1}`} 
-                            className="w-full h-full object-cover"
-                          />
+                        <div key={globalIdx} className="foto-cell">
+                          <div className="foto-img-wrap">
+                            <span className="foto-badge">{globalIdx + 1}</span>
+                            <img src={photoUrl} alt={`Foto ${globalIdx + 1}`} />
+                          </div>
+                          <p className="foto-legend">
+                            <strong>FOTO {String(globalIdx + 1).padStart(2, '0')}</strong>
+                          </p>
                         </div>
                       );
                     })}
