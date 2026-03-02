@@ -84,12 +84,16 @@ serve(async (req) => {
     console.log(`[fetch-cnae] CNAE: ${cnaePrincipal} - ${cnaeDescricao}`);
 
     // Se tiver establishmentId, atualizar o estabelecimento no banco
+    // Uses the authenticated user's context so RLS enforces ownership checks
     if (establishmentId && cnaePrincipal) {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      const authHeader = req.headers.get("authorization")!;
+      const userSupabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } }
+      );
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await userSupabase
         .from("establishments")
         .update({ cnae_principal: cnaePrincipal })
         .eq("id", establishmentId);
