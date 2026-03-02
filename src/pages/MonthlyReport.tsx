@@ -1172,9 +1172,14 @@ export default function MonthlyReport() {
     return (
       <div className="min-h-screen bg-white text-black print:text-black" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11pt' }}>
         <style>{`
+          @page {
+            margin: 0;
+            size: A4;
+          }
           @media print {
-            body { margin: 0; padding: 0; }
+            html, body { margin: 0; padding: 0; }
             .no-print { display: none !important; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             .page-break { page-break-after: always; }
           }
           .section-title { background: #003366; color: white; padding: 8px; font-weight: bold; margin-bottom: 10px; }
