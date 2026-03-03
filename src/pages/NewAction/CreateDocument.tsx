@@ -787,7 +787,23 @@ export default function CreateDocument() {
 
   const handleSave = async () => {
     if (!user) return;
-    
+
+    if (isAutoInfracao) {
+      const hasNoInfracoes = autoInfracaoData.infracoes.length === 0;
+      const hasInfracaoIncompleta = autoInfracaoData.infracoes.some(
+        (inf) => !inf.descricao?.trim() || !inf.dispositivo?.trim()
+      );
+
+      if (hasNoInfracoes || hasInfracaoIncompleta) {
+        toast({
+          title: 'Auto de Infração incompleto',
+          description: 'Adicione ao menos 1 infração com descrição e dispositivo legal antes de salvar.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
     setSaving(true);
     
     try {
@@ -1541,10 +1557,7 @@ export default function CreateDocument() {
             <Button 
               className="w-full" 
               onClick={handleSave}
-              disabled={
-                autoInfracaoData.infracoes.length === 0 || 
-                saving
-              }
+              disabled={saving}
             >
               {saving ? 'Salvando...' : 'Salvar Auto de Infração'}
             </Button>
