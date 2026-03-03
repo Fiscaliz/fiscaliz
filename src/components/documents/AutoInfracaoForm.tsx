@@ -378,13 +378,13 @@ export function AutoInfracaoForm({
       </Card>
 
       {/* Registro Fotográfico */}
-      <Card className={cn("border-0 shadow-sm", photosRequired && photos.length === 0 && "border-2 border-destructive")}>
+      <Card className={cn("border-0 shadow-sm", photos.length === 0 && "border-2 border-yellow-400/50")}>
         <CardContent className="p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Camera className="h-4 w-4 text-primary" />
               <Label className="text-sm font-medium">Registro Fotográfico</Label>
-              <span className="text-xs bg-destructive/20 text-destructive px-2 py-0.5 rounded">Obrigatório</span>
+              <span className="text-xs bg-yellow-500/20 text-yellow-700 px-2 py-0.5 rounded">Recomendado</span>
             </div>
             <span className="text-xs text-muted-foreground">{photos.length}/50 foto(s)</span>
           </div>
@@ -444,8 +444,8 @@ export function AutoInfracaoForm({
             isLoading={aiAnalyzing}
           />
 
-          {photosRequired && photos.length === 0 && (
-            <p className="text-xs text-destructive">⚠️ É obrigatório anexar pelo menos uma foto das irregularidades</p>
+          {photos.length === 0 && (
+            <p className="text-xs text-yellow-700">⚠️ Recomendado anexar fotos das irregularidades como prova documental</p>
           )}
         </CardContent>
       </Card>
