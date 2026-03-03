@@ -1513,7 +1513,7 @@ export default function CreateDocument() {
               onAddPhoto={() => autoInfracaoFileInputRef.current?.click()}
               onCapturePhoto={() => document.getElementById('autoInfracaoCameraInput')?.click()}
               onRemovePhoto={removeImage}
-              photosRequired={true}
+              photosRequired={false}
             />
 
             <TransportModeSelector
@@ -1526,7 +1526,6 @@ export default function CreateDocument() {
               onClick={handleSave}
               disabled={
                 autoInfracaoData.infracoes.length === 0 || 
-                uploadedImages.length === 0 || 
                 saving
               }
             >
