@@ -67,9 +67,13 @@ serve(async (req) => {
     const apiResp = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`);
 
     if (!apiResp.ok) {
-      console.error(`[fetch-cnae] BrasilAPI error: ${apiResp.status}`);
-      return new Response(JSON.stringify({ error: "CNPJ não encontrado na base da Receita Federal" }), {
-        status: 404,
+      console.warn(`[fetch-cnae] BrasilAPI retornou ${apiResp.status} para CNPJ ${cleanCnpj} - pode ser CNPJ inexistente, inativo ou MEI não registrado`);
+      return new Response(JSON.stringify({ 
+        error: "CNPJ não encontrado na base da Receita Federal",
+        cnpj: cleanCnpj,
+        skipped: true 
+      }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
