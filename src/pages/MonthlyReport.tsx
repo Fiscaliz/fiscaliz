@@ -25,8 +25,19 @@ import {
   AlertCircle,
   Edit2,
   Star,
-  Target
+  Target,
+  Trash2
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -204,6 +215,7 @@ export default function MonthlyReport() {
   const [editingPreview, setEditingPreview] = useState(false);
   const [dailyActions, setDailyActions] = useState<EditableDailyAction[]>([]);
   const [updatingAllCnaes, setUpdatingAllCnaes] = useState(false);
+  const [deleteDocId, setDeleteDocId] = useState<string | null>(null);
   
   // Período - Licenças
   const [selectedLicenseType, setSelectedLicenseType] = useState<string | null>(null);
@@ -585,7 +597,7 @@ export default function MonthlyReport() {
       .from('fiscal_documents')
       .select('document_type, status, content')
       .eq('user_id', user.id)
-      .in('status', ['sent', 'draft']);
+      .in('status', ['sent', 'draft', 'archived']);
 
     if (data) {
       const summary: DocumentSummary = {
@@ -603,12 +615,13 @@ export default function MonthlyReport() {
         coleta_amostra: 0,
       };
       
-      // Filtrar pela data real da fiscalização (content.document_date)
+      // Filtrar pela data real da fiscalização (content.document_date com fallback para action_date)
       const filteredDocs = data.filter(doc => {
         const content = doc.content as any || {};
-        const docDate = content.document_date;
+        const docDate = content.document_date || (doc as any).action_date;
         if (!docDate) return false;
-        return docDate >= startDate && docDate <= endDate;
+        const dateStr = typeof docDate === 'string' ? docDate.substring(0, 10) : docDate;
+        return dateStr >= startDate && dateStr <= endDate;
       });
       
       filteredDocs.forEach(doc => {
@@ -658,15 +671,16 @@ export default function MonthlyReport() {
         fiscal_actions(reason, reason_details)
       `)
       .eq('user_id', user.id)
-      .in('status', ['sent', 'draft']);
+      .in('status', ['sent', 'draft', 'archived']);
 
     if (data) {
-      // Filtrar pela data real da fiscalização (content.document_date)
+      // Filtrar pela data real da fiscalização (content.document_date com fallback para action_date)
       const filteredData = data.filter((doc: any) => {
         const content = doc.content || {};
-        const docDate = content.document_date;
+        const docDate = content.document_date || doc.action_date;
         if (!docDate) return false;
-        return docDate >= startDate && docDate <= endDate;
+        const dateStr = typeof docDate === 'string' ? docDate.substring(0, 10) : docDate;
+        return dateStr >= startDate && dateStr <= endDate;
       });
       
       // Store full documents for PDF attachment
@@ -1027,6 +1041,24 @@ export default function MonthlyReport() {
       : [...action.difficultyJustifications, justificationId];
     
     updateDailyAction(actionId, 'difficultyJustifications', newJustifications);
+  };
+
+  const handleDeleteDocument = async () => {
+    if (!deleteDocId) return;
+    try {
+      const { error } = await supabase
+        .from('fiscal_documents')
+        .delete()
+        .eq('id', deleteDocId);
+      if (error) throw error;
+      toast({ title: 'Documento excluído', description: 'O documento foi removido com sucesso.' });
+      setDeleteDocId(null);
+      // Reload data
+      loadDocumentStats();
+      loadDailyActions();
+    } catch (error: any) {
+      toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
+    }
   };
 
   const handleSave = async () => {
@@ -2708,7 +2740,19 @@ export default function MonthlyReport() {
                           </div>
                         </div>
                         {!action.id.startsWith('preview-') && (
-                          <Edit2 className="h-4 w-4 text-muted-foreground" />
+                          <div className="flex items-center gap-1">
+                            <Edit2 className="h-4 w-4 text-muted-foreground" />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteDocId(action.id);
+                              }}
+                              className="p-1 rounded-md hover:bg-destructive/10 transition-colors"
+                              title="Excluir documento"
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </button>
+                          </div>
                         )}
                       </div>
                     ))}
@@ -2813,6 +2857,22 @@ export default function MonthlyReport() {
           </div>
         </div>
       </div>
+      <AlertDialog open={!!deleteDocId} onOpenChange={(open) => !open && setDeleteDocId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir documento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O documento será permanentemente removido do relatório.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteDocument} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
