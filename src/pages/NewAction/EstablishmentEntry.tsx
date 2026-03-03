@@ -50,6 +50,7 @@ export default function EstablishmentEntry() {
   const [previousDocuments, setPreviousDocuments] = useState<any[]>([]);
   const [loadingDocuments, setLoadingDocuments] = useState(false);
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const [docType, setDocType] = useState<'cnpj' | 'cpf'>('cnpj');
   
   const alvaraInputRef = useRef<HTMLInputElement>(null);
   const alvaraCameraRef = useRef<HTMLInputElement>(null);
@@ -302,8 +303,47 @@ export default function EstablishmentEntry() {
       .slice(0, 18);
   };
 
+  const formatCPF = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    return numbers
+      .replace(/^(\d{3})(\d)/, '$1.$2')
+      .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+      .replace(/\.(\d{3})(\d)/, '.$1-$2')
+      .slice(0, 14);
+  };
+
+  const formatDocument = (value: string) => {
+    return docType === 'cpf' ? formatCPF(value) : formatCNPJ(value);
+  };
+
   const handleCNPJSearch = async () => {
     const cleanCNPJ = cnpj.replace(/\D/g, '');
+    if (docType === 'cpf') {
+      if (cleanCNPJ.length !== 11) {
+        toast({
+          title: 'CPF inválido',
+          description: 'Digite um CPF válido com 11 dígitos',
+          variant: 'destructive',
+        });
+        return;
+      }
+      // CPF: skip API lookup, go straight to manual form with CPF
+      setEstablishment({
+        cnpj: cleanCNPJ,
+        razao_social: '',
+        nome_fantasia: '',
+        endereco: '',
+        bairro: '',
+        cep: '',
+      });
+      setLoading(false);
+      toast({
+        title: 'CPF informado',
+        description: 'Preencha os dados do responsável',
+      });
+      return;
+    }
+
     if (cleanCNPJ.length !== 14) {
       toast({
         title: 'CNPJ inválido',
@@ -654,7 +694,7 @@ export default function EstablishmentEntry() {
   };
 
   const entryMethods = [
-    { id: 'cnpj' as EntryMethod, icon: Search, label: 'Buscar por CNPJ', description: 'Consulta automática' },
+    { id: 'cnpj' as EntryMethod, icon: Search, label: 'Buscar por CNPJ/CPF', description: 'Consulta automática' },
     { id: 'geo' as EntryMethod, icon: Navigation, label: 'Georreferenciamento', description: 'Usar GPS do dispositivo' },
     { id: 'ocr' as EntryMethod, icon: Camera, label: 'Foto do Alvará', description: 'Foto ou upload do alvará' },
     { id: 'documento_anterior' as EntryMethod, icon: FileText, label: 'Peça Fiscal Anterior', description: 'Selecionar de documentos anteriores' },
@@ -708,14 +748,42 @@ export default function EstablishmentEntry() {
         {method === 'cnpj' && !establishment && (
           <Card className="border-0 shadow-sm">
             <CardContent className="p-4 space-y-4">
+              {/* CPF/CNPJ Toggle */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  className={cn(
+                    'p-2.5 rounded-lg border-2 text-center transition-all text-sm font-medium',
+                    docType === 'cnpj'
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-muted text-muted-foreground hover:border-primary/50'
+                  )}
+                  onClick={() => { setDocType('cnpj'); setCnpj(''); }}
+                >
+                  CNPJ
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    'p-2.5 rounded-lg border-2 text-center transition-all text-sm font-medium',
+                    docType === 'cpf'
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-muted text-muted-foreground hover:border-primary/50'
+                  )}
+                  onClick={() => { setDocType('cpf'); setCnpj(''); }}
+                >
+                  CPF <span className="text-xs font-normal">(irregular)</span>
+                </button>
+              </div>
+
               <div>
-                <Label htmlFor="cnpj">CNPJ do Estabelecimento</Label>
+                <Label htmlFor="cnpj">{docType === 'cpf' ? 'CPF do Responsável' : 'CNPJ do Estabelecimento'}</Label>
                 <div className="flex gap-2 mt-2">
                   <Input
                     id="cnpj"
-                    placeholder="00.000.000/0000-00"
-                    value={cnpj}
-                    onChange={(e) => setCnpj(formatCNPJ(e.target.value))}
+                    placeholder={docType === 'cpf' ? '000.000.000-00' : '00.000.000/0000-00'}
+                    value={formatDocument(cnpj)}
+                    onChange={(e) => setCnpj(e.target.value.replace(/\D/g, ''))}
                     className="flex-1"
                   />
                   <Button onClick={handleCNPJSearch} disabled={loading}>
@@ -1113,12 +1181,40 @@ export default function EstablishmentEntry() {
                   />
                 </div>
                 
+                {/* CPF/CNPJ Toggle in manual form */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    className={cn(
+                      'p-2 rounded-lg border-2 text-center transition-all text-sm font-medium',
+                      docType === 'cnpj'
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-muted text-muted-foreground hover:border-primary/50'
+                    )}
+                    onClick={() => { setDocType('cnpj'); setEstablishment({...establishment, cnpj: ''}); }}
+                  >
+                    CNPJ
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      'p-2 rounded-lg border-2 text-center transition-all text-sm font-medium',
+                      docType === 'cpf'
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-muted text-muted-foreground hover:border-primary/50'
+                    )}
+                    onClick={() => { setDocType('cpf'); setEstablishment({...establishment, cnpj: ''}); }}
+                  >
+                    CPF <span className="text-xs font-normal">(irregular)</span>
+                  </button>
+                </div>
+
                 <div>
-                  <Label htmlFor="cnpjField">CNPJ *</Label>
+                  <Label htmlFor="cnpjField">{docType === 'cpf' ? 'CPF *' : 'CNPJ *'}</Label>
                   <Input
                     id="cnpjField"
-                    placeholder="00.000.000/0000-00"
-                    value={formatCNPJ(establishment?.cnpj || '')}
+                    placeholder={docType === 'cpf' ? '000.000.000-00' : '00.000.000/0000-00'}
+                    value={formatDocument(establishment?.cnpj || '')}
                     onChange={(e) => setEstablishment({...establishment, cnpj: e.target.value.replace(/\D/g, '')})}
                   />
                 </div>
