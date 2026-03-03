@@ -22,7 +22,9 @@ import {
   Gavel,
   CheckCircle,
   Loader2,
-  FolderOpen
+  FolderOpen,
+  Upload,
+  FileUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { checklistTemplates, getAllCategories, type ChecklistItem } from '@/data/checklists';
@@ -32,7 +34,11 @@ import { LegislationSelectDialog, DEFAULT_LEGISLATION } from '@/components/docum
 
 export type RelatorioTecnicoData = {
   // Método de criação
-  method: 'manual' | 'ai' | null;
+  method: 'manual' | 'ai' | 'upload' | null;
+  
+  // Arquivo importado
+  uploadedFileUrl?: string;
+  uploadedFileName?: string;
   
   // Dados do documento
   equipe: Array<{ nome: string; cargo: string; matricula: string }>;
@@ -121,11 +127,66 @@ export function RelatorioTecnicoForm({
   checklistItems,
 }: RelatorioTecnicoFormProps) {
   const { toast } = useToast();
+  const fileUploadRef = useRef<HTMLInputElement>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const [expandedSections, setExpandedSections] = useState<string[]>(['objetivos', 'base_legal', 'descricao', 'medidas', 'conclusao']);
   const [showChecklistImport, setShowChecklistImport] = useState(false);
   const [selectedChecklist, setSelectedChecklist] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [showLegislationDialog, setShowLegislationDialog] = useState(false);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg',
+      'image/png',
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      toast({ title: 'Formato não suportado', description: 'Envie PDF, DOC, DOCX, JPG ou PNG', variant: 'destructive' });
+      return;
+    }
+
+    if (file.size > 20 * 1024 * 1024) {
+      toast({ title: 'Arquivo muito grande', description: 'O tamanho máximo é 20MB', variant: 'destructive' });
+      return;
+    }
+
+    setUploadingFile(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Não autenticado');
+
+      const ext = file.name.split('.').pop() || 'pdf';
+      const storagePath = `${user.id}/relatorio_upload_${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('fiscal-photos')
+        .upload(storagePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      onChange({
+        ...value,
+        uploadedFileUrl: storagePath,
+        uploadedFileName: file.name,
+        descricao: `Relatório técnico importado: ${file.name}`,
+      });
+
+      toast({ title: 'Arquivo importado', description: file.name });
+    } catch (err: any) {
+      console.error('Upload error:', err);
+      toast({ title: 'Erro no upload', description: err.message, variant: 'destructive' });
+    } finally {
+      setUploadingFile(false);
+      e.target.value = '';
+    }
+  };
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => 
@@ -517,6 +578,34 @@ export function RelatorioTecnicoForm({
             </div>
           </CardContent>
         </Card>
+
+        <Card 
+          className="border-0 shadow-sm cursor-pointer transition-all hover:shadow-md active:scale-[0.98]"
+          onClick={() => fileUploadRef.current?.click()}
+        >
+          <CardContent className="p-4">
+            <div className="flex items-center gap-4">
+              <div className="rounded-xl p-3 bg-accent/50">
+                <FileUp className="h-6 w-6 text-accent-foreground" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold">Importar Arquivo</p>
+                <p className="text-sm text-muted-foreground">
+                  Envie um relatório pronto em PDF, DOC ou imagem
+                </p>
+              </div>
+              {uploadingFile && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
+            </div>
+          </CardContent>
+        </Card>
+
+        <input
+          ref={fileUploadRef}
+          type="file"
+          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+          className="hidden"
+          onChange={handleFileUpload}
+        />
       </div>
     );
   }
@@ -529,11 +618,13 @@ export function RelatorioTecnicoForm({
           <div className="flex items-center gap-2">
             {value.method === 'ai' ? (
               <Sparkles className="h-4 w-4 text-primary" />
+            ) : value.method === 'upload' ? (
+              <FileUp className="h-4 w-4 text-primary" />
             ) : (
               <Edit3 className="h-4 w-4 text-primary" />
             )}
             <span className="text-sm font-medium">
-              {value.method === 'ai' ? 'Análise por IA' : 'Preenchimento Manual'}
+              {value.method === 'ai' ? 'Análise por IA' : value.method === 'upload' ? 'Arquivo Importado' : 'Preenchimento Manual'}
             </span>
           </div>
           <Button 
@@ -546,6 +637,49 @@ export function RelatorioTecnicoForm({
           </Button>
         </CardContent>
       </Card>
+
+      {/* Upload method - show uploaded file info */}
+      {value.method === 'upload' && (
+        <Card className="border-0 shadow-sm border-l-4 border-l-accent">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center gap-3">
+              <FileUp className="h-5 w-5 text-primary" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">Arquivo Importado</p>
+                <p className="text-xs text-muted-foreground">{value.uploadedFileName || 'Nenhum arquivo'}</p>
+              </div>
+            </div>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileUploadRef.current?.click()}
+              className="w-full"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Substituir Arquivo
+            </Button>
+
+            <input
+              ref={fileUploadRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              className="hidden"
+              onChange={handleFileUpload}
+            />
+
+            <div className="space-y-2 pt-2 border-t">
+              <Label className="text-sm">Observações adicionais</Label>
+              <Textarea
+                value={value.descricao}
+                onChange={(e) => updateField('descricao', e.target.value)}
+                placeholder="Adicione observações ou contexto ao relatório importado..."
+                rows={3}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* AI Method - Photo Upload and Analysis */}
       {value.method === 'ai' && (
@@ -1103,6 +1237,10 @@ export function RelatorioTecnicoForm({
 }
 
 export function formatRelatorioTecnicoContent(data: RelatorioTecnicoData): string {
+  if (data.method === 'upload') {
+    return data.descricao || `Relatório técnico importado: ${data.uploadedFileName || 'arquivo'}`;
+  }
+
   let content = '';
 
   // Objetivos

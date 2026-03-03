@@ -979,6 +979,21 @@ export default function CreateDocument() {
           .filter(l => l.legenda?.trim())
           .map(l => ({ photoIndex: l.photoIndex, legenda: l.legenda, item_rdc: l.item_rdc, previewUrl: l.previewUrl }));
         
+        // If upload method, add the uploaded file as an attachment
+        if (relatorioTecnicoData.method === 'upload' && relatorioTecnicoData.uploadedFileUrl) {
+          const uploadAttachment = {
+            id: 'uploaded_report',
+            url: relatorioTecnicoData.uploadedFileUrl,
+            type: 'document',
+            name: relatorioTecnicoData.uploadedFileName || 'relatorio_importado',
+          };
+          if (attachments) {
+            attachments.push(uploadAttachment);
+          } else {
+            photoUrlsForAttachments = [relatorioTecnicoData.uploadedFileUrl];
+          }
+        }
+
         contentObj = {
           text: content,
           method: relatorioTecnicoData.method || 'manual',
@@ -987,6 +1002,8 @@ export default function CreateDocument() {
           document_time: relatorioTecnicoData.documentTime,
           equipe: relatorioTecnicoData.equipe,
           transport_mode: transportMode,
+          ...(relatorioTecnicoData.uploadedFileUrl && { uploaded_file_url: relatorioTecnicoData.uploadedFileUrl }),
+          ...(relatorioTecnicoData.uploadedFileName && { uploaded_file_name: relatorioTecnicoData.uploadedFileName }),
           ...(rtPhotoLegends.length > 0 && { photoLegends: rtPhotoLegends }),
         };
       } else if (isColetaAmostra) {
