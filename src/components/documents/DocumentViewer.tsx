@@ -1354,7 +1354,7 @@ _Enviado via FISCALIZ®_`;
           </div>
 
           {/* DADOS DO ESTABELECIMENTO - somente campos com valor, layout simétrico alinhado à esquerda */}
-          {document.establishment && (
+          {document.establishment && !isRelatorioAtividade && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">
                 {isRelatorioTecnico ? '1. IDENTIFICAÇÃO' : 'IDENTIFICAÇÃO DO ESTABELECIMENTO'}
@@ -1443,6 +1443,37 @@ _Enviado via FISCALIZ®_`;
             </div>
           )}
 
+          {/* DADOS DO RELATÓRIO DE ATIVIDADE */}
+          {isRelatorioAtividade && (
+            <div className="doc-section border border-gray-300 p-4 mb-6">
+              <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">DADOS DA ATIVIDADE</h3>
+              <div className="space-y-1 text-left">
+                {document.content?.atividade_id && (
+                  <div className="doc-field">
+                    <span className="doc-label">Atividade: </span>
+                    <span className="doc-value">{document.content.atividade_id} — {document.content.atividade_descricao}</span>
+                  </div>
+                )}
+                <div className="doc-field">
+                  <span className="doc-label">Auditor: </span>
+                  <span className="doc-value">{document.content?.auditor || document.profile?.full_name}</span>
+                </div>
+                {(document.content?.matricula || document.profile?.registration_number) && (
+                  <div className="doc-field">
+                    <span className="doc-label">Matrícula: </span>
+                    <span className="doc-value">{document.content?.matricula || document.profile?.registration_number}</span>
+                  </div>
+                )}
+                {(document.content?.hora_inicio || document.content?.hora_fim) && (
+                  <div className="doc-field">
+                    <span className="doc-label">Horário: </span>
+                    <span className="doc-value">{document.content.hora_inicio || '—'} às {document.content.hora_fim || '—'}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* CONTEXTO DA DENÚNCIA - Apenas para ações investigativas/denúncia */}
           {document.content?.denuncia_context && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
@@ -1454,8 +1485,8 @@ _Enviado via FISCALIZ®_`;
             </div>
           )}
 
-          {/* ESPECIFICAÇÃO DAS IRREGULARIDADES */}
-          <div className="doc-section border border-gray-300 p-4 mb-6">
+          {/* ESPECIFICAÇÃO DAS IRREGULARIDADES - Não exibir para RA */}
+          {!isRelatorioAtividade && <div className="doc-section border border-gray-300 p-4 mb-6">
             <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">
               {isRelatorioTecnico ? '2. ESPECIFICAÇÃO DAS IRREGULARIDADES' : 'ESPECIFICAÇÃO DAS IRREGULARIDADES / OBSERVAÇÕES'}
             </h3>
@@ -1539,9 +1570,18 @@ _Enviado via FISCALIZ®_`;
                 })()
               )}
             </div>
-          </div>
+          </div>}
 
-          {/* OBSERVAÇÕES ADICIONAIS - Filtrar JSON bruto da análise por IA */}
+          {/* OBSERVAÇÕES DO RA */}
+          {isRelatorioAtividade && document.content?.observations && (
+            <div className="doc-section border border-gray-300 p-4 mb-6">
+              <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">OBSERVAÇÕES</h3>
+              <div className="text-sm leading-relaxed whitespace-pre-wrap min-h-[80px]">
+                {document.content.observations}
+              </div>
+            </div>
+          )}
+
           {observations && !observations.includes('"nonConformities"') && !observations.startsWith('{') && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">OBSERVAÇÕES ADICIONAIS</h3>
@@ -1664,7 +1704,7 @@ _Enviado via FISCALIZ®_`;
           )}
 
           {/* FOTO DO CONTRIBUINTE/PREPOSTO - se houver separadamente */}
-          {contributorPhoto && document.document_type !== 'relatorio_tecnico' && (
+          {contributorPhoto && document.document_type !== 'relatorio_tecnico' && !isRelatorioAtividade && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">IDENTIFICAÇÃO DO RESPONSÁVEL PRESENTE</h3>
               <img 
@@ -1690,8 +1730,8 @@ _Enviado via FISCALIZ®_`;
 
           {/* ASSINATURAS - Rubricas acima dos nomes, simétricas */}
           <div className="doc-section mt-6">
-            {/* Relatório Técnico: equipe de auditores */}
-            {document.document_type === 'relatorio_tecnico' ? (
+            {/* Relatório Técnico ou Relatório de Atividade: apenas auditor(es) */}
+            {(document.document_type === 'relatorio_tecnico' || isRelatorioAtividade) ? (
               <div>
                 {/* Main auditor + equipe members */}
                 {(() => {
@@ -2117,8 +2157,8 @@ _Enviado via FISCALIZ®_`;
               </div>
             )}
 
-            {/* Document Content - Não exibir para Coleta de Amostra */}
-            {!isColetaAmostra && <div className="space-y-4">
+            {/* Document Content - Não exibir para Coleta de Amostra nem RA */}
+            {!isColetaAmostra && !isRelatorioAtividade && <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-semibold">Especificação das Irregularidades:</Label>
                 {canEdit && !isEditing && !hasPhotoLegends && (
@@ -2437,8 +2477,8 @@ _Enviado via FISCALIZ®_`;
               </div>
             )}
 
-            {/* Contributor Photo Section */}
-            <div className="p-4 bg-muted/20 rounded-lg print:bg-transparent">
+            {/* Contributor Photo Section - Não exibir para RA */}
+            {!isRelatorioAtividade && <div className="p-4 bg-muted/20 rounded-lg print:bg-transparent">
               <p className="text-sm font-semibold mb-2 flex items-center gap-2">
                 <Camera className="h-4 w-4" />
                 Registro Fotográfico (Estabelecimento)
@@ -2492,7 +2532,7 @@ _Enviado via FISCALIZ®_`;
               ) : (
                 <p className="text-sm text-muted-foreground">Nenhuma foto adicionada</p>
               )}
-            </div>
+            </div>}
 
             {/* Evidence Photos Section - Upload/Edit Attachments */}
             {canEdit && (
@@ -2612,8 +2652,8 @@ _Enviado via FISCALIZ®_`;
               />
             )}
 
-            {/* Preposto/Responsável Section - Editable (apenas para documentos que não sejam certidão) */}
-            {canEdit && document.document_type !== 'certidao' && document.document_type !== 'relatorio_tecnico' && (
+            {/* Preposto/Responsável Section - Não exibir para certidão, relatório técnico ou RA */}
+            {canEdit && document.document_type !== 'certidao' && document.document_type !== 'relatorio_tecnico' && !isRelatorioAtividade && (
               <div className="p-4 bg-muted/30 rounded-lg space-y-4 print:hidden">
                 <p className="text-sm font-semibold flex items-center gap-2">
                   <User className="h-4 w-4" />
@@ -2828,7 +2868,7 @@ _Enviado via FISCALIZ®_`;
                   </div>
                 )}
               </div>
-              {document.document_type !== 'relatorio_tecnico' && (
+              {document.document_type !== 'relatorio_tecnico' && !isRelatorioAtividade && (
                 <div className="text-center space-y-2">
                   {prepostoPhoto ? (
                     <img 
