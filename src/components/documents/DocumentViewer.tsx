@@ -1342,6 +1342,14 @@ _Enviado via FISCALIZ®_`;
                 <p className="text-sm">Nº {document.document_number}</p>
               )}
             </div>
+            
+            {/* Data e hora da ação fiscal - em destaque */}
+            <div className="mt-3 mb-1 text-center">
+              <p className="text-sm font-bold">
+                Goiânia, {formatDateFull(documentDate)}
+                {documentTime && ` — ${documentTime}h`}
+              </p>
+            </div>
           </div>
 
           {/* DADOS DO ESTABELECIMENTO - somente campos com valor, layout simétrico alinhado à esquerda */}
@@ -1804,7 +1812,7 @@ _Enviado via FISCALIZ®_`;
           {/* RODAPÉ OFICIAL */}
           <div className="mt-10 pt-4 border-t text-xs text-gray-600">
             <div className="text-center">
-              <p>Goiânia, {formatDateFull(document.created_at)}</p>
+              <p>Goiânia, {formatDateFull(documentDate)}</p>
               <p className="mt-2">Este documento foi gerado eletronicamente e possui validade legal conforme legislação vigente.</p>
               <p className="mt-1 font-semibold">Lei Municipal 8.741/08</p>
               <p className="mt-1 text-[10px]">1ª Via: Estabelecimento | 2ª Via: Fiscalização</p>
@@ -2803,7 +2811,7 @@ _Enviado via FISCALIZ®_`;
 
             {/* Footer */}
             <div className="pt-4 border-t text-center text-xs text-muted-foreground print:text-gray-600">
-              <p>Goiânia, {formatDate(document.created_at)}</p>
+              <p>Goiânia, {formatDate(documentDate)}</p>
               <p className="mt-1 font-semibold">Lei Municipal 8.741/08</p>
               <p className="mt-2 font-medium print:hidden">
                 Documento gerado por{' '}
