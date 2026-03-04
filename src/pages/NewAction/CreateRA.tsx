@@ -4,6 +4,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
 import { FiscalizWatermark } from '@/components/layout/FiscalizWatermark';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -25,6 +26,8 @@ export default function CreateRA() {
 
   const [saving, setSaving] = useState(false);
   const [observations, setObservations] = useState('');
+  const [horaInicio, setHoraInicio] = useState('');
+  const [horaFim, setHoraFim] = useState('');
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
   const [profile, setProfile] = useState<{ full_name: string; registration_number: string | null } | null>(null);
 
@@ -105,6 +108,8 @@ export default function CreateRA() {
       const contentObj = {
         atividade_id: atividadeId,
         atividade_descricao: atividadeDescricao,
+        hora_inicio: horaInicio,
+        hora_fim: horaFim,
         observations: observations,
         auditor: profile?.full_name || '',
         matricula: profile?.registration_number || '',
@@ -194,6 +199,31 @@ export default function CreateRA() {
             {profile?.registration_number && (
               <p className="text-xs text-muted-foreground">Matrícula: {profile.registration_number}</p>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Horário */}
+        <Card className="mb-4 border-0 shadow-sm">
+          <CardContent className="p-4">
+            <Label className="text-sm font-semibold mb-3 block">Horário da Atividade</Label>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Início</Label>
+                <Input
+                  type="time"
+                  value={horaInicio}
+                  onChange={(e) => setHoraInicio(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Fim</Label>
+                <Input
+                  type="time"
+                  value={horaFim}
+                  onChange={(e) => setHoraFim(e.target.value)}
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
