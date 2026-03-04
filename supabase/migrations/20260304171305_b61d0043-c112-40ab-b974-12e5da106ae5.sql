@@ -1,0 +1,1 @@
+DELETE FROM fiscal_documents WHERE id = 'd58c6a79-73bb-4b68-aa04-efd190a342f6';
