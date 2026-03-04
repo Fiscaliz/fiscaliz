@@ -1432,7 +1432,33 @@ _Enviado via FISCALIZ®_`;
                   </div>
                 </div>
               ) : (
-                content || 'Sem irregularidades especificadas.'
+                (() => {
+                  // Detect and format raw nonConformities JSON in content
+                  const textContent = content || '';
+                  try {
+                    const parsed = typeof textContent === 'string' && textContent.trim().startsWith('{') 
+                      ? JSON.parse(textContent) 
+                      : null;
+                    if (parsed?.nonConformities && Array.isArray(parsed.nonConformities)) {
+                      return (
+                        <div className="space-y-3">
+                          <p className="mb-2">Durante a inspeção sanitária foram constatadas as seguintes irregularidades:</p>
+                          {parsed.nonConformities.map((nc: any, idx: number) => (
+                            <div key={idx} className="flex gap-2">
+                              <span className="font-bold text-gray-700 shrink-0">{idx + 1}.</span>
+                              <div className="text-justify">
+                                <span>{nc.description}</span>
+                                {nc.legalBasis && <span className="font-semibold"> ({nc.legalBasis})</span>}
+                                {nc.recommendation && <span className="text-gray-600 block text-xs mt-0.5">→ {nc.recommendation}</span>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    }
+                  } catch {}
+                  return textContent || 'Sem irregularidades especificadas.';
+                })()
               )}
             </div>
           </div>
