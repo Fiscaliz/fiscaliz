@@ -1842,7 +1842,25 @@ export default function MonthlyReport() {
                           ))}
                         </div>
                       ) : (
-                        <>{doc.content?.text || doc.content?.observations || 'Sem conteúdo especificado.'}</>
+                        (() => {
+                          const textContent = doc.content?.text || '';
+                          try {
+                            const parsed = typeof textContent === 'string' && textContent.trim().startsWith('{')
+                              ? JSON.parse(textContent)
+                              : null;
+                            if (parsed?.nonConformities && Array.isArray(parsed.nonConformities)) {
+                              return (
+                                <div>
+                                  <p className="mb-1">Durante a inspeção sanitária foram constatadas as seguintes irregularidades:</p>
+                                  {parsed.nonConformities.map((nc: any, idx: number) => (
+                                    <p key={idx} className="mb-1"><strong>{idx + 1}.</strong> {nc.description}{nc.legalBasis && <span className="text-gray-600"> ({nc.legalBasis})</span>}{nc.recommendation && <span className="block text-gray-500 ml-4">→ {nc.recommendation}</span>}</p>
+                                  ))}
+                                </div>
+                              );
+                            }
+                          } catch {}
+                          return <>{textContent || doc.content?.observations || 'Sem conteúdo especificado.'}</>;
+                        })()
                       )}
                     </div>
                   </div>
