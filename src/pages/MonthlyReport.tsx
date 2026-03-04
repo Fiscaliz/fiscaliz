@@ -46,6 +46,7 @@ import { format, lastDayOfMonth, isWeekend, subDays, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BRASAO_GOIANIA_SVG, SUS_LOGO_SVG } from '@/lib/logos';
 import { getRiskByCNAE } from '@/data/cnaeRiskTable';
+import { StatisticalBreakdown } from '@/components/reports/StatisticalBreakdown';
 
 // Calcula o último dia útil de um mês
 function getLastBusinessDay(year: number, month: number): Date {
@@ -2654,35 +2655,11 @@ export default function MonthlyReport() {
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Peças Fiscais Emitidas</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {Object.entries(documentSummary).map(([key, value]) => {
-                  if (value === 0) return null;
-                  return (
-                    <div key={key} className="flex items-center justify-between py-1">
-                      <span className="text-sm">{documentTypeLabels[key] || key}</span>
-                      <Badge variant="secondary">{value}</Badge>
-                    </div>
-                  );
-                })}
-                {totalDocuments === 0 && (
-                  <div className="flex flex-col items-center py-6 text-muted-foreground">
-                    <AlertCircle className="h-8 w-8 mb-2" />
-                    <p className="text-sm">Nenhuma peça fiscal enviada neste período</p>
-                    <p className="text-xs mt-1">Apenas peças com status "Enviado" são contabilizadas</p>
-                  </div>
-                )}
-                {totalDocuments > 0 && (
-                  <div className="flex items-center justify-between py-2 border-t mt-2">
-                    <span className="font-medium">Total</span>
-                    <Badge>{totalDocuments}</Badge>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            {/* Relatório Estatístico */}
+            <StatisticalBreakdown
+              dailyActions={dailyActions}
+              documentTypeLabels={documentTypeLabels}
+            />
           </TabsContent>
           
           {/* Ações Diárias */}
