@@ -201,6 +201,7 @@ export function DocumentViewer({
   // Check if this is a Relatório Técnico with photo legends
   const isRelatorioTecnico = document.document_type === 'relatorio_tecnico';
   const relatorioTecnicoData = document.content?.relatorio_tecnico_data;
+  const isRelatorioAtividade = document.document_type === 'relatorio_atividade';
   
   // Check if this is a Termo de Intimação with AI-generated photo legends
   const isTermoIntimacaoWithAI = document.document_type === 'termo_intimacao' && 
@@ -1917,8 +1918,53 @@ _Enviado via FISCALIZ®_`;
                 />
               </div>
             )}
+            {/* Relatório de Atividade - Info específica */}
+            {isRelatorioAtividade && (
+              <div className="p-4 bg-muted/30 rounded-lg text-sm space-y-3">
+                {document.content?.atividade_id && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-primary bg-primary/20 px-2 py-1 rounded">
+                      {document.content.atividade_id}
+                    </span>
+                    <span className="font-medium">{document.content.atividade_descricao}</span>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Auditor</p>
+                    <p className="font-medium">{document.content?.auditor || document.profile?.full_name}</p>
+                    {(document.content?.matricula || document.profile?.registration_number) && (
+                      <p className="text-xs text-muted-foreground">Matrícula: {document.content?.matricula || document.profile?.registration_number}</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Data</p>
+                    <p className="font-medium">{formatDate(documentDate)}</p>
+                  </div>
+                </div>
+                {(document.content?.hora_inicio || document.content?.hora_fim) && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Horário Início</p>
+                      <p className="font-medium">{document.content.hora_inicio || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Horário Fim</p>
+                      <p className="font-medium">{document.content.hora_fim || '—'}</p>
+                    </div>
+                  </div>
+                )}
+                {document.content?.observations && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Observações</p>
+                    <p className="text-sm whitespace-pre-wrap">{document.content.observations}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Establishment Info - Reorganized - Não exibir para Coleta de Amostra (já renderizado no template) */}
-            {!isColetaAmostra && document.establishment && (
+            {!isColetaAmostra && !isRelatorioAtividade && document.establishment && (
               <div className="p-4 bg-muted/30 rounded-lg text-sm print:bg-gray-50 print:border print:border-gray-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Coluna esquerda - dados do estabelecimento */}
