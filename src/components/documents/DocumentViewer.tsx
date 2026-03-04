@@ -1344,11 +1344,11 @@ _Enviado via FISCALIZ®_`;
               )}
             </div>
             
-            {/* Data e hora da ação fiscal - em destaque */}
+            {/* Data e hora da ação fiscal - em destaque (RA: só data, sem hora do documento) */}
             <div className="mt-3 mb-1 text-center">
               <p className="text-sm font-bold">
                 Goiânia, {formatDateFull(documentDate)}
-                {documentTime && ` — ${documentTime}h`}
+                {!isRelatorioAtividade && documentTime && ` — ${documentTime}h`}
               </p>
             </div>
           </div>
@@ -1979,7 +1979,16 @@ _Enviado via FISCALIZ®_`;
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Data</p>
-                    <p className="font-medium">{formatDate(documentDate)}</p>
+                    {canEdit ? (
+                      <Input
+                        type="date"
+                        value={documentDate}
+                        onChange={(e) => setDocumentDate(e.target.value)}
+                        className="text-sm h-8 print:hidden"
+                      />
+                    ) : (
+                      <p className="font-medium">{formatDate(documentDate)}</p>
+                    )}
                   </div>
                 </div>
                 {(document.content?.hora_inicio || document.content?.hora_fim) && (
@@ -2103,15 +2112,15 @@ _Enviado via FISCALIZ®_`;
               </div>
             )}
 
-            {/* Data/Hora e Observações - Editável no rascunho */}
-            {canEdit && (
+            {/* Data/Hora e Observações - Editável no rascunho (RA já tem data inline) */}
+            {canEdit && !isRelatorioAtividade && (
               <div className="p-4 bg-muted/30 rounded-lg space-y-4 print:hidden">
                 <p className="text-sm font-semibold flex items-center gap-2">
                   <Clock className="h-4 w-4" />
-                  Data e Horário do Documento
+                  {isRelatorioAtividade ? 'Data da Atividade' : 'Data e Horário do Documento'}
                 </p>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className={isRelatorioAtividade ? '' : 'grid grid-cols-2 gap-4'}>
                   <div className="space-y-2">
                     <Label htmlFor="docDate" className="text-xs">Data</Label>
                     <Input
@@ -2122,16 +2131,18 @@ _Enviado via FISCALIZ®_`;
                       className="text-sm"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="docTime" className="text-xs">Horário</Label>
-                    <Input
-                      id="docTime"
-                      type="time"
-                      value={documentTime}
-                      onChange={(e) => setDocumentTime(e.target.value)}
-                      className="text-sm"
-                    />
-                  </div>
+                  {!isRelatorioAtividade && (
+                    <div className="space-y-2">
+                      <Label htmlFor="docTime" className="text-xs">Horário</Label>
+                      <Input
+                        id="docTime"
+                        type="time"
+                        value={documentTime}
+                        onChange={(e) => setDocumentTime(e.target.value)}
+                        className="text-sm"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Observações Adicionais - esconder se for JSON da análise por IA */}
