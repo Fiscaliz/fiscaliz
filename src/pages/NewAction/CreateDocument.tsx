@@ -604,7 +604,7 @@ export default function CreateDocument() {
     setAiAnalyzing(true);
     
     try {
-      // Upload photos first
+      // Upload photos in PARALLEL for faster processing
       const uploadedUrls: string[] = [];
       const tempDocId = crypto.randomUUID();
       
@@ -613,18 +613,21 @@ export default function CreateDocument() {
         description: `Fazendo upload de ${uploadedImages.length} foto(s)`,
       });
 
-      for (const img of uploadedImages) {
+      const uploadPromises = uploadedImages.map(async (img) => {
         const fileExt = img.file.name.split('.').pop() || 'jpg';
         const fileName = `${user.id}/temp_${tempDocId}_${img.id}.${fileExt}`;
-
         const { error: uploadError } = await supabase.storage
           .from('fiscal-photos')
           .upload(fileName, img.file, { upsert: true });
         if (uploadError) throw uploadError;
-
         const { data: signedData } = await supabase.storage.from('fiscal-photos').createSignedUrl(fileName, 3600);
-        if (signedData?.signedUrl) uploadedUrls.push(signedData.signedUrl);
-      }
+        return signedData?.signedUrl;
+      });
+
+      const uploadResults = await Promise.all(uploadPromises);
+      const validUrls = uploadResults.filter((url): url is string => Boolean(url));
+
+      if (validUrls.length === 0) throw new Error('Nenhuma foto foi enviada com sucesso');
 
       toast({
         title: 'Analisando com IA...',
@@ -634,52 +637,69 @@ export default function CreateDocument() {
       const { data: aiData, error: aiError } = await supabase.functions.invoke('analyze-photos', {
         body: {
           documentType: tipo,
-          photos: uploadedUrls,
+          photos: validUrls,
+          establishmentType: establishment?.nome_fantasia || establishment?.razao_social || 'Estabelecimento de Alimentos',
+          targetLegislation: 'RDC 216/2004 + Lei Municipal 8741/2008',
+          observation: observations || undefined,
         },
       });
 
       if (aiError) throw aiError;
       
       const aiText = (aiData as any)?.text as string | undefined;
-      if (!aiText?.trim()) {
-        throw new Error('A IA não retornou texto. Tente novamente com fotos mais nítidas.');
-      }
       
-      setAiAnalysisText(aiText);
-
-      // Extract photo legends from AI analysis
-      const photoAnalysis = (aiData as any)?.photoAnalysis as Array<{
-        foto: number;
-        legenda: string;
-        item_rdc: string;
-        severity?: string;
-        recommendation?: string;
-        deadline?: string;
+      // Handle new analysisResult.nonConformities format
+      const nonConformities = (aiData as any)?.analysisResult?.nonConformities as Array<{
+        foto: number; description: string; severity: string; legalBasis: string; recommendation: string; deadline: string;
       }> | undefined;
 
-      const timedOut = (aiData as any)?.timedOut === true;
+      // Also check legacy photoAnalysis format
+      const legacyPhotoAnalysis = (aiData as any)?.photoAnalysis as Array<{
+        foto: number; legenda: string; item_rdc: string; severity?: string; recommendation?: string; deadline?: string;
+      }> | undefined;
 
       const legends: AIPhotoLegend[] = [];
       
-      // Create legends for all photos, with AI data where available
-      for (let i = 0; i < uploadedImages.length; i++) {
-        const aiLegend = photoAnalysis?.find(pa => pa.foto - 1 === i);
-        legends.push({
-          photoIndex: i,
-          legenda: aiLegend?.legenda || '',
-          item_rdc: aiLegend?.item_rdc || '',
-          previewUrl: uploadedImages[i].previewUrl,
-        });
+      if (nonConformities && nonConformities.length > 0) {
+        // New format: group by photo number
+        for (let i = 0; i < uploadedImages.length; i++) {
+          const photoNumber = i + 1;
+          const photoNCs = nonConformities.filter(nc => nc.foto === photoNumber);
+          legends.push({
+            photoIndex: i,
+            legenda: photoNCs.map(nc => nc.description).join('; ') || '',
+            item_rdc: photoNCs.map(nc => (nc.legalBasis || '').replace('RDC 216/2004 - Item ', '')).filter(Boolean).join(', '),
+            previewUrl: uploadedImages[i].previewUrl,
+          });
+        }
+      } else if (legacyPhotoAnalysis && legacyPhotoAnalysis.length > 0) {
+        // Legacy format
+        for (let i = 0; i < uploadedImages.length; i++) {
+          const aiLegend = legacyPhotoAnalysis.find(pa => pa.foto - 1 === i);
+          legends.push({
+            photoIndex: i,
+            legenda: aiLegend?.legenda || '',
+            item_rdc: aiLegend?.item_rdc || '',
+            previewUrl: uploadedImages[i].previewUrl,
+          });
+        }
+      } else {
+        // Empty legends for manual editing
+        for (let i = 0; i < uploadedImages.length; i++) {
+          legends.push({ photoIndex: i, legenda: '', item_rdc: '', previewUrl: uploadedImages[i].previewUrl });
+        }
       }
       
+      if (aiText?.trim()) setAiAnalysisText(aiText);
       setAiPhotoLegends(legends);
-      setAiUploadedPhotoUrls(uploadedUrls); // Save the URLs from AI analysis
+      setAiUploadedPhotoUrls(validUrls);
       setAiAnalysisComplete(true);
 
       // Count photos with identified irregularities
       const identifiedCount = legends.filter(l => l.legenda.trim()).length;
       const pendingCount = legends.length - identifiedCount;
 
+      const timedOut = (aiData as any)?.timedOut === true;
       if (timedOut) {
         toast({
           title: 'Tempo limite excedido',

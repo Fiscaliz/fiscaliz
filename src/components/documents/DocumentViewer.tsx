@@ -1025,26 +1025,29 @@ _Enviado via FISCALIZ®_`;
 
       if (error) throw error;
 
-      if (data?.photoAnalysis && data.photoAnalysis.length > 0) {
-        // Build photo legends from analysis
-        const newLegends = data.photoAnalysis.map((item: any) => ({
-          photoIndex: item.foto - 1,
-          legenda: item.legenda || '',
-          item_rdc: item.item_rdc || '',
-          previewUrl: signedPhotoUrls[item.foto - 1] || '',
-        }));
+      if (data?.analysisResult?.nonConformities && data.analysisResult.nonConformities.length > 0) {
+        // New format: group non-conformities by photo number
+        const nonConformities = data.analysisResult.nonConformities;
+        const newLegends = evidencePhotos.map((_: string, idx: number) => {
+          const photoNumber = idx + 1;
+          const photoNCs = nonConformities.filter((nc: any) => nc.foto === photoNumber);
+          return {
+            photoIndex: idx,
+            legenda: photoNCs.map((nc: any) => nc.description).join('; ') || '',
+            item_rdc: photoNCs.map((nc: any) => (nc.legalBasis || '').replace('RDC 216/2004 - Item ', '')).filter(Boolean).join(', '),
+            previewUrl: signedPhotoUrls[idx] || '',
+          };
+        });
 
-        // Build irregularities from analysis
-        const newIrregularities = data.analysisResult?.nonConformities?.map((nc: any, idx: number) => ({
+        const newIrregularities = nonConformities.map((nc: any, idx: number) => ({
           id: `ai_${idx}`,
           descricao: nc.description,
           dispositivo: nc.legalBasis || '',
           severity: nc.severity,
           recommendation: nc.recommendation,
           deadline: nc.deadline,
-        })) || [];
+        }));
 
-        // Save legends and irregularities to document content
         if (onSave) {
           onSave({
             content: {
@@ -1052,8 +1055,8 @@ _Enviado via FISCALIZ®_`;
               text: content,
               photoLegends: newLegends,
               method: 'ai',
-               observations: observations,
-               team_members: teamMembers,
+              observations: observations,
+              team_members: teamMembers,
               document_date: documentDate,
               document_time: documentTime,
               ...(document.document_type === 'relatorio_tecnico' ? {
@@ -1061,6 +1064,47 @@ _Enviado via FISCALIZ®_`;
                   ...document.content?.relatorio_tecnico_data,
                   photoLegends: newLegends,
                   aiAnalysisResult: JSON.stringify(data.analysisResult),
+                }
+              } : {}),
+            },
+            irregularities: newIrregularities,
+          });
+        }
+
+        toast({
+          title: "Análise concluída",
+          description: `${nonConformities.length} não conformidade(s) identificada(s) pela IA`,
+        });
+      } else if (data?.photoAnalysis && data.photoAnalysis.length > 0) {
+        // Legacy format fallback
+        const newLegends = data.photoAnalysis.map((item: any) => ({
+          photoIndex: item.foto - 1,
+          legenda: item.legenda || '',
+          item_rdc: item.item_rdc || '',
+          previewUrl: signedPhotoUrls[item.foto - 1] || '',
+        }));
+
+        const newIrregularities = data.photoAnalysis.map((item: any, idx: number) => ({
+          id: `ai_${idx}`,
+          descricao: item.legenda || '',
+          dispositivo: item.item_rdc || '',
+        }));
+
+        if (onSave) {
+          onSave({
+            content: {
+              ...document.content,
+              text: content,
+              photoLegends: newLegends,
+              method: 'ai',
+              observations: observations,
+              team_members: teamMembers,
+              document_date: documentDate,
+              document_time: documentTime,
+              ...(document.document_type === 'relatorio_tecnico' ? {
+                relatorio_tecnico_data: {
+                  ...document.content?.relatorio_tecnico_data,
+                  photoLegends: newLegends,
                 }
               } : {}),
             },

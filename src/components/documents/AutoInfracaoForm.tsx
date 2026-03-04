@@ -202,25 +202,27 @@ export function AutoInfracaoForm({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Não autenticado');
 
-      const uploadedUrls: string[] = [];
-      const tempId = crypto.randomUUID();
+      toast({ title: `Enviando ${photos.length} foto(s)…`, description: 'Aguarde o processamento.' });
 
-      toast({ title: 'Enviando fotos…', description: `${photos.length} foto(s) em processamento` });
-
-      for (const photo of photos) {
+      // Upload photos in PARALLEL for faster processing
+      const uploadPromises = photos.map(async (photo) => {
         if (photo.file) {
           const fileExt = photo.file.name?.split('.').pop() || 'jpg';
-          const fileName = `${user.id}/ai_auto_${tempId}_${photo.id}.${fileExt}`;
+          const fileName = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
           const { error: uploadError } = await supabase.storage
             .from('fiscal-photos')
             .upload(fileName, photo.file, { upsert: true });
           if (uploadError) throw uploadError;
           const { data: signedData } = await supabase.storage.from('fiscal-photos').createSignedUrl(fileName, 3600);
-          if (signedData?.signedUrl) uploadedUrls.push(signedData.signedUrl);
+          return signedData?.signedUrl;
         } else if (photo.previewUrl && !photo.previewUrl.startsWith('blob:')) {
-          uploadedUrls.push(photo.previewUrl);
+          return photo.previewUrl;
         }
-      }
+        return null;
+      });
+
+      const uploadResults = await Promise.all(uploadPromises);
+      const uploadedUrls = uploadResults.filter((url): url is string => Boolean(url));
 
       if (uploadedUrls.length === 0) throw new Error('Nenhuma foto pôde ser enviada para análise');
 
@@ -238,17 +240,35 @@ export function AutoInfracaoForm({
       const { data, error } = await supabase.functions.invoke('analyze-photos', { body });
       if (error) throw error;
 
-      const photoAnalysis = data?.photoAnalysis as Array<{ foto: number; legenda: string; item_rdc: string }> | undefined;
+      // Handle new analysisResult.nonConformities format
+      const nonConformities = (data as any)?.analysisResult?.nonConformities as Array<{
+        foto: number; description: string; severity: string; legalBasis: string; recommendation: string; deadline: string;
+      }> | undefined;
 
-      const legends: PhotoLegend[] = photos.map((_, i) => {
-        const aiResult = photoAnalysis?.find(pa => pa.foto - 1 === i || pa.foto === i + 1);
-        return {
-          photoIndex: i,
-          legenda: aiResult?.legenda || '',
-          item_rdc: aiResult?.item_rdc || targetLegislation,
-          signedUrl: uploadedUrls[i],
-        };
-      });
+      // Also check legacy photoAnalysis format
+      const legacyPhotoAnalysis = (data as any)?.photoAnalysis as Array<{ foto: number; legenda: string; item_rdc: string }> | undefined;
+
+      let legends: PhotoLegend[];
+
+      if (nonConformities && nonConformities.length > 0) {
+        // New format: group by photo number
+        legends = photos.map((_, i) => {
+          const photoNumber = i + 1;
+          const photoNCs = nonConformities.filter(nc => nc.foto === photoNumber);
+          const legenda = photoNCs.map(nc => nc.description).join('; ') || '';
+          const itemRdcList = photoNCs.map(nc => (nc.legalBasis || '').replace('RDC 216/2004 - Item ', '')).filter(Boolean);
+          const itemRdc = itemRdcList.join(', ');
+          return { photoIndex: i, legenda, item_rdc: itemRdc || targetLegislation, signedUrl: uploadedUrls[i] };
+        });
+      } else if (legacyPhotoAnalysis && legacyPhotoAnalysis.length > 0) {
+        // Legacy format
+        legends = photos.map((_, i) => {
+          const aiResult = legacyPhotoAnalysis.find(pa => pa.foto - 1 === i || pa.foto === i + 1);
+          return { photoIndex: i, legenda: aiResult?.legenda || '', item_rdc: aiResult?.item_rdc || targetLegislation, signedUrl: uploadedUrls[i] };
+        });
+      } else {
+        legends = photos.map((_, i) => ({ photoIndex: i, legenda: '', item_rdc: '', signedUrl: uploadedUrls[i] }));
+      }
 
       setPhotoLegends(legends);
       setAnalysisComplete(true);
