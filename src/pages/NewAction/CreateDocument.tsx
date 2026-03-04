@@ -50,6 +50,7 @@ import { DocumentCommonFields } from '@/components/documents/DocumentCommonField
 import { VisitaFiscalForm, formatVisitaFiscalContent, type VisitaFiscalData } from '@/components/documents/VisitaFiscalForm';
 import { AutoInfracaoForm, formatAutoInfracaoContent, type AutoInfracaoData } from '@/components/documents/AutoInfracaoForm';
 import { RelatorioTecnicoForm, formatRelatorioTecnicoContent, type RelatorioTecnicoData } from '@/components/documents/RelatorioTecnicoForm';
+import { RelatorioTecnicoAmpliadoForm, formatRelatorioAmpliadoContent, type RelatorioAmpliadoData, type ContentBlock } from '@/components/documents/RelatorioTecnicoAmpliadoForm';
 import { ColetaAmostraForm, formatColetaAmostraContent, createEmptyProduto, type ColetaAmostraData } from '@/components/documents/ColetaAmostraForm';
 import { InutilizacaoForm, formatInutilizacaoContent, type InutilizacaoData } from '@/components/documents/InutilizacaoForm';
 import { ApreensaoForm, formatApreensaoContent, type ApreensaoData } from '@/components/documents/ApreensaoForm';
@@ -170,6 +171,7 @@ export default function CreateDocument() {
     documentDate: new Date().toISOString().split('T')[0],
     documentTime: new Date().toTimeString().slice(0, 5),
   });
+  const [rtSubType, setRtSubType] = useState<'padrao' | 'ampliado' | null>(null);
   const [relatorioTecnicoData, setRelatorioTecnicoData] = useState<RelatorioTecnicoData>({
     method: null,
     equipe: [{ nome: '', cargo: 'Auditor(a) Fiscal de Saúde Pública', matricula: '' }],
@@ -186,6 +188,15 @@ export default function CreateDocument() {
     photoLegends: [],
     aiAnalysisResult: '',
     isAnalyzing: false,
+  });
+  const [relatorioAmpliadoData, setRelatorioAmpliadoData] = useState<RelatorioAmpliadoData>({
+    objetivo: '',
+    blocks: [],
+    legislacaoAplicada: [],
+    outraLegislacao: '',
+    consideracoesFinais: '',
+    documentDate: new Date().toISOString().split('T')[0],
+    documentTime: new Date().toTimeString().slice(0, 5),
   });
   const [coletaAmostraData, setColetaAmostraData] = useState<ColetaAmostraData>({
     categoriaProduto: 'ALIMENTO',
@@ -307,6 +318,8 @@ export default function CreateDocument() {
       visitaFiscalData,
       autoInfracaoData,
       relatorioTecnicoData,
+      rtSubType,
+      relatorioAmpliadoData,
       aiAnalysisText,
       aiPhotoLegends,
       aiAnalysisComplete,
@@ -319,7 +332,7 @@ export default function CreateDocument() {
     method, selectedChecklist, selectedItems, categoryObservations, manualContent, deadlineDays,
     otrosContent, observations, dengueInspection, documentDate, documentTime,
     transportMode, certidaoData, visitaFiscalData, autoInfracaoData,
-    relatorioTecnicoData, aiAnalysisText, aiPhotoLegends, aiAnalysisComplete,
+    relatorioTecnicoData, rtSubType, relatorioAmpliadoData, aiAnalysisText, aiPhotoLegends, aiAnalysisComplete,
     aiUploadedPhotoUrls, establishment, motivo, tipo
   ]);
 
@@ -534,6 +547,9 @@ export default function CreateDocument() {
       return formatAutoInfracaoContent(autoInfracaoData);
     }
     if (isRelatorioTecnico) {
+      if (rtSubType === 'ampliado') {
+        return formatRelatorioAmpliadoContent(relatorioAmpliadoData);
+      }
       return formatRelatorioTecnicoContent(relatorioTecnicoData);
     }
     if (isColetaAmostra) {
@@ -1010,38 +1026,80 @@ export default function CreateDocument() {
           transport_mode: transportMode,
         };
       } else if (isRelatorioTecnico) {
-        // Include photoLegends from RT form data when available
-        const rtPhotoLegends = relatorioTecnicoData.photoLegends
-          .filter(l => l.legenda?.trim())
-          .map(l => ({ photoIndex: l.photoIndex, legenda: l.legenda, item_rdc: l.item_rdc, previewUrl: l.previewUrl }));
-        
-        // If upload method, add the uploaded file as an attachment
-        if (relatorioTecnicoData.method === 'upload' && relatorioTecnicoData.uploadedFileUrl) {
-          const uploadAttachment = {
-            id: 'uploaded_report',
-            url: relatorioTecnicoData.uploadedFileUrl,
-            type: 'document',
-            name: relatorioTecnicoData.uploadedFileName || 'relatorio_importado',
-          };
-          if (attachments) {
-            attachments.push(uploadAttachment);
-          } else {
-            photoUrlsForAttachments = [relatorioTecnicoData.uploadedFileUrl];
+        if (rtSubType === 'ampliado') {
+          // Upload block photos to storage
+          const blockPhotoUrls: Record<string, string> = {};
+          for (const block of relatorioAmpliadoData.blocks) {
+            if (block.type === 'photo' && block.photoFile) {
+              const fileExt = block.photoFile.name.split('.').pop() || 'jpg';
+              const fileName = `${currentUser.id}/${plannedDocId}_block_${block.id}.${fileExt}`;
+              const { error: uploadError } = await supabase.storage
+                .from('fiscal-photos')
+                .upload(fileName, block.photoFile, { upsert: true });
+              if (uploadError) throw uploadError;
+              const { data: signedData } = await supabase.storage.from('fiscal-photos').createSignedUrl(fileName, 3600);
+              if (signedData?.signedUrl) {
+                blockPhotoUrls[block.id] = signedData.signedUrl;
+                uploadedUrls.push(signedData.signedUrl);
+              }
+            }
           }
-        }
 
-        contentObj = {
-          text: content,
-          method: relatorioTecnicoData.method || 'manual',
-          relatorio_tecnico_data: relatorioTecnicoData,
-          document_date: relatorioTecnicoData.documentDate,
-          document_time: relatorioTecnicoData.documentTime,
-          equipe: relatorioTecnicoData.equipe,
-          transport_mode: transportMode,
-          ...(relatorioTecnicoData.uploadedFileUrl && { uploaded_file_url: relatorioTecnicoData.uploadedFileUrl }),
-          ...(relatorioTecnicoData.uploadedFileName && { uploaded_file_name: relatorioTecnicoData.uploadedFileName }),
-          ...(rtPhotoLegends.length > 0 && { photoLegends: rtPhotoLegends }),
-        };
+          // Serialize blocks with storage URLs instead of blob URLs
+          const serializedBlocks = relatorioAmpliadoData.blocks.map(b => ({
+            id: b.id,
+            type: b.type,
+            text: b.text,
+            photoUrl: blockPhotoUrls[b.id] || b.photoPreviewUrl,
+            photoLegend: b.photoLegend,
+          }));
+
+          contentObj = {
+            text: content,
+            method: 'ampliado',
+            rt_sub_type: 'ampliado',
+            relatorio_ampliado_data: {
+              ...relatorioAmpliadoData,
+              blocks: serializedBlocks,
+            },
+            document_date: relatorioAmpliadoData.documentDate,
+            document_time: relatorioAmpliadoData.documentTime,
+            transport_mode: transportMode,
+          };
+        } else {
+          // Include photoLegends from RT form data when available
+          const rtPhotoLegends = relatorioTecnicoData.photoLegends
+            .filter(l => l.legenda?.trim())
+            .map(l => ({ photoIndex: l.photoIndex, legenda: l.legenda, item_rdc: l.item_rdc, previewUrl: l.previewUrl }));
+          
+          // If upload method, add the uploaded file as an attachment
+          if (relatorioTecnicoData.method === 'upload' && relatorioTecnicoData.uploadedFileUrl) {
+            const uploadAttachment = {
+              id: 'uploaded_report',
+              url: relatorioTecnicoData.uploadedFileUrl,
+              type: 'document',
+              name: relatorioTecnicoData.uploadedFileName || 'relatorio_importado',
+            };
+            if (attachments) {
+              attachments.push(uploadAttachment);
+            } else {
+              photoUrlsForAttachments = [relatorioTecnicoData.uploadedFileUrl];
+            }
+          }
+
+          contentObj = {
+            text: content,
+            method: relatorioTecnicoData.method || 'manual',
+            relatorio_tecnico_data: relatorioTecnicoData,
+            document_date: relatorioTecnicoData.documentDate,
+            document_time: relatorioTecnicoData.documentTime,
+            equipe: relatorioTecnicoData.equipe,
+            transport_mode: transportMode,
+            ...(relatorioTecnicoData.uploadedFileUrl && { uploaded_file_url: relatorioTecnicoData.uploadedFileUrl }),
+            ...(relatorioTecnicoData.uploadedFileName && { uploaded_file_name: relatorioTecnicoData.uploadedFileName }),
+            ...(rtPhotoLegends.length > 0 && { photoLegends: rtPhotoLegends }),
+          };
+        }
       } else if (isColetaAmostra) {
         contentObj = {
           text: content,
@@ -1138,24 +1196,36 @@ export default function CreateDocument() {
           legislation: inf.dispositivo,
         }));
       } else if (isRelatorioTecnico) {
-        // Use manual irregularidades if available, otherwise auto-map from photoLegends
-        if (relatorioTecnicoData.irregularidades.length > 0) {
-          finalIrregularities = relatorioTecnicoData.irregularidades.map(irr => ({
-            id: irr.id,
-            text: irr.descricao,
-            category: 'Irregularidade',
-            legislation: irr.dispositivo,
-          }));
-        } else if (relatorioTecnicoData.photoLegends.filter(l => l.legenda?.trim()).length > 0) {
-          // Auto-map from AI photo legends
-          finalIrregularities = relatorioTecnicoData.photoLegends
-            .filter(l => l.legenda?.trim())
-            .map((l, idx) => ({
-              id: `ai_${idx}`,
-              text: l.legenda,
+        if (rtSubType === 'ampliado') {
+          // Extract irregularities from text blocks that mention legal references
+          finalIrregularities = relatorioAmpliadoData.blocks
+            .filter(b => b.type === 'photo' && b.photoLegend?.trim())
+            .map((b, idx) => ({
+              id: `ampliado_${idx}`,
+              text: b.photoLegend || '',
               category: 'Irregularidade',
-              legislation: l.item_rdc || '',
+              legislation: '',
             }));
+        } else {
+          // Use manual irregularidades if available, otherwise auto-map from photoLegends
+          if (relatorioTecnicoData.irregularidades.length > 0) {
+            finalIrregularities = relatorioTecnicoData.irregularidades.map(irr => ({
+              id: irr.id,
+              text: irr.descricao,
+              category: 'Irregularidade',
+              legislation: irr.dispositivo,
+            }));
+          } else if (relatorioTecnicoData.photoLegends.filter(l => l.legenda?.trim()).length > 0) {
+            // Auto-map from AI photo legends
+            finalIrregularities = relatorioTecnicoData.photoLegends
+              .filter(l => l.legenda?.trim())
+              .map((l, idx) => ({
+                id: `ai_${idx}`,
+                text: l.legenda,
+                category: 'Irregularidade',
+                legislation: l.item_rdc || '',
+              }));
+          }
         }
       } else if (isAdvertencia) {
         finalIrregularities = advertenciaData.irregularidades.map(item => ({
@@ -1584,7 +1654,7 @@ export default function CreateDocument() {
           </>
         )}
 
-        {/* Relatório Técnico Form - with method selection built-in */}
+        {/* Relatório Técnico Form - with sub-type and method selection */}
         {isRelatorioTecnico && (
           <>
             <Card className="border-0 shadow-sm bg-primary/5">
@@ -1599,111 +1669,179 @@ export default function CreateDocument() {
               </CardContent>
             </Card>
 
-            <input
-              ref={relatorioTecnicoFileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={(e) => handleImageUpload(e, true)}
-            />
-            <input
-              ref={relatorioTecnicoCameraRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={(e) => handleImageUpload(e, true)}
-            />
-
-            <RelatorioTecnicoForm
-              value={relatorioTecnicoData}
-              onChange={setRelatorioTecnicoData}
-              photos={uploadedImages.map(img => ({ id: img.id, file: img.file, previewUrl: img.previewUrl }))}
-              onAddPhoto={() => relatorioTecnicoFileInputRef.current?.click()}
-              onCapturePhoto={() => relatorioTecnicoCameraRef.current?.click()}
-              onRemovePhoto={removeImage}
-              establishmentType={establishment?.cnae_principal}
-              checklistItems={selectedChecklist ? checklistTemplates.find(c => c.id === selectedChecklist)?.items
-                .filter(item => selectedItems.length === 0 || selectedItems.includes(item.id))
-                .map(item => `${item.text} (${item.legislation || ''})`) : undefined}
-            />
-
-            <TransportModeSelector
-              value={transportMode}
-              onChange={setTransportMode}
-            />
-
-            {/* Photo Attachment Section (for both methods) */}
-            {relatorioTecnicoData.method !== null && relatorioTecnicoData.method !== 'ai' && (
+            {/* Sub-type selection */}
+            {rtSubType === null && (
               <Card className="border-0 shadow-sm">
                 <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <ImageIcon className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">Anexar Fotos (opcional)</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">{uploadedImages.length}/10</span>
+                  <p className="text-sm font-semibold text-center">Tipo de Relatório Técnico</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setRtSubType('padrao')}
+                      className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-border hover:border-primary hover:bg-primary/5 transition-all"
+                    >
+                      <div className="rounded-lg p-2 bg-primary/10">
+                        <FileText className="h-6 w-6 text-primary" />
+                      </div>
+                      <span className="text-sm font-medium">RT Padrão</span>
+                      <span className="text-[10px] text-muted-foreground text-center">Seções estruturadas com IA ou manual</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRtSubType('ampliado')}
+                      className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-border hover:border-primary hover:bg-primary/5 transition-all"
+                    >
+                      <div className="rounded-lg p-2 bg-warning/10">
+                        <FileText className="h-6 w-6 text-warning" />
+                      </div>
+                      <span className="text-sm font-medium">RT Ampliado</span>
+                      <span className="text-[10px] text-muted-foreground text-center">Narrativa livre com fotos intercaladas</span>
+                    </button>
                   </div>
-                  
-                  {uploadedImages.length > 0 && (
-                    <div className="grid grid-cols-4 gap-2">
-                      {uploadedImages.map((img, idx) => (
-                        <div key={idx} className="relative aspect-square rounded-lg overflow-hidden">
-                          <img src={img.previewUrl} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
-                          <button
-                            onClick={() => removeImage(idx)}
-                            className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {uploadedImages.length < 10 && (
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => relatorioTecnicoCameraRef.current?.click()}
-                        className="flex-1 h-12"
-                      >
-                        <Camera className="h-5 w-5 mr-2" />
-                        Capturar
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => relatorioTecnicoFileInputRef.current?.click()}
-                        className="flex-1 h-12"
-                      >
-                        <FolderOpen className="h-5 w-5 mr-2" />
-                        Galeria
-                      </Button>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             )}
 
-            {relatorioTecnicoData.method !== null && (
-              <Button 
-                className="w-full" 
-                onClick={handleSave}
-                disabled={
-                  (
-                    !relatorioTecnicoData.descricao.trim() && 
-                    relatorioTecnicoData.irregularidades.length === 0 &&
-                    relatorioTecnicoData.photoLegends.filter(l => l.legenda.trim()).length === 0
-                  ) || 
-                  saving ||
-                  relatorioTecnicoData.isAnalyzing
-                }
-              >
-                {saving ? 'Salvando...' : 'Salvar Relatório Técnico'}
-              </Button>
+            {/* RT Padrão */}
+            {rtSubType === 'padrao' && (
+              <>
+                <input
+                  ref={relatorioTecnicoFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => handleImageUpload(e, true)}
+                />
+                <input
+                  ref={relatorioTecnicoCameraRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => handleImageUpload(e, true)}
+                />
+
+                <RelatorioTecnicoForm
+                  value={relatorioTecnicoData}
+                  onChange={setRelatorioTecnicoData}
+                  photos={uploadedImages.map(img => ({ id: img.id, file: img.file, previewUrl: img.previewUrl }))}
+                  onAddPhoto={() => relatorioTecnicoFileInputRef.current?.click()}
+                  onCapturePhoto={() => relatorioTecnicoCameraRef.current?.click()}
+                  onRemovePhoto={removeImage}
+                  establishmentType={establishment?.cnae_principal}
+                  checklistItems={selectedChecklist ? checklistTemplates.find(c => c.id === selectedChecklist)?.items
+                    .filter(item => selectedItems.length === 0 || selectedItems.includes(item.id))
+                    .map(item => `${item.text} (${item.legislation || ''})`) : undefined}
+                />
+
+                <TransportModeSelector
+                  value={transportMode}
+                  onChange={setTransportMode}
+                />
+
+                {/* Photo Attachment Section (for both methods) */}
+                {relatorioTecnicoData.method !== null && relatorioTecnicoData.method !== 'ai' && (
+                  <Card className="border-0 shadow-sm">
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <ImageIcon className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-medium">Anexar Fotos (opcional)</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{uploadedImages.length}/10</span>
+                      </div>
+                      
+                      {uploadedImages.length > 0 && (
+                        <div className="grid grid-cols-4 gap-2">
+                          {uploadedImages.map((img, idx) => (
+                            <div key={idx} className="relative aspect-square rounded-lg overflow-hidden">
+                              <img src={img.previewUrl} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                              <button
+                                onClick={() => removeImage(idx)}
+                                className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {uploadedImages.length < 10 && (
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => relatorioTecnicoCameraRef.current?.click()}
+                            className="flex-1 h-12"
+                          >
+                            <Camera className="h-5 w-5 mr-2" />
+                            Capturar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => relatorioTecnicoFileInputRef.current?.click()}
+                            className="flex-1 h-12"
+                          >
+                            <FolderOpen className="h-5 w-5 mr-2" />
+                            Galeria
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {relatorioTecnicoData.method !== null && (
+                  <Button 
+                    className="w-full" 
+                    onClick={handleSave}
+                    disabled={
+                      (
+                        !relatorioTecnicoData.descricao.trim() && 
+                        relatorioTecnicoData.irregularidades.length === 0 &&
+                        relatorioTecnicoData.photoLegends.filter(l => l.legenda.trim()).length === 0
+                      ) || 
+                      saving ||
+                      relatorioTecnicoData.isAnalyzing
+                    }
+                  >
+                    {saving ? 'Salvando...' : 'Salvar Relatório Técnico'}
+                  </Button>
+                )}
+              </>
+            )}
+
+            {/* RT Ampliado */}
+            {rtSubType === 'ampliado' && (
+              <>
+                <RelatorioTecnicoAmpliadoForm
+                  value={relatorioAmpliadoData}
+                  onChange={setRelatorioAmpliadoData}
+                  photos={uploadedImages.map(img => ({ id: img.id, file: img.file, previewUrl: img.previewUrl }))}
+                  onAddPhoto={() => relatorioTecnicoFileInputRef.current?.click()}
+                  onCapturePhoto={() => relatorioTecnicoCameraRef.current?.click()}
+                  onRemovePhoto={removeImage}
+                />
+
+                <TransportModeSelector
+                  value={transportMode}
+                  onChange={setTransportMode}
+                />
+
+                <Button 
+                  className="w-full" 
+                  onClick={handleSave}
+                  disabled={
+                    (!relatorioAmpliadoData.objetivo.trim() && relatorioAmpliadoData.blocks.length === 0) || 
+                    saving
+                  }
+                >
+                  {saving ? 'Salvando...' : 'Salvar Relatório Técnico Ampliado'}
+                </Button>
+              </>
             )}
           </>
         )}

@@ -198,10 +198,12 @@ export function DocumentViewer({
     return evidencePhotos;
   }, [evidencePhotos]);
 
-  // Check if this is a Relatório Técnico with photo legends
+   // Check if this is a Relatório Técnico with photo legends
   const isRelatorioTecnico = document.document_type === 'relatorio_tecnico';
   const relatorioTecnicoData = document.content?.relatorio_tecnico_data;
   const isRelatorioAtividade = document.document_type === 'relatorio_atividade';
+  const isRelatorioAmpliado = isRelatorioTecnico && document.content?.rt_sub_type === 'ampliado';
+  const relatorioAmpliadoData = document.content?.relatorio_ampliado_data;
   
   // Check if this is a Termo de Intimação with AI-generated photo legends
   const isTermoIntimacaoWithAI = document.document_type === 'termo_intimacao' && 
@@ -1485,8 +1487,80 @@ _Enviado via FISCALIZ®_`;
             </div>
           )}
 
-          {/* ESPECIFICAÇÃO DAS IRREGULARIDADES - Não exibir para RA */}
-          {!isRelatorioAtividade && <div className="doc-section border border-gray-300 p-4 mb-6">
+          {/* RT AMPLIADO - Narrative rendering */}
+          {isRelatorioAmpliado && relatorioAmpliadoData && (
+            <>
+              {/* Objetivo */}
+              <div className="doc-section border border-gray-300 p-4 mb-6">
+                <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">5) OBJETIVO</h3>
+                <div className="text-sm leading-relaxed whitespace-pre-wrap text-justify">
+                  {relatorioAmpliadoData.objetivo || 'Não informado.'}
+                </div>
+              </div>
+
+              {/* Ação Fiscal - narrative blocks */}
+              <div className="doc-section border border-gray-300 p-4 mb-6">
+                <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">6) AÇÃO FISCAL</h3>
+                <div className="space-y-4">
+                  {relatorioAmpliadoData.blocks?.map((block: any, idx: number) => (
+                    <div key={block.id || idx}>
+                      {block.type === 'text' && block.text?.trim() && (
+                        <div className="text-sm leading-relaxed whitespace-pre-wrap text-justify">
+                          {block.text}
+                        </div>
+                      )}
+                      {block.type === 'photo' && (
+                        <div className="space-y-2">
+                          {block.photoUrl && (
+                            <div className="flex justify-center">
+                              <img
+                                src={block.photoUrl}
+                                alt={`Foto ${idx + 1}`}
+                                className="max-w-full max-h-[400px] object-contain rounded border border-gray-200"
+                              />
+                            </div>
+                          )}
+                          {block.photoLegend?.trim() && (
+                            <p className="text-xs text-gray-600 italic text-center">
+                              {block.photoLegend}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Legislação Aplicada */}
+              {(relatorioAmpliadoData.legislacaoAplicada?.length > 0 || relatorioAmpliadoData.outraLegislacao?.trim()) && (
+                <div className="doc-section border border-gray-300 p-4 mb-6">
+                  <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">LEGISLAÇÃO APLICADA</h3>
+                  <ul className="text-sm space-y-1 list-disc list-inside">
+                    {relatorioAmpliadoData.legislacaoAplicada?.map((leg: string, i: number) => (
+                      <li key={i}>{leg}</li>
+                    ))}
+                    {relatorioAmpliadoData.outraLegislacao?.trim() && (
+                      <li>{relatorioAmpliadoData.outraLegislacao}</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+
+              {/* Considerações Finais */}
+              {relatorioAmpliadoData.consideracoesFinais?.trim() && (
+                <div className="doc-section border border-gray-300 p-4 mb-6">
+                  <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">CONSIDERAÇÕES FINAIS / MEDIDAS TOMADAS</h3>
+                  <div className="text-sm leading-relaxed whitespace-pre-wrap text-justify">
+                    {relatorioAmpliadoData.consideracoesFinais}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ESPECIFICAÇÃO DAS IRREGULARIDADES - Não exibir para RA nem RT Ampliado */}
+          {!isRelatorioAtividade && !isRelatorioAmpliado && <div className="doc-section border border-gray-300 p-4 mb-6">
             <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">
               {isRelatorioTecnico ? '2. ESPECIFICAÇÃO DAS IRREGULARIDADES' : 'ESPECIFICAÇÃO DAS IRREGULARIDADES / OBSERVAÇÕES'}
             </h3>
@@ -1591,8 +1665,8 @@ _Enviado via FISCALIZ®_`;
             </div>
           )}
 
-          {/* MEDIDAS LEGAIS ADOTADAS - Relatório Técnico */}
-          {isRelatorioTecnico && relatorioTecnicoData?.medidasLegais && (
+          {/* MEDIDAS LEGAIS ADOTADAS - Relatório Técnico Padrão */}
+          {isRelatorioTecnico && !isRelatorioAmpliado && relatorioTecnicoData?.medidasLegais && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">
                 {hasPhotoLegends ? '4' : '3'}. MEDIDAS LEGAIS ADOTADAS
@@ -1603,8 +1677,8 @@ _Enviado via FISCALIZ®_`;
             </div>
           )}
 
-          {/* CONCLUSÃO FINAL - Relatório Técnico */}
-          {isRelatorioTecnico && relatorioTecnicoData?.conclusao && (
+          {/* CONCLUSÃO FINAL - Relatório Técnico Padrão */}
+          {isRelatorioTecnico && !isRelatorioAmpliado && relatorioTecnicoData?.conclusao && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">
                 {hasPhotoLegends ? '5' : '4'}. CONCLUSÃO FINAL
