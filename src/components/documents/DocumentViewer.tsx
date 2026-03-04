@@ -1433,30 +1433,55 @@ _Enviado via FISCALIZ®_`;
                 </div>
               ) : (
                 (() => {
-                  // Detect and format raw nonConformities JSON in content
                   const textContent = content || '';
-                  try {
-                    const parsed = typeof textContent === 'string' && textContent.trim().startsWith('{') 
-                      ? JSON.parse(textContent) 
-                      : null;
-                    if (parsed?.nonConformities && Array.isArray(parsed.nonConformities)) {
-                      return (
-                        <div className="space-y-3">
-                          <p className="mb-2">Durante a inspeção sanitária foram constatadas as seguintes irregularidades:</p>
-                          {parsed.nonConformities.map((nc: any, idx: number) => (
-                            <div key={idx} className="flex gap-2">
-                              <span className="font-bold text-gray-700 shrink-0">{idx + 1}.</span>
-                              <div className="text-justify">
-                                <span>{nc.description}</span>
-                                {nc.legalBasis && <span className="font-semibold"> ({nc.legalBasis})</span>}
-                                {nc.recommendation && <span className="text-gray-600 block text-xs mt-0.5">→ {nc.recommendation}</span>}
-                              </div>
-                            </div>
-                          ))}
+                  // Helper to render parsed irregularity items
+                  const renderItems = (items: any[]) => (
+                    <div className="space-y-3">
+                      <p className="mb-2">Durante a inspeção sanitária foram constatadas as seguintes irregularidades:</p>
+                      {items.map((nc: any, idx: number) => (
+                        <div key={idx} className="flex gap-2">
+                          <span className="font-bold text-gray-700 shrink-0">{idx + 1}.</span>
+                          <div className="text-justify">
+                            <span>{nc.descricao || nc.description || ''}</span>
+                            {(nc.dispositivo || nc.legalBasis) && <span className="font-semibold"> ({nc.dispositivo || nc.legalBasis})</span>}
+                            {nc.recommendation && <span className="text-gray-600 block text-xs mt-0.5">→ {nc.recommendation}</span>}
+                          </div>
                         </div>
-                      );
+                      ))}
+                    </div>
+                  );
+
+                  // 1) Try document.irregularities array
+                  if (document.irregularities && Array.isArray(document.irregularities) && document.irregularities.length > 0) {
+                    return renderItems(document.irregularities as any[]);
+                  }
+
+                  // 2) Try parsing content as {nonConformities: [...]}
+                  try {
+                    if (typeof textContent === 'string' && textContent.trim().startsWith('{')) {
+                      const parsed = JSON.parse(textContent);
+                      if (parsed?.nonConformities && Array.isArray(parsed.nonConformities)) {
+                        return renderItems(parsed.nonConformities);
+                      }
                     }
                   } catch {}
+
+                  // 3) Try parsing content as array of JSON objects (e.g. numbered lines with JSON)
+                  try {
+                    if (typeof textContent === 'string' && textContent.includes('"id"')) {
+                      const jsonObjects: any[] = [];
+                      const matches = textContent.match(/\{[^{}]*\}/g);
+                      if (matches && matches.length > 0) {
+                        for (const m of matches) {
+                          try { jsonObjects.push(JSON.parse(m)); } catch {}
+                        }
+                        if (jsonObjects.length > 0 && jsonObjects[0].descricao) {
+                          return renderItems(jsonObjects);
+                        }
+                      }
+                    }
+                  } catch {}
+
                   return textContent || 'Sem irregularidades especificadas.';
                 })()
               )}
@@ -2087,9 +2112,58 @@ _Enviado via FISCALIZ®_`;
                 </div>
               ) : (
                 <div className="bg-muted/20 rounded-lg p-4 min-h-[200px] print:bg-transparent print:border print:border-gray-200">
-                  <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed print:text-black">
-                    {content || 'Sem conteúdo'}
-                  </pre>
+                  {(() => {
+                    // Try rendering irregularities array first
+                    if (document.irregularities && Array.isArray(document.irregularities) && document.irregularities.length > 0) {
+                      return (
+                        <div className="text-sm leading-relaxed space-y-3">
+                          <p className="mb-2">Durante a inspeção sanitária foram constatadas as seguintes irregularidades:</p>
+                          {(document.irregularities as any[]).map((nc: any, idx: number) => (
+                            <div key={idx} className="flex gap-2">
+                              <span className="font-bold text-muted-foreground shrink-0">{idx + 1}.</span>
+                              <div className="text-justify">
+                                <span>{nc.descricao || nc.description || ''}</span>
+                                {(nc.dispositivo || nc.legalBasis) && <span className="font-semibold"> ({nc.dispositivo || nc.legalBasis})</span>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    }
+                    // Try parsing JSON from content
+                    try {
+                      if (typeof content === 'string' && content.includes('"id"')) {
+                        const jsonObjects: any[] = [];
+                        const matches = content.match(/\{[^{}]*\}/g);
+                        if (matches && matches.length > 0) {
+                          for (const m of matches) {
+                            try { jsonObjects.push(JSON.parse(m)); } catch {}
+                          }
+                          if (jsonObjects.length > 0 && jsonObjects[0].descricao) {
+                            return (
+                              <div className="text-sm leading-relaxed space-y-3">
+                                <p className="mb-2">Durante a inspeção sanitária foram constatadas as seguintes irregularidades:</p>
+                                {jsonObjects.map((nc: any, idx: number) => (
+                                  <div key={idx} className="flex gap-2">
+                                    <span className="font-bold text-muted-foreground shrink-0">{idx + 1}.</span>
+                                    <div className="text-justify">
+                                      <span>{nc.descricao || ''}</span>
+                                      {nc.dispositivo && <span className="font-semibold"> ({nc.dispositivo})</span>}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          }
+                        }
+                      }
+                    } catch {}
+                    return (
+                      <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed print:text-black">
+                        {content || 'Sem conteúdo'}
+                      </pre>
+                    );
+                  })()}
                 </div>
               )}
 
