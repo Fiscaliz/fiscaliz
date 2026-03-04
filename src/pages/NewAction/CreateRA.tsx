@@ -28,6 +28,11 @@ export default function CreateRA() {
   const [observations, setObservations] = useState('');
   const [horaInicio, setHoraInicio] = useState('');
   const [horaFim, setHoraFim] = useState('');
+  const [activityDate, setActivityDate] = useState(() => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0, 10);
+  });
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
   const [profile, setProfile] = useState<{ full_name: string; registration_number: string | null } | null>(null);
 
@@ -108,6 +113,7 @@ export default function CreateRA() {
       const contentObj = {
         atividade_id: atividadeId,
         atividade_descricao: atividadeDescricao,
+        document_date: activityDate,
         hora_inicio: horaInicio,
         hora_fim: horaFim,
         observations: observations,
@@ -123,6 +129,7 @@ export default function CreateRA() {
           fiscal_action_id: action.id,
           document_type: 'relatorio_atividade' as any,
           content: contentObj,
+          action_date: activityDate,
           title: `RA - ${atividadeId}: ${atividadeDescricao}`,
           priority: 'low',
         })
@@ -202,11 +209,19 @@ export default function CreateRA() {
           </CardContent>
         </Card>
 
-        {/* Horário */}
+        {/* Data e Horário */}
         <Card className="mb-4 border-0 shadow-sm">
           <CardContent className="p-4">
-            <Label className="text-sm font-semibold mb-3 block">Horário da Atividade</Label>
-            <div className="grid grid-cols-2 gap-4">
+            <Label className="text-sm font-semibold mb-3 block">Data e Horário da Atividade</Label>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Data</Label>
+                <Input
+                  type="date"
+                  value={activityDate}
+                  onChange={(e) => setActivityDate(e.target.value)}
+                />
+              </div>
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Início</Label>
                 <Input
