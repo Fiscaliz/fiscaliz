@@ -2853,7 +2853,7 @@ _Enviado via FISCALIZ®_`;
 
             {/* Signatures Area */}
             <div className={`grid ${
-              document.document_type === 'relatorio_tecnico' && teamMembers.length === 0
+              (document.document_type === 'relatorio_tecnico' || isRelatorioAtividade) && teamMembers.length === 0
                 ? 'grid-cols-1 max-w-[50%] mx-auto' 
                 : teamMembers.length > 0 
                   ? `grid-cols-2 md:grid-cols-${Math.min(2 + teamMembers.length, 4)}`
