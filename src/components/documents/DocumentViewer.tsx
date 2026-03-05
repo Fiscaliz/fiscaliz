@@ -1447,6 +1447,60 @@ _Enviado via FISCALIZ®_`;
             </div>
           )}
 
+          {/* RT PADRÃO - Seções 2, 3, 4 conforme template oficial */}
+          {isRelatorioTecnico && !isRelatorioAmpliado && (
+            <>
+              {/* 2. DATA DA VISITA FISCAL */}
+              <div className="doc-section border border-gray-300 p-4 mb-6">
+                <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">2. DATA DA VISITA FISCAL</h3>
+                <p className="text-sm font-bold">{formatDateFull(documentDate)}</p>
+              </div>
+
+              {/* 3. AUDITOR FISCAL */}
+              <div className="doc-section border border-gray-300 p-4 mb-6">
+                <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">3. AUDITOR FISCAL</h3>
+                <p className="text-sm">
+                  <strong>{document.profile?.full_name || document.content?.auditor || 'Auditor Fiscal'}</strong>
+                  {(document.profile?.registration_number || document.content?.matricula) && 
+                    ` — Matrícula: ${document.profile?.registration_number || document.content?.matricula}`
+                  }
+                </p>
+                {/* Equipe adicional */}
+                {relatorioTecnicoData?.equipe && relatorioTecnicoData.equipe.length > 0 && 
+                  relatorioTecnicoData.equipe.some((m: any) => m.nome?.trim()) && (
+                  <div className="mt-2 space-y-1">
+                    {relatorioTecnicoData.equipe
+                      .filter((m: any) => m.nome?.trim())
+                      .map((m: any, i: number) => (
+                        <p key={i} className="text-sm">
+                          <strong>{m.nome}</strong>
+                          {m.matricula && ` — Matrícula: ${m.matricula}`}
+                        </p>
+                      ))
+                    }
+                  </div>
+                )}
+              </div>
+
+              {/* 4. OBJETIVO */}
+              {relatorioTecnicoData?.objetivos && (
+                <div className="doc-section border border-gray-300 p-4 mb-6">
+                  <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">4. OBJETIVO</h3>
+                  <div className="text-sm leading-relaxed whitespace-pre-wrap text-justify">
+                    {Array.isArray(relatorioTecnicoData.objetivos) 
+                      ? relatorioTecnicoData.objetivos.filter((o: string) => o?.trim()).join('; ') + '.'
+                      : relatorioTecnicoData.objetivos
+                    }
+                    {relatorioTecnicoData.outroObjetivo?.trim() && (
+                      <span> {relatorioTecnicoData.outroObjetivo}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+
           {/* DADOS DO RELATÓRIO DE ATIVIDADE */}
           {isRelatorioAtividade && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
@@ -1564,8 +1618,13 @@ _Enviado via FISCALIZ®_`;
           {/* ESPECIFICAÇÃO DAS IRREGULARIDADES - Não exibir para RA nem RT Ampliado */}
           {!isRelatorioAtividade && !isRelatorioAmpliado && <div className="doc-section border border-gray-300 p-4 mb-6">
             <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">
-              {isRelatorioTecnico ? '2. ESPECIFICAÇÃO DAS IRREGULARIDADES' : 'ESPECIFICAÇÃO DAS IRREGULARIDADES / OBSERVAÇÕES'}
+              {isRelatorioTecnico ? '5. AÇÃO FISCAL' : 'ESPECIFICAÇÃO DAS IRREGULARIDADES / OBSERVAÇÕES'}
             </h3>
+            {isRelatorioTecnico && (
+              <p className="text-sm mb-3 text-justify">
+                Na data de {formatDateFull(documentDate)}, a equipe de fiscalização da Vigilância Sanitária Municipal compareceu ao local e, durante a inspeção, detectou as seguintes situações:
+              </p>
+            )}
             <div className="text-sm leading-relaxed whitespace-pre-wrap min-h-[150px]">
               {/* Se tiver legendas de fotos (IA), gerar texto automaticamente com referência cruzada */}
               {hasPhotoLegends && photoLegends.length > 0 ? (
@@ -1667,26 +1726,35 @@ _Enviado via FISCALIZ®_`;
             </div>
           )}
 
-          {/* MEDIDAS LEGAIS ADOTADAS - Relatório Técnico Padrão */}
-          {isRelatorioTecnico && !isRelatorioAmpliado && relatorioTecnicoData?.medidasLegais && (
+          {/* 6. LEGISLAÇÃO APLICADA - Relatório Técnico Padrão */}
+          {isRelatorioTecnico && !isRelatorioAmpliado && relatorioTecnicoData?.baseLegal && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">
-                {hasPhotoLegends ? '4' : '3'}. MEDIDAS LEGAIS ADOTADAS
+                6. LEGISLAÇÃO APLICADA
               </h3>
-              <div className="text-sm leading-relaxed whitespace-pre-wrap">
-                {relatorioTecnicoData.medidasLegais}
-              </div>
+              <ul className="text-sm space-y-1 list-disc list-inside">
+                {(Array.isArray(relatorioTecnicoData.baseLegal) ? relatorioTecnicoData.baseLegal : [relatorioTecnicoData.baseLegal])
+                  .filter((b: string) => b?.trim())
+                  .map((b: string, i: number) => (
+                    <li key={i}>{b}</li>
+                  ))
+                }
+                {relatorioTecnicoData.outraBaseLegal?.trim() && (
+                  <li>{relatorioTecnicoData.outraBaseLegal}</li>
+                )}
+              </ul>
             </div>
           )}
 
-          {/* CONCLUSÃO FINAL - Relatório Técnico Padrão */}
-          {isRelatorioTecnico && !isRelatorioAmpliado && relatorioTecnicoData?.conclusao && (
+          {/* 7. CONSIDERAÇÕES FINAIS E MEDIDAS TOMADAS - Relatório Técnico Padrão */}
+          {isRelatorioTecnico && !isRelatorioAmpliado && (relatorioTecnicoData?.medidasLegais || relatorioTecnicoData?.conclusao) && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">
-                {hasPhotoLegends ? '5' : '4'}. CONCLUSÃO FINAL
+                7. CONSIDERAÇÕES FINAIS E MEDIDAS TOMADAS
               </h3>
-              <div className="text-sm leading-relaxed whitespace-pre-wrap">
-                {relatorioTecnicoData.conclusao}
+              <div className="text-sm leading-relaxed whitespace-pre-wrap text-justify space-y-3">
+                {relatorioTecnicoData.conclusao && <p>{relatorioTecnicoData.conclusao}</p>}
+                {relatorioTecnicoData.medidasLegais && <p>{relatorioTecnicoData.medidasLegais}</p>}
               </div>
             </div>
           )}
@@ -1708,7 +1776,7 @@ _Enviado via FISCALIZ®_`;
           {hasPhotoLegends && attachedPhotos.length > 0 && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">
-                {isRelatorioTecnico ? `${(relatorioTecnicoData?.medidasLegais ? 1 : 0) + (relatorioTecnicoData?.conclusao ? 1 : 0) + 3}. ANEXOS - REGISTRO FOTOGRÁFICO` : 'ANEXOS - REGISTRO FOTOGRÁFICO'}
+                {isRelatorioTecnico ? '8. ANEXOS - REGISTRO FOTOGRÁFICO' : 'ANEXOS - REGISTRO FOTOGRÁFICO'}
               </h3>
               <p className="text-xs text-gray-600 mb-4">
                 As irregularidades descritas acima são comprovadas pelas evidências fotográficas a seguir, numeradas conforme o texto:
