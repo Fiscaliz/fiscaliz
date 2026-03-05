@@ -291,6 +291,7 @@ export default function CreateDocument() {
   const replicaDefesaCameraRef = useRef<HTMLInputElement>(null);
   const [defesaPhotos, setDefesaPhotos] = useState<{ id: string; file: File; previewUrl: string }[]>([]);
   const [extractingColetaData, setExtractingColetaData] = useState(false);
+  const [extractingUploadData, setExtractingUploadData] = useState(false);
   const [surtoNumber, setSurtoNumber] = useState('');
 
   // Auto-save state
@@ -2909,6 +2910,207 @@ export default function CreateDocument() {
                       <FolderOpen className="h-5 w-5 mr-2" />
                       Galeria
                     </Button>
+                  </div>
+                )}
+
+                {/* AI extraction for all document types with specific forms */}
+                {uploadedImages.length > 0 && (hasSpecificForm || tipo === 'termo_intimacao') && !isCertidao && !isRelatorioTecnico && !isColetaAmostra && (
+                  <div className="space-y-2 pt-2 border-t border-border/50">
+                    <p className="text-xs text-muted-foreground font-medium">O que deseja fazer com o documento?</p>
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        type="button"
+                        variant="premium"
+                        size="sm"
+                        className="w-full h-12"
+                        disabled={extractingUploadData}
+                        onClick={async () => {
+                          setExtractingUploadData(true);
+                          try {
+                            const imagesBase64: string[] = [];
+                            for (const img of uploadedImages) {
+                              const reader = new FileReader();
+                              const base64 = await new Promise<string>((resolve) => {
+                                reader.onload = () => resolve(reader.result as string);
+                                reader.readAsDataURL(img.file);
+                              });
+                              imagesBase64.push(base64);
+                            }
+
+                            const { data: fnData, error: fnError } = await supabase.functions.invoke('extract-fiscal-document-content', {
+                              body: { imagesBase64, documentType: tipo },
+                            });
+
+                            if (fnError) throw fnError;
+                            if (fnData?.error) throw new Error(fnData.error);
+
+                            const extracted = fnData?.data;
+                            if (!extracted) throw new Error('Nenhum dado extraído');
+
+                            // Map extracted data to specific form state
+                            if (isAutoInfracao && extracted.infracoes) {
+                              setAutoInfracaoData(prev => ({
+                                ...prev,
+                                infracoes: extracted.infracoes.map((inf: any, idx: number) => ({
+                                  id: `inf_${Date.now()}_${idx}`,
+                                  descricao: inf.descricao || '',
+                                  dispositivo: inf.dispositivo || '',
+                                })),
+                                valorMulta: extracted.valorMulta || prev.valorMulta,
+                                prazoDefesa: extracted.prazoDefesa || prev.prazoDefesa,
+                                documentDate: extracted.documentDate || prev.documentDate,
+                                documentTime: extracted.documentTime || prev.documentTime,
+                              }));
+                              setMethod('auto_infracao');
+                            } else if (isAdvertencia && extracted.irregularidades) {
+                              setAdvertenciaData(prev => ({
+                                ...prev,
+                                irregularidades: extracted.irregularidades.map((irr: any, idx: number) => ({
+                                  id: `adv_${Date.now()}_${idx}`,
+                                  descricao: irr.descricao || '',
+                                  dispositivo: irr.dispositivo || '',
+                                })),
+                                prazo: extracted.prazo || prev.prazo,
+                                fundamentacaoLegal: extracted.fundamentacaoLegal || prev.fundamentacaoLegal,
+                                orientacoes: extracted.orientacoes || prev.orientacoes,
+                                documentDate: extracted.documentDate || prev.documentDate,
+                                documentTime: extracted.documentTime || prev.documentTime,
+                              }));
+                              setMethod('advertencia');
+                            } else if (isInutilizacao && extracted.produtos) {
+                              setInutilizacaoData(prev => ({
+                                ...prev,
+                                produtos: extracted.produtos.map((p: any, idx: number) => ({
+                                  id: `prod_${Date.now()}_${idx}`,
+                                  produto: p.produto || '',
+                                  marca: p.marca || '',
+                                  lote: p.lote || '',
+                                  quantidade: p.quantidade || '',
+                                  unidade: p.unidade || 'UN',
+                                  pesoKg: p.pesoKg || '',
+                                  motivoInutilizacao: p.motivoInutilizacao || '',
+                                })),
+                                metodoInutilizacao: extracted.metodoInutilizacao || prev.metodoInutilizacao,
+                                localInutilizacao: extracted.localInutilizacao || prev.localInutilizacao,
+                                testemunhas: extracted.testemunhas || prev.testemunhas,
+                                justificativa: extracted.justificativa || prev.justificativa,
+                                documentDate: extracted.documentDate || prev.documentDate,
+                                documentTime: extracted.documentTime || prev.documentTime,
+                              }));
+                              setMethod('inutilizacao');
+                            } else if (isApreensao && extracted.produtos) {
+                              setApreensaoData(prev => ({
+                                ...prev,
+                                produtos: extracted.produtos.map((p: any, idx: number) => ({
+                                  id: `prod_${Date.now()}_${idx}`,
+                                  produto: p.produto || '',
+                                  marca: p.marca || '',
+                                  lote: p.lote || '',
+                                  quantidade: p.quantidade || '',
+                                  unidade: p.unidade || 'UN',
+                                  pesoKg: p.pesoKg || '',
+                                  naoConformidade: p.naoConformidade || '',
+                                  dispositivoLegal: p.dispositivoLegal || '',
+                                })),
+                                lacreNumeros: extracted.lacreNumeros?.length > 0 ? extracted.lacreNumeros : prev.lacreNumeros,
+                                destinacao: extracted.destinacao || prev.destinacao,
+                                fielDepositario: extracted.fielDepositario ?? prev.fielDepositario,
+                                observacoes: extracted.observacoes || prev.observacoes,
+                                documentDate: extracted.documentDate || prev.documentDate,
+                                documentTime: extracted.documentTime || prev.documentTime,
+                              }));
+                              setMethod('apreensao');
+                            } else if (isInterdicao) {
+                              setInterdicaoData(prev => ({
+                                ...prev,
+                                tipoInterdicao: extracted.tipoInterdicao || prev.tipoInterdicao,
+                                areasInterditadas: extracted.areasInterditadas || prev.areasInterditadas,
+                                motivoInterdicao: extracted.motivoInterdicao || prev.motivoInterdicao,
+                                fundamentacaoLegal: extracted.fundamentacaoLegal || prev.fundamentacaoLegal,
+                                condicoesDesinterdicao: extracted.condicoesDesinterdicao || prev.condicoesDesinterdicao,
+                                observacoes: extracted.observacoes || prev.observacoes,
+                                documentDate: extracted.documentDate || prev.documentDate,
+                                documentTime: extracted.documentTime || prev.documentTime,
+                              }));
+                              setMethod('interdicao');
+                            } else if (isNotificacao) {
+                              setNotificacaoData(prev => ({
+                                ...prev,
+                                assunto: extracted.assunto || prev.assunto,
+                                conteudo: extracted.conteudo || prev.conteudo,
+                                fundamentacaoLegal: extracted.fundamentacaoLegal || prev.fundamentacaoLegal,
+                                prazoResposta: extracted.prazoResposta || prev.prazoResposta,
+                                documentDate: extracted.documentDate || prev.documentDate,
+                                documentTime: extracted.documentTime || prev.documentTime,
+                              }));
+                              setMethod('notificacao');
+                            } else if (isVisitaFiscal) {
+                              setVisitaFiscalData(prev => ({
+                                ...prev,
+                                purpose: extracted.purpose?.length > 0 ? extracted.purpose : prev.purpose,
+                                anotacoes: extracted.anotacoes || prev.anotacoes,
+                                orientacoes: extracted.orientacoes || prev.orientacoes,
+                                documentDate: extracted.documentDate || prev.documentDate,
+                                documentTime: extracted.documentTime || prev.documentTime,
+                              }));
+                              setMethod('visita_fiscal');
+                            } else if (isReplica) {
+                              setReplicaData(prev => ({
+                                ...prev,
+                                documentoOrigem: extracted.documentoOrigem || prev.documentoOrigem,
+                                numeroProcesso: extracted.numeroProcesso || prev.numeroProcesso,
+                                folhasDefesa: extracted.folhasDefesa || prev.folhasDefesa,
+                                descricaoInfracao: extracted.descricaoInfracao || prev.descricaoInfracao,
+                                capitulacaoLegal: extracted.capitulacaoLegal || prev.capitulacaoLegal,
+                                resumoDefesa: extracted.resumoDefesa || prev.resumoDefesa,
+                                analiseDefesa: extracted.analiseDefesa || prev.analiseDefesa,
+                                conclusao: extracted.conclusao || prev.conclusao,
+                                fundamentacaoLegal: extracted.fundamentacaoLegal || prev.fundamentacaoLegal,
+                                documentDate: extracted.documentDate || prev.documentDate,
+                                documentTime: extracted.documentTime || prev.documentTime,
+                              }));
+                              setMethod('replica');
+                            } else if (tipo === 'termo_intimacao') {
+                              setManualContent(extracted.content || '');
+                              if (extracted.deadlineDays) setDeadlineDays(String(extracted.deadlineDays));
+                              if (extracted.observations) setObservations(extracted.observations);
+                              if (extracted.documentDate) setDocumentDate(extracted.documentDate);
+                              if (extracted.documentTime) setDocumentTime(extracted.documentTime);
+                              setMethod('manual');
+                            }
+
+                            toast({
+                              title: 'Dados extraídos com sucesso!',
+                              description: 'O formulário foi preenchido automaticamente. Revise os dados.',
+                            });
+                          } catch (err: any) {
+                            console.error('Extract document data error:', err);
+                            toast({
+                              title: 'Erro na extração',
+                              description: err.message || 'Não foi possível extrair os dados. Tente com uma foto mais clara.',
+                              variant: 'destructive',
+                            });
+                          } finally {
+                            setExtractingUploadData(false);
+                          }
+                        }}
+                      >
+                        {extractingUploadData ? (
+                          <>
+                            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                            Extraindo dados...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-5 w-5 mr-2" />
+                            Preencher formulário por IA
+                          </>
+                        )}
+                      </Button>
+                      <p className="text-[10px] text-muted-foreground text-center">
+                        A IA vai ler o documento e preencher o formulário automaticamente
+                      </p>
+                    </div>
                   </div>
                 )}
 
