@@ -1346,13 +1346,15 @@ _Enviado via FISCALIZ®_`;
               )}
             </div>
             
-            {/* Data e hora da ação fiscal - em destaque (RA: só data, sem hora do documento) */}
-            <div className="mt-3 mb-1 text-center">
-              <p className="text-sm font-bold">
-                Goiânia, {formatDateFull(documentDate)}
-                {!isRelatorioAtividade && documentTime && ` — ${documentTime}h`}
-              </p>
-            </div>
+            {/* Data e hora no cabeçalho - somente para Relatório Técnico e RA */}
+            {(isRelatorioTecnico || isRelatorioAtividade) && (
+              <div className="mt-3 mb-1 text-center">
+                <p className="text-sm font-bold">
+                  Goiânia, {formatDateFull(documentDate)}
+                  {!isRelatorioAtividade && documentTime && ` — ${documentTime}h`}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* DADOS DO ESTABELECIMENTO - somente campos com valor, layout simétrico alinhado à esquerda */}
@@ -1925,11 +1927,14 @@ _Enviado via FISCALIZ®_`;
           </div>
 
           {/* RODAPÉ OFICIAL */}
-          <div className="mt-10 pt-4 border-t text-xs text-gray-600">
+          <div className="mt-10 pt-6 border-t-2 border-gray-400 text-gray-700">
             <div className="text-center">
-              <p>Goiânia, {formatDateFull(documentDate)}</p>
-              <p className="mt-2">Este documento foi gerado eletronicamente e possui validade legal conforme legislação vigente.</p>
-              <p className="mt-1 font-semibold">Lei Municipal 8.741/08</p>
+              <p className="text-sm font-bold tracking-wide">
+                Goiânia, {formatDateFull(documentDate)}
+                {!isRelatorioAtividade && documentTime && ` — ${documentTime}h`}
+              </p>
+              <p className="mt-3 text-xs">Este documento foi gerado eletronicamente e possui validade legal conforme legislação vigente.</p>
+              <p className="mt-1 text-xs font-semibold">Lei Municipal 8.741/08</p>
               <p className="mt-1 text-[10px]">1ª Via: Estabelecimento | 2ª Via: Fiscalização</p>
               <p className="mt-3 text-[9px] font-semibold text-gray-500">
                 Criado por FISCALIZ<sup>®</sup>
