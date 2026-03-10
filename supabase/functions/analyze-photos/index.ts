@@ -394,7 +394,7 @@ JSON sem markdown: {"nonConformities":[{"foto":N,"description":"legenda descriti
   } catch (e) {
     console.error("analyze-photos error:", e);
     
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "Erro ao processar solicitação" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

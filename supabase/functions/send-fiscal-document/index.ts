@@ -138,7 +138,7 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("Error sending fiscal document email:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Erro ao enviar email" }),
+      JSON.stringify({ error: "Erro ao enviar email" }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }

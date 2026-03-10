@@ -466,11 +466,21 @@ export default function EstablishmentEntry() {
         const { latitude, longitude } = position.coords;
         setCurrentLocation({ lat: latitude, lng: longitude });
         
+        // Validate coordinates
+        if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+          toast({ title: 'Coordenadas inválidas', variant: 'destructive' });
+          setGeoLoading(false);
+          return;
+        }
         // Try to get address from coordinates using reverse geocoding
         try {
+          const geoController = new AbortController();
+          const geoTimeoutId = setTimeout(() => geoController.abort(), 8000);
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
+            { signal: geoController.signal }
           );
+          clearTimeout(geoTimeoutId);
           const data = await response.json();
           
           if (data && data.address) {
