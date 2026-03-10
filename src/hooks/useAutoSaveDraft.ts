@@ -24,7 +24,7 @@ export function useAutoSaveDraft<T>(
   const [data, setData] = useState<T>(initialData);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasPendingDraft, setHasPendingDraft] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const storageKey = `${DRAFT_STORAGE_PREFIX}${key}`;
 
   // Load draft from localStorage on mount
