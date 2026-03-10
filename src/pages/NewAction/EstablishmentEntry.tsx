@@ -380,7 +380,10 @@ export default function EstablishmentEntry() {
 
     // Query Brasil API (free, no API key required)
     try {
-      const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCNPJ}`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCNPJ}`, { signal: controller.signal });
+      clearTimeout(timeoutId);
       
       if (response.ok) {
         const data = await response.json();
