@@ -297,7 +297,7 @@ export default function CreateDocument() {
   // Auto-save state
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const draftKey = `document_${tipo}_${establishment?.cnpj || 'new'}`;
 
   // Collect all form data for auto-save
