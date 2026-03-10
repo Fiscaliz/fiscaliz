@@ -170,7 +170,7 @@ Retorne APENAS o JSON, sem texto adicional.`;
         });
       }
 
-      return new Response(JSON.stringify({ error: `Erro ao processar imagem: ${aiResp.status}` }), {
+      return new Response(JSON.stringify({ error: "Erro ao processar imagem" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -206,7 +206,7 @@ Retorne APENAS o JSON, sem texto adicional.`;
     });
   } catch (e) {
     console.error("extract-coleta-data error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Erro desconhecido" }), {
+    return new Response(JSON.stringify({ error: "Erro ao processar solicitação" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
