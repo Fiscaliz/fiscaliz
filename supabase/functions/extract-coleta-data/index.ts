@@ -170,7 +170,7 @@ Retorne APENAS o JSON, sem texto adicional.`;
         });
       }
 
-      return new Response(JSON.stringify({ error: `Erro ao processar imagem: ${aiResp.status}` }), {
+      return new Response(JSON.stringify({ error: "Erro ao processar imagem" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
