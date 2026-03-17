@@ -295,7 +295,7 @@ JSON sem markdown: {"nonConformities":[{"foto":N,"description":"legenda descriti
       console.log(`[analyze-photos] Batch ${batchIdx + 1}/${photoBatches.length}: ${batch.length} photos (${startPhotoNum}-${startPhotoNum + batch.length - 1})`);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 55000);
 
       try {
         const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -305,7 +305,7 @@ JSON sem markdown: {"nonConformities":[{"foto":N,"description":"legenda descriti
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash-lite",
+            model: "google/gemini-2.5-flash",
             messages: [
               { role: "system", content: SYSTEM_PROMPT },
               { role: "user", content: parts },
@@ -361,7 +361,7 @@ JSON sem markdown: {"nonConformities":[{"foto":N,"description":"legenda descriti
       } catch (fetchError: any) {
         clearTimeout(timeoutId);
         if (fetchError.name === 'AbortError') {
-          console.log(`[analyze-photos] Batch ${batchIdx + 1} timed out after 30s`);
+          console.log(`[analyze-photos] Batch ${batchIdx + 1} timed out after 55s`);
           timedOutBatches++;
           continue;
         }
