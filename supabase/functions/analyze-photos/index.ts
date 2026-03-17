@@ -305,7 +305,7 @@ JSON sem markdown: {"nonConformities":[{"foto":N,"description":"legenda descriti
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash-lite",
+            model: "google/gemini-2.5-flash",
             messages: [
               { role: "system", content: SYSTEM_PROMPT },
               { role: "user", content: parts },
