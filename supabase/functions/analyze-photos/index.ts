@@ -361,7 +361,7 @@ JSON sem markdown: {"nonConformities":[{"foto":N,"description":"legenda descriti
       } catch (fetchError: any) {
         clearTimeout(timeoutId);
         if (fetchError.name === 'AbortError') {
-          console.log(`[analyze-photos] Batch ${batchIdx + 1} timed out after 30s`);
+          console.log(`[analyze-photos] Batch ${batchIdx + 1} timed out after 55s`);
           timedOutBatches++;
           continue;
         }
