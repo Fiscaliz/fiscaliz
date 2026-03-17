@@ -295,7 +295,7 @@ JSON sem markdown: {"nonConformities":[{"foto":N,"description":"legenda descriti
       console.log(`[analyze-photos] Batch ${batchIdx + 1}/${photoBatches.length}: ${batch.length} photos (${startPhotoNum}-${startPhotoNum + batch.length - 1})`);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 55000);
 
       try {
         const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
