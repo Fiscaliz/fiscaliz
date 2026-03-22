@@ -2011,10 +2011,10 @@ _Enviado via FISCALIZ®_`;
             )}
           </div>
 
-          {/* RODAPÉ OFICIAL */}
+          {/* RODAPÉ OFICIAL - Data e horário em destaque para peças fiscais */}
           <div className="mt-10 pt-6 border-t-2 border-gray-400 text-gray-700">
             <div className="text-center">
-              <p className="text-sm font-bold tracking-wide">
+              <p className="text-base font-bold tracking-wide" style={{ fontSize: '13pt' }}>
                 Goiânia, {formatDateFull(documentDate)}
                 {!isRelatorioAtividade && documentTime && ` — ${documentTime}h`}
               </p>
