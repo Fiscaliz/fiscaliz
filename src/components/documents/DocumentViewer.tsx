@@ -236,16 +236,13 @@ export function DocumentViewer({
       if (relatorioTecnicoData?.photoLegends) {
         return relatorioTecnicoData.photoLegends;
       }
-      if (Array.isArray(document.content?.photoLegends)) {
-        return document.content.photoLegends;
-      }
     }
-    // For Termo de Intimação with AI analysis
-    if (isTermoIntimacaoWithAI && document.content?.photoLegends) {
+    // For any document type with AI-generated photoLegends
+    if (Array.isArray(document.content?.photoLegends) && document.content.photoLegends.length > 0) {
       return document.content.photoLegends;
     }
     return [];
-  }, [isRelatorioTecnico, relatorioTecnicoData, isTermoIntimacaoWithAI, document.content?.photoLegends]);
+  }, [isRelatorioTecnico, relatorioTecnicoData, document.content?.photoLegends]);
   
   // Flag to show photo analysis section
   const hasPhotoLegends = photoLegends.length > 0;
