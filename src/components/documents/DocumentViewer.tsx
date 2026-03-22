@@ -187,6 +187,26 @@ export function DocumentViewer({
     resolveSignature();
   }, [document.content?.contributor_signature]);
 
+  // Resolve auditor signature URL (may be expired signed URL or storage path)
+  const [resolvedAuditorSignature, setResolvedAuditorSignature] = useState<string | null>(null);
+  useEffect(() => {
+    const resolveAuditorSig = async () => {
+      const sig = document.profile?.signature_url;
+      if (!sig) return;
+      if (sig.startsWith('data:')) {
+        setResolvedAuditorSignature(sig);
+        return;
+      }
+      try {
+        const signed = await getSignedUrl(sig);
+        setResolvedAuditorSignature(signed);
+      } catch {
+        setResolvedAuditorSignature(sig);
+      }
+    };
+    resolveAuditorSig();
+  }, [document.profile?.signature_url]);
+
   const [isAnalyzingAI, setIsAnalyzingAI] = useState(false);
   const [showLegislationDialog, setShowLegislationDialog] = useState(false);
   const [isEditingLegends, setIsEditingLegends] = useState(false);
@@ -216,16 +236,13 @@ export function DocumentViewer({
       if (relatorioTecnicoData?.photoLegends) {
         return relatorioTecnicoData.photoLegends;
       }
-      if (Array.isArray(document.content?.photoLegends)) {
-        return document.content.photoLegends;
-      }
     }
-    // For Termo de Intimação with AI analysis
-    if (isTermoIntimacaoWithAI && document.content?.photoLegends) {
+    // For any document type with AI-generated photoLegends
+    if (Array.isArray(document.content?.photoLegends) && document.content.photoLegends.length > 0) {
       return document.content.photoLegends;
     }
     return [];
-  }, [isRelatorioTecnico, relatorioTecnicoData, isTermoIntimacaoWithAI, document.content?.photoLegends]);
+  }, [isRelatorioTecnico, relatorioTecnicoData, document.content?.photoLegends]);
   
   // Flag to show photo analysis section
   const hasPhotoLegends = photoLegends.length > 0;
@@ -1290,12 +1307,12 @@ _Enviado via FISCALIZ®_`;
             .pdf-preview-container { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; overflow: auto; }
           }
           .folha-fotos { width: 100%; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8mm; box-sizing: border-box; aspect-ratio: 186 / 273; }
-          @media print { .folha-fotos { height: calc(297mm - 24mm); aspect-ratio: auto; } }
-          .folha-fotos .foto-cell { display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+          @media print { .folha-fotos { height: calc(297mm - 24mm); aspect-ratio: auto; break-inside: avoid; page-break-inside: avoid; } }
+          .folha-fotos .foto-cell { display: flex; flex-direction: column; overflow: hidden; min-height: 0; break-inside: avoid; page-break-inside: avoid; }
           .folha-fotos .foto-cell .foto-img-wrap { flex: 1; min-height: 0; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; position: relative; }
           .folha-fotos .foto-cell .foto-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
           .folha-fotos .foto-cell .foto-img-wrap .foto-badge { position: absolute; top: 4px; left: 4px; background: #1f2937; color: #fff; font-size: 7pt; font-weight: bold; padding: 2px 6px; border-radius: 3px; font-family: Arial, sans-serif; }
-          .folha-fotos .foto-cell .foto-legend { font-family: Arial, sans-serif; font-size: 9pt; color: #374151; line-height: 1.3; margin-top: 3px; text-align: center; }
+          .folha-fotos .foto-cell .foto-legend { font-family: Arial, sans-serif; font-size: 9pt; color: #374151; line-height: 1.3; margin-top: 3px; text-align: center; break-inside: avoid; page-break-inside: avoid; overflow-wrap: break-word; word-wrap: break-word; }
           .doc-section { margin: 15px 0; }
           .doc-field { margin: 4px 0; text-align: left; }
           .doc-label { font-weight: bold; font-size: 10pt; display: inline; }
@@ -1914,9 +1931,9 @@ _Enviado via FISCALIZ®_`;
                       {allSigners.map((signer, idx) => (
                         <div key={idx} className="text-center flex flex-col items-center">
                           <div className="min-h-[50px] flex items-end justify-center mb-1">
-                            {signer.signatureUrl ? (
+                            {(signer.isMain ? resolvedAuditorSignature : signer.signatureUrl) ? (
                               <img
-                                src={signer.signatureUrl}
+                                src={(signer.isMain ? resolvedAuditorSignature : signer.signatureUrl)!}
                                 alt={`Rubrica de ${signer.nome}`}
                                 className="h-12 max-w-[180px] object-contain"
                               />
@@ -1942,9 +1959,9 @@ _Enviado via FISCALIZ®_`;
                 <div className="text-center flex flex-col items-center">
                   {/* Rubrica do Auditor - ACIMA do nome */}
                   <div className="min-h-[50px] flex items-end justify-center mb-1">
-                    {document.profile?.signature_url ? (
+                    {resolvedAuditorSignature ? (
                       <img 
-                        src={document.profile.signature_url} 
+                        src={resolvedAuditorSignature} 
                         alt="Rubrica do Auditor" 
                         className="h-12 max-w-[180px] object-contain"
                       />
@@ -1994,10 +2011,10 @@ _Enviado via FISCALIZ®_`;
             )}
           </div>
 
-          {/* RODAPÉ OFICIAL */}
+          {/* RODAPÉ OFICIAL - Data e horário em destaque para peças fiscais */}
           <div className="mt-10 pt-6 border-t-2 border-gray-400 text-gray-700">
             <div className="text-center">
-              <p className="text-sm font-bold tracking-wide">
+              <p className="text-base font-bold tracking-wide" style={{ fontSize: '13pt' }}>
                 Goiânia, {formatDateFull(documentDate)}
                 {!isRelatorioAtividade && documentTime && ` — ${documentTime}h`}
               </p>
