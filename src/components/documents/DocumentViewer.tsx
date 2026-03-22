@@ -1959,9 +1959,9 @@ _Enviado via FISCALIZ®_`;
                 <div className="text-center flex flex-col items-center">
                   {/* Rubrica do Auditor - ACIMA do nome */}
                   <div className="min-h-[50px] flex items-end justify-center mb-1">
-                    {document.profile?.signature_url ? (
+                    {resolvedAuditorSignature ? (
                       <img 
-                        src={document.profile.signature_url} 
+                        src={resolvedAuditorSignature} 
                         alt="Rubrica do Auditor" 
                         className="h-12 max-w-[180px] object-contain"
                       />
