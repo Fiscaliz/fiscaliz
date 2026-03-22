@@ -1307,12 +1307,12 @@ _Enviado via FISCALIZ®_`;
             .pdf-preview-container { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; overflow: auto; }
           }
           .folha-fotos { width: 100%; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8mm; box-sizing: border-box; aspect-ratio: 186 / 273; }
-          @media print { .folha-fotos { height: calc(297mm - 24mm); aspect-ratio: auto; } }
-          .folha-fotos .foto-cell { display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+          @media print { .folha-fotos { height: calc(297mm - 24mm); aspect-ratio: auto; break-inside: avoid; page-break-inside: avoid; } }
+          .folha-fotos .foto-cell { display: flex; flex-direction: column; overflow: hidden; min-height: 0; break-inside: avoid; page-break-inside: avoid; }
           .folha-fotos .foto-cell .foto-img-wrap { flex: 1; min-height: 0; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; position: relative; }
           .folha-fotos .foto-cell .foto-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
           .folha-fotos .foto-cell .foto-img-wrap .foto-badge { position: absolute; top: 4px; left: 4px; background: #1f2937; color: #fff; font-size: 7pt; font-weight: bold; padding: 2px 6px; border-radius: 3px; font-family: Arial, sans-serif; }
-          .folha-fotos .foto-cell .foto-legend { font-family: Arial, sans-serif; font-size: 9pt; color: #374151; line-height: 1.3; margin-top: 3px; text-align: center; }
+          .folha-fotos .foto-cell .foto-legend { font-family: Arial, sans-serif; font-size: 9pt; color: #374151; line-height: 1.3; margin-top: 3px; text-align: center; break-inside: avoid; page-break-inside: avoid; overflow-wrap: break-word; word-wrap: break-word; }
           .doc-section { margin: 15px 0; }
           .doc-field { margin: 4px 0; text-align: left; }
           .doc-label { font-weight: bold; font-size: 10pt; display: inline; }
