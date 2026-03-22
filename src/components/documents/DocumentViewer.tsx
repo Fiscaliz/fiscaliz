@@ -187,6 +187,26 @@ export function DocumentViewer({
     resolveSignature();
   }, [document.content?.contributor_signature]);
 
+  // Resolve auditor signature URL (may be expired signed URL or storage path)
+  const [resolvedAuditorSignature, setResolvedAuditorSignature] = useState<string | null>(null);
+  useEffect(() => {
+    const resolveAuditorSig = async () => {
+      const sig = document.profile?.signature_url;
+      if (!sig) return;
+      if (sig.startsWith('data:')) {
+        setResolvedAuditorSignature(sig);
+        return;
+      }
+      try {
+        const signed = await getSignedUrl(sig);
+        setResolvedAuditorSignature(signed);
+      } catch {
+        setResolvedAuditorSignature(sig);
+      }
+    };
+    resolveAuditorSig();
+  }, [document.profile?.signature_url]);
+
   const [isAnalyzingAI, setIsAnalyzingAI] = useState(false);
   const [showLegislationDialog, setShowLegislationDialog] = useState(false);
   const [isEditingLegends, setIsEditingLegends] = useState(false);
