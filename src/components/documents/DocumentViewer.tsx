@@ -1931,9 +1931,9 @@ _Enviado via FISCALIZ®_`;
                       {allSigners.map((signer, idx) => (
                         <div key={idx} className="text-center flex flex-col items-center">
                           <div className="min-h-[50px] flex items-end justify-center mb-1">
-                            {signer.signatureUrl ? (
+                            {(signer.isMain ? resolvedAuditorSignature : signer.signatureUrl) ? (
                               <img
-                                src={signer.signatureUrl}
+                                src={(signer.isMain ? resolvedAuditorSignature : signer.signatureUrl)!}
                                 alt={`Rubrica de ${signer.nome}`}
                                 className="h-12 max-w-[180px] object-contain"
                               />
