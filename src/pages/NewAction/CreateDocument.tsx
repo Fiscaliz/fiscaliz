@@ -2445,6 +2445,82 @@ export default function CreateDocument() {
               </CardContent>
             </Card>
 
+            {/* Photo Upload - Registro Fotográfico */}
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">Registro Fotográfico</span>
+                    <Badge variant="outline" className="text-xs">Opcional</Badge>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{uploadedImages.length}/50</span>
+                </div>
+                
+                <input
+                  ref={attachmentInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => handleImageUpload(e, false)}
+                />
+                <input
+                  ref={attachmentCameraRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => handleImageUpload(e, false)}
+                />
+
+                {uploadedImages.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {uploadedImages.map((img, idx) => (
+                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden">
+                        <img src={img.previewUrl} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(idx)}
+                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                        <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-xs font-bold px-1.5 py-0.5 rounded">
+                          {idx + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {uploadedImages.length < 50 && (
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => attachmentCameraRef.current?.click()}
+                      className="flex-1 h-12"
+                    >
+                      <Camera className="h-5 w-5 mr-2" />
+                      Capturar
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => attachmentInputRef.current?.click()}
+                      className="flex-1 h-12"
+                    >
+                      <FolderOpen className="h-5 w-5 mr-2" />
+                      Galeria
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             <DocumentCommonFields
               documentType={tipo}
               documentDate={documentDate}
