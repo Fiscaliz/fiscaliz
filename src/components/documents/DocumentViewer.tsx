@@ -1302,6 +1302,7 @@ _Enviado via FISCALIZ®_`;
             .pdf-preview-container * { display: revert; visibility: visible !important; opacity: 1 !important; }
             .pdf-print-content { padding: 12mm !important; }
             .break-before-page { break-before: page; page-break-before: always; }
+            .folha-fotos-wrapper { break-inside: avoid; page-break-inside: avoid; }
           }
           @media screen {
             .pdf-preview-container { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; overflow: auto; }
