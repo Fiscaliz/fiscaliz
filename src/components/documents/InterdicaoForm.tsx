@@ -399,7 +399,7 @@ export function InterdicaoForm({
             </div>
             <span className="text-xs text-muted-foreground">{photos.length} foto(s)</span>
           </div>
-          {photos.length > 0 && !analysisComplete && (
+          {photos.length > 0 && (
             <div className="grid grid-cols-4 gap-2">
               {photos.map((photo, idx) => (
                 <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden">
@@ -409,12 +409,10 @@ export function InterdicaoForm({
               ))}
             </div>
           )}
-          {!analysisComplete && (
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={onCapturePhoto || onAddPhoto} className="flex-1 h-12"><Camera className="h-5 w-5 mr-2" /> Capturar</Button>
-              <Button variant="outline" size="sm" onClick={onAddPhoto} className="flex-1 h-12"><FolderOpen className="h-5 w-5 mr-2" /> Galeria</Button>
-            </div>
-          )}
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={onCapturePhoto || onAddPhoto} className="flex-1 h-12"><Camera className="h-5 w-5 mr-2" /> Capturar</Button>
+            <Button variant="outline" size="sm" onClick={onAddPhoto} className="flex-1 h-12"><FolderOpen className="h-5 w-5 mr-2" /> Galeria (múltiplas)</Button>
+          </div>
           {photos.length === 0 && <p className="text-xs text-destructive">⚠️ Registro fotográfico obrigatório para interdição</p>}
 
           {/* Botão Identificar por IA */}
