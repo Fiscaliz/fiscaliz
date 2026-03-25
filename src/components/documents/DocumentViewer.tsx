@@ -384,6 +384,32 @@ export function DocumentViewer({
       });
     };
 
+    const canvas = await html2canvas(previewElement, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: '#ffffff',
+      logging: true,
+      windowWidth: previewElement.scrollWidth,
+      windowHeight: previewElement.scrollHeight,
+      onclone: async (clonedDoc) => {
+        const clonedPreview = clonedDoc.querySelector('.pdf-preview-container') as HTMLElement;
+        if (clonedPreview) {
+          clonedPreview.style.position = 'relative';
+          clonedPreview.style.display = 'block';
+        }
+        const clonedImages = clonedDoc.querySelectorAll('img');
+        const conversionPromises = Array.from(clonedImages).map(async (clonedImg) => {
+          if (clonedImg.src.startsWith('data:')) return;
+          const base64 = await imgToBase64(clonedImg);
+          if (base64) clonedImg.src = base64;
+        });
+        await Promise.all(conversionPromises);
+      }
+    });
+
+    console.log('[PDF Generation] Canvas created:', canvas.width, 'x', canvas.height);
+
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
@@ -392,52 +418,92 @@ export function DocumentViewer({
 
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
-    const marginMm = 0;
+    const imgWidth = canvas.width;
+    const imgHeight = canvas.height;
+    const ratio = pdfWidth / imgWidth;
+    const pageHeightInPixels = pdfHeight / ratio;
 
-    const sectionNodes = Array.from(previewElement.querySelectorAll('[data-pdf-section]')) as HTMLElement[];
-    const sections = sectionNodes.length > 0 ? sectionNodes : [previewElement];
+    // Find section boundaries to avoid splitting photos
+    const sectionNodes = Array.from(previewElement.querySelectorAll('.folha-fotos')) as HTMLElement[];
+    const protectedZones: Array<{ top: number; bottom: number }> = [];
+    const previewRect = previewElement.getBoundingClientRect();
+    const scale = 2; // html2canvas scale
 
-    const renderSectionToCanvas = async (section: HTMLElement) => {
-      return html2canvas(section, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: '#ffffff',
-        logging: true,
-        windowWidth: section.scrollWidth || previewElement.scrollWidth,
-        windowHeight: section.scrollHeight || previewElement.scrollHeight,
-        onclone: async (clonedDoc) => {
-          const clonedImages = clonedDoc.querySelectorAll('img');
-          const conversionPromises = Array.from(clonedImages).map(async (clonedImg) => {
-            if (clonedImg.src.startsWith('data:')) return;
-            const base64 = await imgToBase64(clonedImg);
-            if (base64) clonedImg.src = base64;
-          });
-          await Promise.all(conversionPromises);
+    for (const node of sectionNodes) {
+      const rect = node.getBoundingClientRect();
+      const top = (rect.top - previewRect.top) * scale;
+      const bottom = (rect.bottom - previewRect.top) * scale;
+      protectedZones.push({ top, bottom });
+    }
+
+    // Also protect individual foto-cell elements
+    const cellNodes = Array.from(previewElement.querySelectorAll('.foto-cell')) as HTMLElement[];
+    for (const node of cellNodes) {
+      const rect = node.getBoundingClientRect();
+      const top = (rect.top - previewRect.top) * scale;
+      const bottom = (rect.bottom - previewRect.top) * scale;
+      protectedZones.push({ top, bottom });
+    }
+
+    // Sort by top position
+    protectedZones.sort((a, b) => a.top - b.top);
+
+    // Build page breaks that avoid splitting protected zones
+    const pageBreaks: number[] = [0];
+    let currentY = 0;
+
+    while (currentY + pageHeightInPixels < imgHeight) {
+      let idealBreak = currentY + pageHeightInPixels;
+      
+      // Check if idealBreak falls inside a protected zone
+      let adjusted = false;
+      for (const zone of protectedZones) {
+        if (idealBreak > zone.top && idealBreak < zone.bottom) {
+          // Break before this zone instead
+          idealBreak = zone.top;
+          adjusted = true;
+          break;
         }
-      });
-    };
-
-    for (let sectionIndex = 0; sectionIndex < sections.length; sectionIndex++) {
-      const section = sections[sectionIndex];
-      const canvas = await renderSectionToCanvas(section);
-      console.log('[PDF Generation] Section canvas created:', sectionIndex, canvas.width, 'x', canvas.height);
-
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const availableWidth = pdfWidth - marginMm * 2;
-      const availableHeight = pdfHeight - marginMm * 2;
-      const ratio = Math.min(availableWidth / imgWidth, availableHeight / imgHeight);
-      const renderWidth = imgWidth * ratio;
-      const renderHeight = imgHeight * ratio;
-      const imgX = (pdfWidth - renderWidth) / 2;
-      const imgY = marginMm;
-
-      if (sectionIndex > 0) {
-        pdf.addPage();
       }
 
-      pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', imgX, imgY, renderWidth, renderHeight);
+      // Safety: if idealBreak didn't move forward enough, force it
+      if (idealBreak <= currentY + 50) {
+        idealBreak = currentY + pageHeightInPixels;
+      }
+
+      pageBreaks.push(idealBreak);
+      currentY = idealBreak;
+    }
+
+    console.log('[PDF Generation] Page breaks:', pageBreaks.length, 'pages');
+
+    // Render each page
+    for (let i = 0; i < pageBreaks.length; i++) {
+      const startY = pageBreaks[i];
+      const endY = i + 1 < pageBreaks.length ? pageBreaks[i + 1] : imgHeight;
+      const sliceHeight = endY - startY;
+
+      if (i > 0) pdf.addPage();
+
+      const pageCanvas = window.document.createElement('canvas');
+      pageCanvas.width = canvas.width;
+      pageCanvas.height = sliceHeight;
+      const ctx = pageCanvas.getContext('2d');
+
+      if (ctx) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+        ctx.drawImage(
+          canvas,
+          0, startY,
+          canvas.width, sliceHeight,
+          0, 0,
+          pageCanvas.width, sliceHeight
+        );
+
+        const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.92);
+        pdf.addImage(pageImgData, 'JPEG', 0, 0, pdfWidth, sliceHeight * ratio);
+      }
     }
 
     console.log('[PDF Generation] PDF created, uploading to storage...');
