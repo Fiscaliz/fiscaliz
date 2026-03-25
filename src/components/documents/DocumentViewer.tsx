@@ -1844,7 +1844,7 @@ _Enviado via FISCALIZ®_`;
                   pages.push(attachedPhotos.slice(i, i + 4));
                 }
                 return pages.map((page, pageIdx) => (
-                  <div key={pageIdx} className={`folha-fotos ${pageIdx > 0 ? 'break-before-page' : ''}`}>
+                  <div key={pageIdx} className={`folha-fotos break-before-page`}>
                     {page.map((photoUrl, idx) => {
                       const globalIdx = pageIdx * 4 + idx;
                       return (
