@@ -384,36 +384,6 @@ export function DocumentViewer({
       });
     };
 
-    const canvas = await html2canvas(previewElement, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: false,
-      backgroundColor: '#ffffff',
-      logging: true,
-      windowWidth: previewElement.scrollWidth,
-      windowHeight: previewElement.scrollHeight,
-      onclone: async (clonedDoc) => {
-        const clonedPreview = clonedDoc.querySelector('.pdf-preview-container') as HTMLElement;
-        if (clonedPreview) {
-          clonedPreview.style.position = 'relative';
-          clonedPreview.style.display = 'block';
-        }
-        // Converter todas as imagens para base64 no clone para evitar CORS/taint
-        const clonedImages = clonedDoc.querySelectorAll('img');
-        const conversionPromises = Array.from(clonedImages).map(async (clonedImg) => {
-          if (clonedImg.src.startsWith('data:')) return; // já é base64
-          const base64 = await imgToBase64(clonedImg);
-          if (base64) {
-            clonedImg.src = base64;
-          }
-        });
-        await Promise.all(conversionPromises);
-      }
-    });
-
-    console.log('[PDF Generation] Canvas created:', canvas.width, 'x', canvas.height);
-
-    const imgData = canvas.toDataURL('image/jpeg', 0.92);
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
@@ -422,47 +392,52 @@ export function DocumentViewer({
 
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = canvas.width;
-    const imgHeight = canvas.height;
+    const marginMm = 0;
 
-    const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-    const imgX = (pdfWidth - imgWidth * ratio) / 2;
-    const imgY = 0;
-    const scaledHeight = imgHeight * ratio;
+    const sectionNodes = Array.from(previewElement.querySelectorAll('[data-pdf-section]')) as HTMLElement[];
+    const sections = sectionNodes.length > 0 ? sectionNodes : [previewElement];
 
-    if (scaledHeight > pdfHeight) {
-      let remainingHeight = imgHeight;
-      let currentY = 0;
-      const pageHeightInPixels = pdfHeight / ratio;
-
-      while (remainingHeight > 0) {
-        if (currentY > 0) {
-          pdf.addPage();
+    const renderSectionToCanvas = async (section: HTMLElement) => {
+      return html2canvas(section, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: '#ffffff',
+        logging: true,
+        windowWidth: section.scrollWidth || previewElement.scrollWidth,
+        windowHeight: section.scrollHeight || previewElement.scrollHeight,
+        onclone: async (clonedDoc) => {
+          const clonedImages = clonedDoc.querySelectorAll('img');
+          const conversionPromises = Array.from(clonedImages).map(async (clonedImg) => {
+            if (clonedImg.src.startsWith('data:')) return;
+            const base64 = await imgToBase64(clonedImg);
+            if (base64) clonedImg.src = base64;
+          });
+          await Promise.all(conversionPromises);
         }
+      });
+    };
 
-        const pageCanvas = window.document.createElement('canvas');
-        pageCanvas.width = canvas.width;
-        pageCanvas.height = Math.min(pageHeightInPixels, remainingHeight);
-        const ctx = pageCanvas.getContext('2d');
+    for (let sectionIndex = 0; sectionIndex < sections.length; sectionIndex++) {
+      const section = sections[sectionIndex];
+      const canvas = await renderSectionToCanvas(section);
+      console.log('[PDF Generation] Section canvas created:', sectionIndex, canvas.width, 'x', canvas.height);
 
-        if (ctx) {
-          ctx.drawImage(
-            canvas,
-            0, currentY,
-            canvas.width, pageCanvas.height,
-            0, 0,
-            pageCanvas.width, pageCanvas.height
-          );
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const availableWidth = pdfWidth - marginMm * 2;
+      const availableHeight = pdfHeight - marginMm * 2;
+      const ratio = Math.min(availableWidth / imgWidth, availableHeight / imgHeight);
+      const renderWidth = imgWidth * ratio;
+      const renderHeight = imgHeight * ratio;
+      const imgX = (pdfWidth - renderWidth) / 2;
+      const imgY = marginMm;
 
-          const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.92);
-          pdf.addImage(pageImgData, 'JPEG', imgX, 0, imgWidth * ratio, pageCanvas.height * ratio);
-        }
-
-        currentY += pageHeightInPixels;
-        remainingHeight -= pageHeightInPixels;
+      if (sectionIndex > 0) {
+        pdf.addPage();
       }
-    } else {
-      pdf.addImage(imgData, 'JPEG', imgX, imgY, imgWidth * ratio, scaledHeight);
+
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', imgX, imgY, renderWidth, renderHeight);
     }
 
     console.log('[PDF Generation] PDF created, uploading to storage...');
@@ -1792,14 +1767,13 @@ _Enviado via FISCALIZ®_`;
 
           {/* ANEXOS: ANÁLISE FOTOGRÁFICA DAS IRREGULARIDADES - Para documentos com legendas (Relatório Técnico ou Termo de Intimação com IA) */}
           {hasPhotoLegends && attachedPhotos.length > 0 && (
-            <div className="doc-section border border-gray-300 p-4 mb-6">
+            <div className="doc-section border border-gray-300 p-4 mb-6" data-pdf-section>
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">
                 {isRelatorioTecnico ? '8. ANEXOS - REGISTRO FOTOGRÁFICO' : 'ANEXOS - REGISTRO FOTOGRÁFICO'}
               </h3>
               <p className="text-xs text-gray-600 mb-4">
                 As irregularidades descritas acima são comprovadas pelas evidências fotográficas a seguir, numeradas conforme o texto:
               </p>
-              {/* 4 fotos por página — layout preciso A4 com CSS puro */}
               {(() => {
                 const filteredLegends = photoLegends.filter(legend => legend.legenda && legend.legenda.trim());
                 const pages: typeof filteredLegends[] = [];
@@ -1807,14 +1781,14 @@ _Enviado via FISCALIZ®_`;
                   pages.push(filteredLegends.slice(i, i + 4));
                 }
                 return pages.map((page, pageIdx) => (
-                  <div key={pageIdx} className={`folha-fotos break-before-page`}>
+                  <div key={pageIdx} className={`folha-fotos ${pageIdx > 0 ? 'break-before-page' : ''}`} data-pdf-section>
                     {page.map((legend, idx) => {
                       const globalIdx = pageIdx * 4 + idx;
                       const photoUrl = attachedPhotos[legend.photoIndex] || legend.previewUrl;
                       if (!photoUrl) return null;
                       const itemNumber = globalIdx + 1;
                       return (
-                        <div key={globalIdx} className="foto-cell">
+                        <div key={globalIdx} className="foto-cell" data-pdf-keep-together>
                           <div className="foto-img-wrap">
                             <span className="foto-badge">{itemNumber}</span>
                             <img src={photoUrl} alt={`Foto ${itemNumber}`} />
@@ -1836,7 +1810,7 @@ _Enviado via FISCALIZ®_`;
 
           {/* REGISTRO FOTOGRÁFICO - Layout padrão para documentos sem legendas */}
           {!hasPhotoLegends && attachedPhotos.length > 0 && (
-            <div className="doc-section border border-gray-300 p-4 mb-6">
+            <div className="doc-section border border-gray-300 p-4 mb-6" data-pdf-section>
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">REGISTRO FOTOGRÁFICO</h3>
               {(() => {
                 const pages: string[][] = [];
@@ -1844,11 +1818,11 @@ _Enviado via FISCALIZ®_`;
                   pages.push(attachedPhotos.slice(i, i + 4));
                 }
                 return pages.map((page, pageIdx) => (
-                  <div key={pageIdx} className={`folha-fotos break-before-page`}>
+                  <div key={pageIdx} className={`folha-fotos ${pageIdx > 0 ? 'break-before-page' : ''}`} data-pdf-section>
                     {page.map((photoUrl, idx) => {
                       const globalIdx = pageIdx * 4 + idx;
                       return (
-                        <div key={globalIdx} className="foto-cell">
+                        <div key={globalIdx} className="foto-cell" data-pdf-keep-together>
                           <div className="foto-img-wrap">
                             <span className="foto-badge">{globalIdx + 1}</span>
                             <img src={photoUrl} alt={`Foto ${globalIdx + 1}`} />
