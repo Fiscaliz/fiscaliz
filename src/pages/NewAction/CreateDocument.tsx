@@ -2496,8 +2496,8 @@ export default function CreateDocument() {
               </CardContent>
             </Card>
 
-            {/* Photo Upload for inutilização, apreensão, interdicao */}
-            {(tipo === 'inutilizacao' || tipo === 'apreensao' || tipo === 'interdicao') && (
+            {/* Photo Upload - available for all document types */}
+            {(
               <Card className="border-0 shadow-sm">
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
