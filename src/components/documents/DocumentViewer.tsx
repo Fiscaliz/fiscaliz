@@ -1302,18 +1302,18 @@ _Enviado via FISCALIZ®_`;
             .pdf-preview-container * { display: revert; visibility: visible !important; opacity: 1 !important; }
             .pdf-print-content { padding: 12mm !important; }
             .break-before-page { break-before: page; page-break-before: always; }
-            .folha-fotos-wrapper { break-inside: avoid; page-break-inside: avoid; }
+            .photo-page { break-before: page !important; page-break-before: always !important; break-inside: avoid !important; page-break-inside: avoid !important; }
           }
           @media screen {
             .pdf-preview-container { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; overflow: auto; }
           }
-          .folha-fotos { width: 100%; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8mm; box-sizing: border-box; break-inside: avoid; page-break-inside: avoid; }
-          @media print { .folha-fotos { height: calc(297mm - 24mm); break-inside: avoid; page-break-inside: avoid; page-break-after: always; } .folha-fotos:last-child { page-break-after: auto; } }
-          .folha-fotos .foto-cell { display: flex; flex-direction: column; overflow: hidden; min-height: 0; break-inside: avoid; page-break-inside: avoid; }
-          .folha-fotos .foto-cell .foto-img-wrap { flex: 1; min-height: 0; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; position: relative; }
+          .folha-fotos { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 8mm; box-sizing: border-box; }
+          @media print { .folha-fotos { height: calc(297mm - 24mm); break-inside: avoid !important; page-break-inside: avoid !important; } }
+          .folha-fotos .foto-cell { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 0; break-inside: avoid !important; page-break-inside: avoid !important; }
+          .folha-fotos .foto-cell .foto-img-wrap { min-height: 0; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; position: relative; }
           .folha-fotos .foto-cell .foto-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
           .folha-fotos .foto-cell .foto-img-wrap .foto-badge { position: absolute; top: 4px; left: 4px; background: #1f2937; color: #fff; font-size: 7pt; font-weight: bold; padding: 2px 6px; border-radius: 3px; font-family: Arial, sans-serif; }
-          .folha-fotos .foto-cell .foto-legend { font-family: Arial, sans-serif; font-size: 9pt; color: #374151; line-height: 1.3; margin-top: 3px; text-align: center; break-inside: avoid; page-break-inside: avoid; overflow-wrap: break-word; word-wrap: break-word; max-height: 4.5em; overflow: hidden; }
+          .folha-fotos .foto-cell .foto-legend { font-family: Arial, sans-serif; font-size: 9pt; color: #374151; line-height: 1.25; margin-top: 3px; text-align: center; break-inside: avoid !important; page-break-inside: avoid !important; overflow-wrap: break-word; word-wrap: break-word; }
           .doc-section { margin: 15px 0; }
           .doc-field { margin: 4px 0; text-align: left; }
           .doc-label { font-weight: bold; font-size: 10pt; display: inline; }
