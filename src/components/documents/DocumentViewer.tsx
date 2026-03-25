@@ -424,24 +424,32 @@ export function DocumentViewer({
     const pageHeightInPixels = pdfHeight / ratio;
 
     // Find section boundaries to avoid splitting photos
+    // Use offsetTop-based coordinates (scroll-safe) instead of getBoundingClientRect
     const sectionNodes = Array.from(previewElement.querySelectorAll('.folha-fotos')) as HTMLElement[];
     const protectedZones: Array<{ top: number; bottom: number }> = [];
-    const previewRect = previewElement.getBoundingClientRect();
     const scale = 2; // html2canvas scale
 
+    const getOffsetRelativeTo = (el: HTMLElement, ancestor: HTMLElement): number => {
+      let offset = 0;
+      let current: HTMLElement | null = el;
+      while (current && current !== ancestor) {
+        offset += current.offsetTop;
+        current = current.offsetParent as HTMLElement | null;
+      }
+      return offset;
+    };
+
     for (const node of sectionNodes) {
-      const rect = node.getBoundingClientRect();
-      const top = (rect.top - previewRect.top) * scale;
-      const bottom = (rect.bottom - previewRect.top) * scale;
+      const top = getOffsetRelativeTo(node, previewElement) * scale;
+      const bottom = top + node.offsetHeight * scale;
       protectedZones.push({ top, bottom });
     }
 
     // Also protect individual foto-cell elements
     const cellNodes = Array.from(previewElement.querySelectorAll('.foto-cell')) as HTMLElement[];
     for (const node of cellNodes) {
-      const rect = node.getBoundingClientRect();
-      const top = (rect.top - previewRect.top) * scale;
-      const bottom = (rect.bottom - previewRect.top) * scale;
+      const top = getOffsetRelativeTo(node, previewElement) * scale;
+      const bottom = top + node.offsetHeight * scale;
       protectedZones.push({ top, bottom });
     }
 
