@@ -707,7 +707,16 @@ export default function CreateDocument() {
         }
       }
       
-      if (aiText?.trim()) setAiAnalysisText(aiText);
+      if (aiText?.trim()) {
+        setAiAnalysisText(aiText);
+      } else {
+        // Generate text from legends when AI doesn't return a text summary
+        const generatedText = legends
+          .filter(l => l.legenda?.trim())
+          .map((l, idx) => `${idx + 1}. ${l.legenda}${l.item_rdc ? ` (${l.item_rdc})` : ''}`)
+          .join('\n');
+        setAiAnalysisText(generatedText || 'Irregularidades identificadas conforme registro fotográfico.');
+      }
       setAiPhotoLegends(legends);
       setAiUploadedPhotoUrls(validUrls);
       setAiAnalysisComplete(true);
@@ -952,11 +961,25 @@ export default function CreateDocument() {
         }
         
         // Use the pre-analyzed text and edited legends
-        if (!aiAnalysisComplete || !aiAnalysisText) {
+        if (!aiAnalysisComplete) {
           throw new Error('Execute a análise por IA antes de salvar.');
         }
         
-        content = aiAnalysisText;
+        // If aiAnalysisText is empty, generate from legends
+        if (!aiAnalysisText) {
+          const generatedFromLegends = aiPhotoLegends
+            .filter(l => l.legenda?.trim())
+            .map((l, idx) => `${idx + 1}. ${l.legenda}${l.item_rdc ? ` (${l.item_rdc})` : ''}`)
+            .join('\n');
+          if (generatedFromLegends) {
+            setAiAnalysisText(generatedFromLegends);
+          }
+        }
+        
+        content = aiAnalysisText || aiPhotoLegends
+          .filter(l => l.legenda?.trim())
+          .map((l, idx) => `${idx + 1}. ${l.legenda}${l.item_rdc ? ` (${l.item_rdc})` : ''}`)
+          .join('\n') || 'Irregularidades identificadas conforme registro fotográfico.';
         
         // Use edited legends (filter out empty ones)
         finalAiPhotoLegends = aiPhotoLegends
