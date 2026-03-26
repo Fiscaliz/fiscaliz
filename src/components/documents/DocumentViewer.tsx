@@ -47,6 +47,7 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { LegislationSelectDialog, DEFAULT_LEGISLATION } from './LegislationSelectDialog';
 import { TeamMembersSection, TeamMembersSignatures, type TeamMember } from './TeamMembersSection';
+import { AnexoImagensSheet, AnexoImagensPDF, type AnexoImagensConfig } from './AnexoImagensSheet';
 
 interface AttachmentPhoto {
   id?: string;
@@ -163,6 +164,9 @@ export function DocumentViewer({
 
   const [evidencePhotos, setEvidencePhotos] = useState<string[]>([]);
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
+  const [anexoImagensConfig, setAnexoImagensConfig] = useState<AnexoImagensConfig>(
+    document.content?.anexo_imagens || { images: [], showLegends: false, showHeader: false }
+  );
 
   // Resolve attachment URLs on mount (convert public→signed)
   useEffect(() => {
@@ -272,6 +276,7 @@ export function DocumentViewer({
           document_time: documentTime,
            observations: observations,
            team_members: teamMembers,
+           anexo_imagens: anexoImagensConfig.images.length > 0 ? anexoImagensConfig : undefined,
         } 
       });
     }
