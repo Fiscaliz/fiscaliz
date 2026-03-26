@@ -14,7 +14,8 @@ import {
   ChevronRight,
   Shield,
   Calendar,
-  Users
+  Users,
+  ClipboardList
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import fiscalizLogo from '@/assets/logo-fiscaliz.png';
@@ -41,6 +42,7 @@ export default function Profile() {
   const menuItems = [
     { icon: User, label: 'Editar Perfil', href: '/perfil/editar', color: 'bg-primary/10 text-primary' },
     { icon: FileText, label: 'Meus Documentos', href: '/documentos', color: 'bg-info/10 text-info' },
+    { icon: ClipboardList, label: 'Meus Checklists', href: '/checklists', color: 'bg-accent/50 text-accent-foreground' },
     { icon: Calendar, label: 'Relatório Mensal', href: '/relatorio-mensal', color: 'bg-success/10 text-success' },
     ...(isAdmin ? [{ icon: Users, label: 'Gestão de Usuários', href: '/admin/usuarios', color: 'bg-destructive/10 text-destructive' }] : []),
     { icon: Settings, label: 'Configurações', href: '/configuracoes', color: 'bg-muted text-muted-foreground' },
