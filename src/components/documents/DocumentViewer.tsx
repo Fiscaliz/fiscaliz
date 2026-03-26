@@ -1572,15 +1572,6 @@ _Enviado via FISCALIZ®_`;
             </>
           )}
 
-          {/* ANEXO DE IMAGENS - Folhas extras com grid 2x3 */}
-          {anexoImagensConfig.images.length > 0 && (
-            <AnexoImagensPDF
-              config={anexoImagensConfig}
-              establishment={document.establishment}
-              documentNumber={document.document_number}
-              documentType={document.document_type}
-            />
-          )}
 
           {/* DADOS DO RELATÓRIO DE ATIVIDADE */}
           {isRelatorioAtividade && (
