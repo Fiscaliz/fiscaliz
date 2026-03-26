@@ -565,7 +565,7 @@ export default function CreateDocument() {
       return formatApreensaoContent(apreensaoData);
     }
     if (isInterdicao) {
-      return formatInterdicaoContent(interdicaoData);
+      return formatInterdicaoContent(interdicaoData, checklistTemplates);
     }
     if (isAdvertencia) {
       return formatAdvertenciaContent(advertenciaData);
