@@ -1917,6 +1917,16 @@ _Enviado via FISCALIZ®_`;
             </div>
           )}
 
+          {/* ANEXO DE IMAGENS - Folhas extras com grid 2x3 */}
+          {anexoImagensConfig.images.length > 0 && (
+            <AnexoImagensPDF
+              config={anexoImagensConfig}
+              establishment={document.establishment}
+              documentNumber={document.document_number}
+              documentType={document.document_type}
+            />
+          )}
+
           {/* FOTO DO CONTRIBUINTE/PREPOSTO - se houver separadamente */}
           {contributorPhoto && document.document_type !== 'relatorio_tecnico' && !isRelatorioAtividade && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
