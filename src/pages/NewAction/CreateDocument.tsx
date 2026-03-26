@@ -1663,6 +1663,7 @@ export default function CreateDocument() {
               onCapturePhoto={() => document.getElementById('autoInfracaoCameraInput')?.click()}
               onRemovePhoto={removeImage}
               photosRequired={false}
+              checklists={checklistTemplates}
             />
 
             <TransportModeSelector
@@ -1759,6 +1760,7 @@ export default function CreateDocument() {
                   checklistItems={selectedChecklist ? checklistTemplates.find(c => c.id === selectedChecklist)?.items
                     .filter(item => selectedItems.length === 0 || selectedItems.includes(item.id))
                     .map(item => `${item.text} (${item.legislation || ''})`) : undefined}
+                  checklists={checklistTemplates}
                 />
 
                 <TransportModeSelector
@@ -2121,6 +2123,7 @@ export default function CreateDocument() {
               onAddPhoto={() => interdicaoFileInputRef.current?.click()}
               onCapturePhoto={() => interdicaoCameraRef.current?.click()}
               onRemovePhoto={removeImage}
+              checklists={checklistTemplates}
             />
             <TransportModeSelector value={transportMode} onChange={setTransportMode} />
             <Button className="w-full" onClick={handleSave} disabled={!interdicaoData.tipoInterdicao || !interdicaoData.motivoInterdicao || uploadedImages.length === 0 || saving}>
@@ -2143,7 +2146,7 @@ export default function CreateDocument() {
                 </div>
               </CardContent>
             </Card>
-            <AdvertenciaForm value={advertenciaData} onChange={setAdvertenciaData} />
+            <AdvertenciaForm value={advertenciaData} onChange={setAdvertenciaData} checklists={checklistTemplates} />
             <TransportModeSelector value={transportMode} onChange={setTransportMode} />
             <Button className="w-full" onClick={handleSave} disabled={advertenciaData.irregularidades.length === 0 || saving}>
               {saving ? 'Salvando...' : 'Salvar Advertência'}
