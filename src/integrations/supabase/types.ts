@@ -425,7 +425,9 @@ export type Database = {
         Row: {
           areas_of_practice: string[] | null
           avatar_url: string | null
+          city: string | null
           created_at: string
+          custom_legislations: Json | null
           division: string | null
           email: string | null
           full_name: string
@@ -434,16 +436,21 @@ export type Database = {
           institution_name: string | null
           institutional_link: string | null
           is_active: boolean
+          organ_name: string | null
+          pdf_header_text: string | null
           phone: string | null
           registration_number: string | null
           signature_url: string | null
+          state: string | null
           updated_at: string
           user_type: string | null
         }
         Insert: {
           areas_of_practice?: string[] | null
           avatar_url?: string | null
+          city?: string | null
           created_at?: string
+          custom_legislations?: Json | null
           division?: string | null
           email?: string | null
           full_name: string
@@ -452,16 +459,21 @@ export type Database = {
           institution_name?: string | null
           institutional_link?: string | null
           is_active?: boolean
+          organ_name?: string | null
+          pdf_header_text?: string | null
           phone?: string | null
           registration_number?: string | null
           signature_url?: string | null
+          state?: string | null
           updated_at?: string
           user_type?: string | null
         }
         Update: {
           areas_of_practice?: string[] | null
           avatar_url?: string | null
+          city?: string | null
           created_at?: string
+          custom_legislations?: Json | null
           division?: string | null
           email?: string | null
           full_name?: string
@@ -470,9 +482,12 @@ export type Database = {
           institution_name?: string | null
           institutional_link?: string | null
           is_active?: boolean
+          organ_name?: string | null
+          pdf_header_text?: string | null
           phone?: string | null
           registration_number?: string | null
           signature_url?: string | null
+          state?: string | null
           updated_at?: string
           user_type?: string | null
         }

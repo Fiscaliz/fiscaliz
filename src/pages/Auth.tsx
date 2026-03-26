@@ -25,6 +25,11 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
     institutionName: '',
     areasOfPractice: [],
     logoFile: null,
+    city: '',
+    state: '',
+    organName: '',
+    pdfHeaderText: '',
+    customLegislations: [],
   });
   
   const { signIn, signUp, user, loading } = useAuth();
@@ -79,6 +84,11 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
           setIsSubmitting(false);
           return;
         }
+        if (!extraData.state || !extraData.city.trim()) {
+          toast({ title: 'Campo obrigatório', description: 'Informe o estado e a cidade.', variant: 'destructive' });
+          setIsSubmitting(false);
+          return;
+        }
         
         const { error } = await signUp(email, password, fullName, {
           userType: extraData.userType,
@@ -86,6 +96,11 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
           institutionName: extraData.institutionName,
           areasOfPractice: extraData.areasOfPractice,
           logoFile: extraData.logoFile,
+          city: extraData.city,
+          state: extraData.state,
+          organName: extraData.organName,
+          pdfHeaderText: extraData.pdfHeaderText,
+          customLegislations: extraData.customLegislations,
         });
         if (error) {
           if (error.message.includes('already registered')) {
@@ -285,7 +300,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
                   setPassword('');
                   setFullName('');
                   setRegistrationNumber('');
-                  setExtraData({ userType: '', institutionalLink: '', institutionName: '', areasOfPractice: [], logoFile: null });
+                  setExtraData({ userType: '', institutionalLink: '', institutionName: '', areasOfPractice: [], logoFile: null, city: '', state: '', organName: '', pdfHeaderText: '', customLegislations: [] });
                 }}
                 className="text-body text-primary font-semibold hover:underline transition-all"
               >
