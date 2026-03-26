@@ -8,6 +8,11 @@ interface SignupExtra {
   institutionName?: string;
   areasOfPractice?: string[];
   logoFile?: File | null;
+  city?: string;
+  state?: string;
+  organName?: string;
+  pdfHeaderText?: string;
+  customLegislations?: string[];
 }
 
 interface AuthContextType {
@@ -88,6 +93,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         institution_name: extra.institutionName || null,
         institution_logo_url: logoUrl,
         areas_of_practice: extra.areasOfPractice,
+        city: extra.city || null,
+        state: extra.state || null,
+        organ_name: extra.organName || null,
+        pdf_header_text: extra.pdfHeaderText || null,
+        custom_legislations: extra.customLegislations || [],
       } as any).eq('id', data.user.id);
     }
 
