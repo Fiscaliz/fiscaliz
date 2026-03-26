@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
-import { checklistTemplates, legislationDatabase, type ChecklistItem } from '@/data/checklists';
+import { checklistTemplates as defaultTemplates, legislationDatabase, type ChecklistItem } from '@/data/checklists';
 
 export interface AdvertenciaItem {
   id: string;

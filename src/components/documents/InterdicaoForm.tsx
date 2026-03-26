@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
-import { checklistTemplates } from '@/data/checklists';
+import { checklistTemplates as defaultTemplates, type ChecklistTemplate } from '@/data/checklists';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { LegislationSelectDialog, DEFAULT_LEGISLATION } from '@/components/documents/LegislationSelectDialog';

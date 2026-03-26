@@ -29,10 +29,11 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { 
-  checklistTemplates, 
+  checklistTemplates as defaultTemplates, 
   legislationDatabase, 
   type LegislationReference,
-  type ChecklistItem 
+  type ChecklistItem,
+  type ChecklistTemplate
 } from '@/data/checklists';
 import { LegislationSelectDialog, DEFAULT_LEGISLATION } from '@/components/documents/LegislationSelectDialog';
 

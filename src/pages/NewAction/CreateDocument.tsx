@@ -40,7 +40,8 @@ import {
   Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { checklistTemplates, getAllCategories, type ChecklistItem } from '@/data/checklists';
+import { getAllCategories, type ChecklistItem } from '@/data/checklists';
+import { useChecklists } from '@/hooks/useChecklists';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
