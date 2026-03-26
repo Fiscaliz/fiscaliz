@@ -91,6 +91,11 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
           institutionName: extraData.institutionName,
           areasOfPractice: extraData.areasOfPractice,
           logoFile: extraData.logoFile,
+          city: extraData.city,
+          state: extraData.state,
+          organName: extraData.organName,
+          pdfHeaderText: extraData.pdfHeaderText,
+          customLegislations: extraData.customLegislations,
         });
         if (error) {
           if (error.message.includes('already registered')) {
