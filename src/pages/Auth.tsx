@@ -84,6 +84,11 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
           setIsSubmitting(false);
           return;
         }
+        if (!extraData.state || !extraData.city.trim()) {
+          toast({ title: 'Campo obrigatório', description: 'Informe o estado e a cidade.', variant: 'destructive' });
+          setIsSubmitting(false);
+          return;
+        }
         
         const { error } = await signUp(email, password, fullName, {
           userType: extraData.userType,
