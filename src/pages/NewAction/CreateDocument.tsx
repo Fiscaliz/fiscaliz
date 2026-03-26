@@ -110,6 +110,7 @@ export default function CreateDocument() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { checklists: checklistTemplates } = useChecklists();
   
   const motivo = searchParams.get('motivo') || '';
   const tipo = searchParams.get('tipo') || 'termo_intimacao';
