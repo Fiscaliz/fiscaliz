@@ -27,7 +27,7 @@ import {
   FileUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { checklistTemplates, getAllCategories, type ChecklistItem } from '@/data/checklists';
+import { checklistTemplates as defaultTemplates, getAllCategories, type ChecklistItem, type ChecklistTemplate } from '@/data/checklists';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { LegislationSelectDialog, DEFAULT_LEGISLATION } from '@/components/documents/LegislationSelectDialog';
@@ -89,6 +89,7 @@ interface RelatorioTecnicoFormProps {
   onRemovePhoto: (index: number) => void;
   establishmentType?: string;
   checklistItems?: string[];
+  checklists?: ChecklistTemplate[];
 }
 
 const objetivosOptions = [
@@ -125,7 +126,9 @@ export function RelatorioTecnicoForm({
   onRemovePhoto,
   establishmentType,
   checklistItems,
+  checklists,
 }: RelatorioTecnicoFormProps) {
+  const checklistTemplates = checklists || defaultTemplates;
   const { toast } = useToast();
   const fileUploadRef = useRef<HTMLInputElement>(null);
   const [uploadingFile, setUploadingFile] = useState(false);

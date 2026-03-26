@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
-import { checklistTemplates } from '@/data/checklists';
+import { checklistTemplates as defaultTemplates, type ChecklistTemplate } from '@/data/checklists';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { LegislationSelectDialog, DEFAULT_LEGISLATION } from '@/components/documents/LegislationSelectDialog';
@@ -44,6 +44,7 @@ interface InterdicaoFormProps {
   onAddPhoto: () => void;
   onCapturePhoto?: () => void;
   onRemovePhoto: (index: number) => void;
+  checklists?: ChecklistTemplate[];
 }
 
 const motivosInterdicao = [
@@ -68,8 +69,9 @@ const specificLegislations = [
 ];
 
 export function InterdicaoForm({
-  value, onChange, photos, onAddPhoto, onCapturePhoto, onRemovePhoto,
+  value, onChange, photos, onAddPhoto, onCapturePhoto, onRemovePhoto, checklists,
 }: InterdicaoFormProps) {
+  const checklistTemplates = checklists || defaultTemplates;
   const { toast } = useToast();
   const [showChecklistPicker, setShowChecklistPicker] = useState(false);
 
@@ -558,7 +560,8 @@ export function InterdicaoForm({
   );
 }
 
-export function formatInterdicaoContent(data: InterdicaoData): string {
+export function formatInterdicaoContent(data: InterdicaoData, checklists?: ChecklistTemplate[]): string {
+  const checklistTemplates = checklists || defaultTemplates;
   const lines: string[] = ['TERMO DE INTERDIÇÃO', ''];
   lines.push(`Tipo: Interdição ${data.tipoInterdicao === 'total' ? 'TOTAL' : 'PARCIAL'}`);
   if (data.tipoInterdicao === 'total' && data.osNumero) lines.push(`O.S. nº: ${data.osNumero}`);

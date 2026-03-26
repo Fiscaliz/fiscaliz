@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
-import { checklistTemplates, legislationDatabase, type ChecklistItem } from '@/data/checklists';
+import { checklistTemplates as defaultTemplates, legislationDatabase, type ChecklistItem } from '@/data/checklists';
 
 export interface AdvertenciaItem {
   id: string;
@@ -30,9 +30,11 @@ export interface AdvertenciaData {
 interface AdvertenciaFormProps {
   value: AdvertenciaData;
   onChange: (data: AdvertenciaData) => void;
+  checklists?: import('@/data/checklists').ChecklistTemplate[];
 }
 
-export function AdvertenciaForm({ value, onChange }: AdvertenciaFormProps) {
+export function AdvertenciaForm({ value, onChange, checklists }: AdvertenciaFormProps) {
+  const checklistTemplates = checklists || defaultTemplates;
   const [novaDesc, setNovaDesc] = useState('');
   const [novoDisp, setNovoDisp] = useState('');
   const [showChecklist, setShowChecklist] = useState(false);

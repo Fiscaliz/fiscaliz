@@ -29,10 +29,11 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { 
-  checklistTemplates, 
+  checklistTemplates as defaultTemplates, 
   legislationDatabase, 
   type LegislationReference,
-  type ChecklistItem 
+  type ChecklistItem,
+  type ChecklistTemplate
 } from '@/data/checklists';
 import { LegislationSelectDialog, DEFAULT_LEGISLATION } from '@/components/documents/LegislationSelectDialog';
 
@@ -75,6 +76,7 @@ interface AutoInfracaoFormProps {
   onCapturePhoto?: () => void;
   onRemovePhoto: (index: number) => void;
   photosRequired?: boolean;
+  checklists?: ChecklistTemplate[];
 }
 
 const commonLegislations = [
@@ -103,8 +105,10 @@ export function AutoInfracaoForm({
   onAddPhoto,
   onCapturePhoto,
   onRemovePhoto,
-  photosRequired = true 
+  photosRequired = true,
+  checklists
 }: AutoInfracaoFormProps) {
+  const checklistTemplates = checklists || defaultTemplates;
   const { toast } = useToast();
 
   // Manual infraction fields
