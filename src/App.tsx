@@ -31,6 +31,7 @@ import PublicDocumentView from "./pages/PublicDocumentView";
 import ConsultAI from "./pages/ConsultAI";
 import AdminUsers from "./pages/AdminUsers";
 import Establishments from "./pages/Establishments";
+import Checklists from "./pages/Checklists";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -146,6 +147,11 @@ const App = () => (
             <Route path="/estabelecimentos" element={
               <ProtectedRoute>
                 <Establishments />
+              </ProtectedRoute>
+            } />
+            <Route path="/checklists" element={
+              <ProtectedRoute>
+                <Checklists />
               </ProtectedRoute>
             } />
             {/* Public PDF redirect route - no auth required */}
