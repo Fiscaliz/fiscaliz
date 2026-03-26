@@ -39,8 +39,6 @@ interface PhotoLegend {
 
 interface InterdicaoFormProps {
   value: InterdicaoData;
-interface InterdicaoFormProps {
-  value: InterdicaoData;
   onChange: (data: InterdicaoData) => void;
   photos: { id: string; previewUrl: string; file?: File }[];
   onAddPhoto: () => void;
