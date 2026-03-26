@@ -2881,6 +2881,16 @@ _Enviado via FISCALIZ®_`;
               />
             )}
 
+            {/* Anexo de Imagens - Upload e configuração */}
+            {canEdit && (
+              <AnexoImagensSheet
+                config={anexoImagensConfig}
+                onChange={setAnexoImagensConfig}
+                documentId={document.id}
+                editable={canEdit}
+              />
+            )}
+
             {/* Preposto/Responsável Section - Não exibir para certidão, relatório técnico ou RA */}
             {canEdit && document.document_type !== 'certidao' && document.document_type !== 'relatorio_tecnico' && !isRelatorioAtividade && (
               <div className="p-4 bg-muted/30 rounded-lg space-y-4 print:hidden">
