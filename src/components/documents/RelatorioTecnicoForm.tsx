@@ -126,7 +126,9 @@ export function RelatorioTecnicoForm({
   onRemovePhoto,
   establishmentType,
   checklistItems,
+  checklists,
 }: RelatorioTecnicoFormProps) {
+  const checklistTemplates = checklists || defaultTemplates;
   const { toast } = useToast();
   const fileUploadRef = useRef<HTMLInputElement>(null);
   const [uploadingFile, setUploadingFile] = useState(false);

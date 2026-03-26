@@ -560,7 +560,8 @@ export function InterdicaoForm({
   );
 }
 
-export function formatInterdicaoContent(data: InterdicaoData): string {
+export function formatInterdicaoContent(data: InterdicaoData, checklists?: ChecklistTemplate[]): string {
+  const checklistTemplates = checklists || defaultTemplates;
   const lines: string[] = ['TERMO DE INTERDIÇÃO', ''];
   lines.push(`Tipo: Interdição ${data.tipoInterdicao === 'total' ? 'TOTAL' : 'PARCIAL'}`);
   if (data.tipoInterdicao === 'total' && data.osNumero) lines.push(`O.S. nº: ${data.osNumero}`);
