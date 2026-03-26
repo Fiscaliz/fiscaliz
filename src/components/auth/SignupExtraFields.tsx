@@ -1,9 +1,10 @@
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MobilePhotoUpload } from '@/components/documents/MobilePhotoUpload';
-import { Building2, Upload } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Building2, Upload, Plus, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useState } from 'react';
 
 export interface SignupExtraData {
   userType: string;
@@ -11,6 +12,11 @@ export interface SignupExtraData {
   institutionName: string;
   areasOfPractice: string[];
   logoFile: File | null;
+  city: string;
+  state: string;
+  organName: string;
+  pdfHeaderText: string;
+  customLegislations: string[];
 }
 
 interface Props {
@@ -25,14 +31,20 @@ const AREAS_OPTIONS = [
   { value: 'medicamentos', label: 'Medicamentos' },
   { value: 'cosmeticos', label: 'Cosméticos' },
   { value: 'saneantes', label: 'Saneantes' },
-  
   { value: 'meio_ambiente', label: 'Meio Ambiente' },
   { value: 'saude_trabalhador', label: 'Saúde do Trabalhador' },
   { value: 'zoonoses', label: 'Zoonoses' },
   { value: 'outras', label: 'Outras áreas da Vigilância Sanitária' },
 ];
 
+const BRAZILIAN_STATES = [
+  'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA',
+  'PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO',
+];
+
 export function SignupExtraFields({ data, onChange }: Props) {
+  const [newLegislation, setNewLegislation] = useState('');
+
   const update = (partial: Partial<SignupExtraData>) => onChange({ ...data, ...partial });
 
   const toggleArea = (value: string) => {
@@ -40,6 +52,18 @@ export function SignupExtraFields({ data, onChange }: Props) {
       ? data.areasOfPractice.filter((a) => a !== value)
       : [...data.areasOfPractice, value];
     update({ areasOfPractice: areas });
+  };
+
+  const addLegislation = () => {
+    const trimmed = newLegislation.trim();
+    if (trimmed && !data.customLegislations.includes(trimmed)) {
+      update({ customLegislations: [...data.customLegislations, trimmed] });
+      setNewLegislation('');
+    }
+  };
+
+  const removeLegislation = (index: number) => {
+    update({ customLegislations: data.customLegislations.filter((_, i) => i !== index) });
   };
 
   const institutionLabel =
@@ -113,11 +137,43 @@ export function SignupExtraFields({ data, onChange }: Props) {
         </div>
       )}
 
-      {/* Institution Name */}
+      {/* State & City */}
+      {data.institutionalLink && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label className="text-caption font-semibold uppercase tracking-wide">
+              Estado <span className="text-destructive">*</span>
+            </Label>
+            <select
+              value={data.state}
+              onChange={(e) => update({ state: e.target.value })}
+              className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="">UF</option>
+              {BRAZILIAN_STATES.map((uf) => (
+                <option key={uf} value={uf}>{uf}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-caption font-semibold uppercase tracking-wide">
+              Cidade <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              type="text"
+              placeholder="Ex: Goiânia"
+              value={data.city}
+              onChange={(e) => update({ city: e.target.value })}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Organ / Institution Name */}
       {data.institutionalLink && (
         <div className="space-y-2">
           <Label className="text-caption font-semibold uppercase tracking-wide">
-            {institutionLabel}
+            {institutionLabel} <span className="text-destructive">*</span>
           </Label>
           <Input
             type="text"
@@ -128,6 +184,40 @@ export function SignupExtraFields({ data, onChange }: Props) {
             }
             value={data.institutionName}
             onChange={(e) => update({ institutionName: e.target.value })}
+          />
+        </div>
+      )}
+
+      {/* Organ Name (department/division) */}
+      {data.institutionalLink && data.userType === 'auditor_fiscal' && (
+        <div className="space-y-2">
+          <Label className="text-caption font-semibold uppercase tracking-wide">
+            Órgão / Departamento <span className="text-muted-foreground text-xs">(opcional)</span>
+          </Label>
+          <Input
+            type="text"
+            placeholder="Ex: Divisão de Vigilância Sanitária"
+            value={data.organName}
+            onChange={(e) => update({ organName: e.target.value })}
+          />
+        </div>
+      )}
+
+      {/* PDF Header Text */}
+      {data.institutionalLink && (
+        <div className="space-y-2">
+          <Label className="text-caption font-semibold uppercase tracking-wide">
+            Cabeçalho dos PDFs <span className="text-muted-foreground text-xs">(texto que aparecerá nos documentos)</span>
+          </Label>
+          <Textarea
+            placeholder={
+              data.userType === 'consultor_privado'
+                ? 'Ex: CONSULTORIA SILVA & ASSOCIADOS\nAssessoria em Vigilância Sanitária'
+                : 'Ex: PREFEITURA DE GOIÂNIA\nSecretaria Municipal de Saúde\nDivisão de Vigilância Sanitária'
+            }
+            value={data.pdfHeaderText}
+            onChange={(e) => update({ pdfHeaderText: e.target.value })}
+            rows={3}
           />
         </div>
       )}
@@ -193,6 +283,45 @@ export function SignupExtraFields({ data, onChange }: Props) {
             </label>
           ))}
         </div>
+      </div>
+
+      {/* Custom Legislations */}
+      <div className="space-y-3">
+        <Label className="text-caption font-semibold uppercase tracking-wide">
+          Legislações de Referência <span className="text-muted-foreground text-xs">(cadastre as legislações que você utiliza)</span>
+        </Label>
+        <div className="flex gap-2">
+          <Input
+            type="text"
+            placeholder="Ex: RDC 216/2004, Lei Municipal 8741/2008..."
+            value={newLegislation}
+            onChange={(e) => setNewLegislation(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                addLegislation();
+              }
+            }}
+          />
+          <Button type="button" size="icon" variant="outline" onClick={addLegislation} className="shrink-0">
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+        {data.customLegislations.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {data.customLegislations.map((leg, idx) => (
+              <span
+                key={idx}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full bg-primary/10 text-primary border border-primary/20"
+              >
+                {leg}
+                <button type="button" onClick={() => removeLegislation(idx)} className="hover:text-destructive">
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

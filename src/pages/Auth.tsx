@@ -25,6 +25,11 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
     institutionName: '',
     areasOfPractice: [],
     logoFile: null,
+    city: '',
+    state: '',
+    organName: '',
+    pdfHeaderText: '',
+    customLegislations: [],
   });
   
   const { signIn, signUp, user, loading } = useAuth();
@@ -285,7 +290,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
                   setPassword('');
                   setFullName('');
                   setRegistrationNumber('');
-                  setExtraData({ userType: '', institutionalLink: '', institutionName: '', areasOfPractice: [], logoFile: null });
+                  setExtraData({ userType: '', institutionalLink: '', institutionName: '', areasOfPractice: [], logoFile: null, city: '', state: '', organName: '', pdfHeaderText: '', customLegislations: [] });
                 }}
                 className="text-body text-primary font-semibold hover:underline transition-all"
               >
