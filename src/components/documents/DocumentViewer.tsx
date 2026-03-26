@@ -1572,17 +1572,7 @@ _Enviado via FISCALIZ®_`;
             </>
           )}
 
-          {/* ANEXO DE IMAGENS - Folhas extras com grid 2x3 */}
-          {anexoImagensConfig.images.length > 0 && (
-            <AnexoImagensPDF
-              config={anexoImagensConfig}
-              establishment={document.establishment}
-              documentNumber={document.document_number}
-              documentType={document.document_type}
-            />
-          )}
 
-          {/* DADOS DO RELATÓRIO DE ATIVIDADE */}
           {isRelatorioAtividade && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">DADOS DA ATIVIDADE</h3>
