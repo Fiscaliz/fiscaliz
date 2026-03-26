@@ -76,6 +76,7 @@ interface AutoInfracaoFormProps {
   onCapturePhoto?: () => void;
   onRemovePhoto: (index: number) => void;
   photosRequired?: boolean;
+  checklists?: ChecklistTemplate[];
 }
 
 const commonLegislations = [
@@ -104,8 +105,10 @@ export function AutoInfracaoForm({
   onAddPhoto,
   onCapturePhoto,
   onRemovePhoto,
-  photosRequired = true 
+  photosRequired = true,
+  checklists
 }: AutoInfracaoFormProps) {
+  const checklistTemplates = checklists || defaultTemplates;
   const { toast } = useToast();
 
   // Manual infraction fields

@@ -89,6 +89,7 @@ interface RelatorioTecnicoFormProps {
   onRemovePhoto: (index: number) => void;
   establishmentType?: string;
   checklistItems?: string[];
+  checklists?: ChecklistTemplate[];
 }
 
 const objetivosOptions = [

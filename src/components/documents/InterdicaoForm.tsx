@@ -39,11 +39,14 @@ interface PhotoLegend {
 
 interface InterdicaoFormProps {
   value: InterdicaoData;
+interface InterdicaoFormProps {
+  value: InterdicaoData;
   onChange: (data: InterdicaoData) => void;
   photos: { id: string; previewUrl: string; file?: File }[];
   onAddPhoto: () => void;
   onCapturePhoto?: () => void;
   onRemovePhoto: (index: number) => void;
+  checklists?: ChecklistTemplate[];
 }
 
 const motivosInterdicao = [
@@ -68,8 +71,9 @@ const specificLegislations = [
 ];
 
 export function InterdicaoForm({
-  value, onChange, photos, onAddPhoto, onCapturePhoto, onRemovePhoto,
+  value, onChange, photos, onAddPhoto, onCapturePhoto, onRemovePhoto, checklists,
 }: InterdicaoFormProps) {
+  const checklistTemplates = checklists || defaultTemplates;
   const { toast } = useToast();
   const [showChecklistPicker, setShowChecklistPicker] = useState(false);
 
