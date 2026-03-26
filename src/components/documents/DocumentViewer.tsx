@@ -47,6 +47,7 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { LegislationSelectDialog, DEFAULT_LEGISLATION } from './LegislationSelectDialog';
 import { TeamMembersSection, TeamMembersSignatures, type TeamMember } from './TeamMembersSection';
+import { AnexoImagensSheet, AnexoImagensPDF, type AnexoImagensConfig } from './AnexoImagensSheet';
 
 interface AttachmentPhoto {
   id?: string;
@@ -163,6 +164,9 @@ export function DocumentViewer({
 
   const [evidencePhotos, setEvidencePhotos] = useState<string[]>([]);
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
+  const [anexoImagensConfig, setAnexoImagensConfig] = useState<AnexoImagensConfig>(
+    document.content?.anexo_imagens || { images: [], showLegends: false, showHeader: false }
+  );
 
   // Resolve attachment URLs on mount (convert public→signed)
   useEffect(() => {
@@ -272,6 +276,7 @@ export function DocumentViewer({
           document_time: documentTime,
            observations: observations,
            team_members: teamMembers,
+           anexo_imagens: anexoImagensConfig.images.length > 0 ? anexoImagensConfig : undefined,
         } 
       });
     }
@@ -1568,7 +1573,6 @@ _Enviado via FISCALIZ®_`;
           )}
 
 
-          {/* DADOS DO RELATÓRIO DE ATIVIDADE */}
           {isRelatorioAtividade && (
             <div className="doc-section border border-gray-300 p-4 mb-6">
               <h3 className="font-bold text-sm bg-gray-100 -m-4 mb-3 p-2 border-b border-gray-300">DADOS DA ATIVIDADE</h3>
@@ -1911,6 +1915,16 @@ _Enviado via FISCALIZ®_`;
                 ));
               })()}
             </div>
+          )}
+
+          {/* ANEXO DE IMAGENS - Folhas extras com grid 2x3 */}
+          {anexoImagensConfig.images.length > 0 && (
+            <AnexoImagensPDF
+              config={anexoImagensConfig}
+              establishment={document.establishment}
+              documentNumber={document.document_number}
+              documentType={document.document_type}
+            />
           )}
 
           {/* FOTO DO CONTRIBUINTE/PREPOSTO - se houver separadamente */}
@@ -2871,6 +2885,16 @@ _Enviado via FISCALIZ®_`;
               <TeamMembersSection
                 members={teamMembers}
                 onChange={setTeamMembers}
+                documentId={document.id}
+                editable={canEdit}
+              />
+            )}
+
+            {/* Anexo de Imagens - Upload e configuração */}
+            {canEdit && (
+              <AnexoImagensSheet
+                config={anexoImagensConfig}
+                onChange={setAnexoImagensConfig}
                 documentId={document.id}
                 editable={canEdit}
               />
