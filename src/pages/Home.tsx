@@ -75,6 +75,7 @@ export default function Home() {
         id, document_type, status, created_at,
         establishment:establishments(nome_fantasia, razao_social)
       `)
+      .eq('user_id', user?.id)
       .order('created_at', { ascending: false })
       .limit(5);
     
