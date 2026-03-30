@@ -148,6 +148,25 @@ export function DocumentViewer({
   const [documentTime, setDocumentTime] = useState(document.content?.document_time || new Date(document.created_at).toTimeString().slice(0, 5));
   const [observations, setObservations] = useState(document.content?.observations || '');
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(document.content?.team_members || []);
+
+  // Sync state when document prop changes (e.g. after save + reload)
+  useEffect(() => {
+    const newDate = document.content?.document_date || (document as any).action_date || new Date(document.created_at).toISOString().split('T')[0];
+    const newTime = document.content?.document_time || new Date(document.created_at).toTimeString().slice(0, 5);
+    setDocumentDate(newDate);
+    setDocumentTime(newTime);
+    setContent(document.content?.text || '');
+    setObservations(document.content?.observations || '');
+    setTeamMembers(document.content?.team_members || []);
+    setPrepostoName(document.content?.preposto_name || '');
+    setPrepostoCpf(document.content?.preposto_cpf || '');
+    setContributorPhoto(document.content?.contributor_photo || null);
+    setContributorSignatureUrl(document.content?.contributor_signature || null);
+    setPrepostoPhoto(document.content?.preposto_photo || null);
+    setDeadlineDays(document.deadline_days);
+    setDeadlineDate(document.deadline_date);
+  }, [document]);
+
   const documentRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showFullScreenSignature, setShowFullScreenSignature] = useState(false);
