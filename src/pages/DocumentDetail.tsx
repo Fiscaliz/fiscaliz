@@ -157,9 +157,15 @@ export default function DocumentDetail() {
   const handleSave = async (updateData: any) => {
     if (!id || !user) return;
 
+    // Sync action_date from content.document_date when present
+    const finalUpdate = { ...updateData };
+    if (updateData.content?.document_date) {
+      finalUpdate.action_date = updateData.content.document_date;
+    }
+
     const { error } = await supabase
       .from('fiscal_documents')
-      .update(updateData)
+      .update(finalUpdate)
       .eq('id', id);
 
     if (error) {
