@@ -1290,28 +1290,25 @@ _Enviado via FISCALIZ®_`;
     });
   };
 
+  const parseLocalDate = (dateStr: string) => {
+    // Avoid timezone shift: "2026-03-15" parsed as UTC becomes March 14 in UTC-3
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+    return new Date(dateStr);
+  };
+
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('pt-BR', {
+    return parseLocalDate(dateStr).toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: 'long',
       year: 'numeric'
     });
   };
 
-  const handleGeneratePDF = () => {
-    setShowPDFPreview(true);
-    setTimeout(() => {
-      // Call the parent's onGeneratePDF if provided (print dialog - permite imprimir/salvar)
-      if (onGeneratePDF) {
-        onGeneratePDF();
-      } else {
-        window.print();
-      }
-    }, 500);
-  };
-
   const formatDateFull = (dateStr: string) => {
-    return format(new Date(dateStr), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    return format(parseLocalDate(dateStr), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
   };
 
   // PDF Preview - Layout específico para Coleta de Amostra
