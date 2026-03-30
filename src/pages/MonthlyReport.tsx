@@ -1102,10 +1102,34 @@ export default function MonthlyReport() {
           .eq('id', report.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        // Check for existing report first to prevent duplicates
+        const { data: existing } = await supabase
           .from('monthly_reports')
-          .insert([reportData]);
-        if (error) throw error;
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('month', selectedMonth)
+          .eq('year', selectedYear)
+          .order('updated_at', { ascending: false })
+          .limit(1);
+
+        if (existing && existing.length > 0) {
+          // Update existing instead of creating duplicate
+          const { error } = await supabase
+            .from('monthly_reports')
+            .update(reportData)
+            .eq('id', existing[0].id);
+          if (error) throw error;
+        } else {
+          const { data: newReport, error } = await supabase
+            .from('monthly_reports')
+            .insert([reportData])
+            .select('id')
+            .single();
+          if (error) throw error;
+          if (newReport) {
+            setReport((prev: any) => ({ ...prev, id: newReport.id, ...reportData }));
+          }
+        }
       }
 
       toast({
