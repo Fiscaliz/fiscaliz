@@ -1307,6 +1307,17 @@ _Enviado via FISCALIZ®_`;
     });
   };
 
+  const handleGeneratePDF = () => {
+    setShowPDFPreview(true);
+    setTimeout(() => {
+      if (onGeneratePDF) {
+        onGeneratePDF();
+      } else {
+        window.print();
+      }
+    }, 500);
+  };
+
   const formatDateFull = (dateStr: string) => {
     return format(parseLocalDate(dateStr), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
   };
