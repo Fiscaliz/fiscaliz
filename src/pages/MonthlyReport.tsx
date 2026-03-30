@@ -522,13 +522,17 @@ export default function MonthlyReport() {
     if (!user) return;
     setLoading(true);
     
-    const { data } = await supabase
+    // Use .order + .limit(1) instead of .maybeSingle() to handle potential duplicates gracefully
+    const { data: rows } = await supabase
       .from('monthly_reports')
       .select('*')
       .eq('user_id', user.id)
       .eq('month', selectedMonth)
       .eq('year', selectedYear)
-      .maybeSingle();
+      .order('updated_at', { ascending: false })
+      .limit(1);
+
+    const data = rows && rows.length > 0 ? rows[0] : null;
 
     if (data) {
       setReport(data);
