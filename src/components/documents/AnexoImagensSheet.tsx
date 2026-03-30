@@ -290,9 +290,7 @@ export function AnexoImagensPDF({ config, establishment, documentNumber, documen
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gridTemplateRows: 'repeat(3, 1fr)',
             gap: '8mm',
-            flex: 1,
           }}>
             {pageImages.map((img, imgIdx) => {
               const globalIdx = pageIdx * 6 + imgIdx;
@@ -302,6 +300,8 @@ export function AnexoImagensPDF({ config, establishment, documentNumber, documen
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '4px',
+                  breakInside: 'avoid',
+                  pageBreakInside: 'avoid' as any,
                 }}>
                   <div style={{
                     width: '100%',
