@@ -1888,7 +1888,7 @@ _Enviado via FISCALIZ®_`;
                 return pages.map((page, pageIdx) => (
                   <div key={pageIdx} className={`folha-fotos ${pageIdx > 0 ? 'break-before-page' : ''}`} data-pdf-section>
                     {page.map((legend, idx) => {
-                      const globalIdx = pageIdx * 4 + idx;
+                      const globalIdx = pageIdx * 6 + idx;
                       const photoUrl = attachedPhotos[legend.photoIndex] || legend.previewUrl;
                       if (!photoUrl) return null;
                       const itemNumber = globalIdx + 1;
