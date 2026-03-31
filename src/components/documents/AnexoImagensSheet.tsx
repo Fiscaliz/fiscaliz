@@ -290,7 +290,9 @@ export function AnexoImagensPDF({ config, establishment, documentNumber, documen
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: '8mm',
+            gridTemplateRows: 'repeat(3, auto)',
+            gap: '5mm 6mm',
+            alignContent: 'start',
           }}>
             {pageImages.map((img, imgIdx) => {
               const globalIdx = pageIdx * 6 + imgIdx;
@@ -298,17 +300,15 @@ export function AnexoImagensPDF({ config, establishment, documentNumber, documen
                 <div key={img.id} style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '4px',
                   breakInside: 'avoid',
                   pageBreakInside: 'avoid' as any,
                 }}>
                   <div style={{
                     width: '100%',
-                    aspectRatio: '4/3',
+                    height: '72mm',
                     overflow: 'hidden',
                     border: '1px solid #ccc',
-                    borderRadius: '4px',
+                    borderRadius: '3px',
                     position: 'relative',
                   }}>
                     <img
@@ -318,16 +318,18 @@ export function AnexoImagensPDF({ config, establishment, documentNumber, documen
                         width: '100%',
                         height: '100%',
                         objectFit: 'cover',
+                        display: 'block',
                       }}
                     />
                   </div>
                   <p style={{
-                    fontSize: '9pt',
+                    fontSize: '8pt',
                     textAlign: 'center',
                     fontStyle: config.showLegends && img.legend ? 'italic' : 'normal',
                     fontWeight: !config.showLegends || !img.legend ? 'bold' : 'normal',
                     color: '#333',
-                    margin: 0,
+                    margin: '1px 0 0 0',
+                    lineHeight: '1.2',
                   }}>
                     {config.showLegends && img.legend
                       ? `Foto ${String(globalIdx + 1).padStart(2, '0')}: ${img.legend}`
