@@ -1882,8 +1882,8 @@ _Enviado via FISCALIZ®_`;
               {(() => {
                 const filteredLegends = photoLegends.filter(legend => legend.legenda && legend.legenda.trim());
                 const pages: typeof filteredLegends[] = [];
-                for (let i = 0; i < filteredLegends.length; i += 4) {
-                  pages.push(filteredLegends.slice(i, i + 4));
+                for (let i = 0; i < filteredLegends.length; i += 6) {
+                  pages.push(filteredLegends.slice(i, i + 6));
                 }
                 return pages.map((page, pageIdx) => (
                   <div key={pageIdx} className={`folha-fotos ${pageIdx > 0 ? 'break-before-page' : ''}`} data-pdf-section>
