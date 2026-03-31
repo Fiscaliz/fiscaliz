@@ -327,7 +327,25 @@ export default function EstablishmentEntry() {
         });
         return;
       }
-      // CPF: skip API lookup, go straight to manual form with CPF
+      // CPF: check local database first before manual entry
+      setLoading(true);
+      const { data: cpfLocalData } = await supabase
+        .from('establishments')
+        .select('*')
+        .eq('cnpj', cleanCNPJ)
+        .limit(1)
+        .maybeSingle();
+
+      if (cpfLocalData) {
+        setEstablishment(cpfLocalData);
+        setLoading(false);
+        toast({
+          title: 'Estabelecimento encontrado',
+          description: 'Dados carregados do banco local pelo CPF',
+        });
+        return;
+      }
+
       setEstablishment({
         cnpj: cleanCNPJ,
         razao_social: '',
@@ -339,7 +357,7 @@ export default function EstablishmentEntry() {
       setLoading(false);
       toast({
         title: 'CPF informado',
-        description: 'Preencha os dados do responsável',
+        description: 'Nenhum registro encontrado. Preencha os dados manualmente.',
       });
       return;
     }
