@@ -1388,13 +1388,13 @@ _Enviado via FISCALIZ®_`;
           @media screen {
             .pdf-preview-container { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; overflow: auto; }
           }
-          .folha-fotos { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8mm; box-sizing: border-box; }
+          .folha-fotos { width: 100%; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, auto); gap: 5mm 6mm; box-sizing: border-box; align-content: start; }
           @media print { .folha-fotos { break-before: page !important; page-break-before: always !important; } .folha-fotos:first-child { break-before: auto !important; page-break-before: auto !important; } }
           .folha-fotos .foto-cell { display: flex; flex-direction: column; break-inside: avoid !important; page-break-inside: avoid !important; }
-          .folha-fotos .foto-cell .foto-img-wrap { width: 100%; aspect-ratio: 4/3; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; position: relative; }
+          .folha-fotos .foto-cell .foto-img-wrap { width: 100%; height: 72mm; border: 1px solid #ccc; border-radius: 3px; overflow: hidden; position: relative; }
           .folha-fotos .foto-cell .foto-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
-          .folha-fotos .foto-cell .foto-img-wrap .foto-badge { position: absolute; top: 4px; left: 4px; background: #1f2937; color: #fff; font-size: 7pt; font-weight: bold; padding: 2px 6px; border-radius: 3px; font-family: Arial, sans-serif; }
-          .folha-fotos .foto-cell .foto-legend { font-family: Arial, sans-serif; font-size: 9pt; color: #374151; line-height: 1.25; margin-top: 3px; text-align: center; break-inside: avoid !important; page-break-inside: avoid !important; overflow-wrap: break-word; word-wrap: break-word; }
+          .folha-fotos .foto-cell .foto-img-wrap .foto-badge { position: absolute; top: 3px; left: 3px; background: #1f2937; color: #fff; font-size: 7pt; font-weight: bold; padding: 1px 5px; border-radius: 3px; font-family: Arial, sans-serif; }
+          .folha-fotos .foto-cell .foto-legend { font-family: Arial, sans-serif; font-size: 8pt; color: #374151; line-height: 1.2; margin-top: 1px; margin-bottom: 0; text-align: center; break-inside: avoid !important; page-break-inside: avoid !important; overflow-wrap: break-word; word-wrap: break-word; }
           .doc-section { margin: 15px 0; }
           .doc-field { margin: 4px 0; text-align: left; }
           .doc-label { font-weight: bold; font-size: 10pt; display: inline; }
