@@ -318,6 +318,15 @@ export default function EstablishmentEntry() {
 
   const handleCNPJSearch = async () => {
     const cleanCNPJ = cnpj.replace(/\D/g, '');
+    const emptyEstablishment = {
+      cnpj: cleanCNPJ,
+      razao_social: '',
+      nome_fantasia: '',
+      endereco: '',
+      bairro: '',
+      cep: '',
+    };
+
     if (docType === 'cpf') {
       if (cleanCNPJ.length !== 11) {
         toast({
@@ -346,14 +355,7 @@ export default function EstablishmentEntry() {
         return;
       }
 
-      setEstablishment({
-        cnpj: cleanCNPJ,
-        razao_social: '',
-        nome_fantasia: '',
-        endereco: '',
-        bairro: '',
-        cep: '',
-      });
+      setEstablishment(emptyEstablishment);
       setLoading(false);
       toast({
         title: 'CPF informado',
@@ -371,100 +373,105 @@ export default function EstablishmentEntry() {
       return;
     }
 
-    setLoading(true);
-    
-    // First check local database
-    const { data: localData, error: localError } = await supabase
-      .from('establishments')
-      .select('*')
-      .eq('cnpj', cleanCNPJ)
-      .limit(1)
-      .maybeSingle();
-
-    // maybeSingle() should avoid throwing when 0 rows; still handle unexpected errors
-    if (localError) {
-      console.warn('[CNPJ] Erro ao buscar no banco local:', localError);
-    }
-
-    if (localData) {
-      setEstablishment(localData);
-      setLoading(false);
-      toast({
-        title: 'Estabelecimento encontrado',
-        description: 'Dados carregados do banco local',
-      });
-      return;
-    }
-
-    // Query Brasil API (free, no API key required)
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
-      const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCNPJ}`, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Build address from API response
-        const endereco = [
-          data.descricao_tipo_de_logradouro,
-          data.logradouro,
-          data.numero,
-          data.complemento
-        ].filter(Boolean).join(' ').trim();
-        
-        setEstablishment({
-          cnpj: cleanCNPJ,
-          razao_social: data.razao_social || '',
-          nome_fantasia: data.nome_fantasia || '',
-          endereco: endereco || '',
-          bairro: data.bairro || '',
-          cep: data.cep?.replace(/\D/g, '') || '',
-          cnae_principal: data.cnae_fiscal?.toString() || '',
-          cnae_descricao: data.cnae_fiscal_descricao || '',
-          situacao_cadastral: data.descricao_situacao_cadastral || '',
-          responsavel_nome: data.qsa?.[0]?.nome_socio || '',
-        });
-        
-        setLoading(false);
+      setLoading(true);
+
+      const { data: localData, error: localError } = await supabase
+        .from('establishments')
+        .select('*')
+        .eq('cnpj', cleanCNPJ)
+        .limit(1)
+        .maybeSingle();
+
+      if (localError) {
+        console.warn('[CNPJ] Erro ao buscar no banco local:', localError);
+      }
+
+      if (localData) {
+        setEstablishment(localData);
         toast({
-          title: 'CNPJ encontrado!',
-          description: `${data.razao_social}`,
+          title: 'Estabelecimento encontrado',
+          description: 'Dados carregados do banco local',
         });
         return;
       }
-      
-      // API returned error (CNPJ not found or invalid)
-      if (response.status === 404) {
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Sua sessão expirou. Entre novamente para consultar o CNPJ.');
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+      let response: Response;
+
+      try {
+        response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-cnae-by-cnpj`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ cnpj: cleanCNPJ }),
+            signal: controller.signal,
+          }
+        );
+      } finally {
+        clearTimeout(timeoutId);
+      }
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.error || 'Não foi possível consultar o CNPJ agora.');
+      }
+
+      if (result?.skipped) {
+        setEstablishment(emptyEstablishment);
         toast({
-          title: 'CNPJ não encontrado na Receita Federal',
-          description: 'Verifique o número ou preencha manualmente',
+          title: 'CNPJ não encontrado',
+          description: result.error || 'Verifique o número ou preencha manualmente.',
           variant: 'destructive',
         });
-      } else {
-        throw new Error('API error');
+        return;
       }
+
+      setEstablishment({
+        cnpj: result?.cnpj || cleanCNPJ,
+        razao_social: result?.razao_social || '',
+        nome_fantasia: result?.nome_fantasia || '',
+        endereco: result?.endereco || '',
+        bairro: result?.bairro || '',
+        cep: result?.cep?.replace(/\D/g, '') || '',
+        cnae_principal: result?.cnae_principal || '',
+        cnae_descricao: result?.cnae_descricao || '',
+        situacao_cadastral: result?.situacao_cadastral || '',
+        responsavel_nome: result?.responsavel_nome || '',
+      });
+
+      toast({
+        title: 'CNPJ encontrado!',
+        description: result?.razao_social || result?.nome_fantasia || 'Dados carregados automaticamente.',
+      });
     } catch (error) {
       console.error('Error fetching CNPJ:', error);
       toast({
         title: 'Erro ao consultar CNPJ',
-        description: 'Tente novamente ou preencha manualmente',
+        description: error instanceof Error && error.name === 'AbortError'
+          ? 'A consulta demorou demais. Tente novamente.'
+          : error instanceof Error
+            ? error.message
+            : 'Tente novamente ou preencha manualmente',
         variant: 'destructive',
       });
+
+      setEstablishment(emptyEstablishment);
+    } finally {
+      setLoading(false);
     }
-    
-    // Fallback: show empty form for manual entry
-    setEstablishment({
-      cnpj: cleanCNPJ,
-      razao_social: '',
-      nome_fantasia: '',
-      endereco: '',
-      bairro: '',
-      cep: '',
-    });
-    
-    setLoading(false);
   };
 
   const handleGetLocation = () => {

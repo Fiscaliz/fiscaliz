@@ -84,6 +84,18 @@ serve(async (req) => {
     const cnaeDescricao = data.cnae_fiscal_descricao || null;
     const nomeFantasia = data.nome_fantasia || null;
     const razaoSocial = data.razao_social || null;
+    const endereco = [
+      data.descricao_tipo_de_logradouro,
+      data.logradouro,
+      data.numero,
+      data.complemento,
+    ].filter(Boolean).join(' ').trim() || null;
+    const bairro = data.bairro || null;
+    const cep = typeof data.cep === 'string' ? data.cep.replace(/\D/g, '') : null;
+    const situacaoCadastral = data.descricao_situacao_cadastral || null;
+    const responsavelNome = Array.isArray(data.qsa)
+      ? data.qsa.find((item: { nome_socio?: string | null }) => item?.nome_socio)?.nome_socio || null
+      : null;
 
     console.log(`[fetch-cnae] CNAE: ${cnaePrincipal} - ${cnaeDescricao}`);
 
@@ -111,10 +123,16 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
+        cnpj: cleanCnpj,
         cnae_principal: cnaePrincipal,
         cnae_descricao: cnaeDescricao,
         nome_fantasia: nomeFantasia,
         razao_social: razaoSocial,
+        endereco,
+        bairro,
+        cep,
+        situacao_cadastral: situacaoCadastral,
+        responsavel_nome: responsavelNome,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
