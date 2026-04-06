@@ -230,6 +230,31 @@ export function DocumentViewer({
     resolveAuditorSig();
   }, [document.profile?.signature_url]);
 
+  // Resolve team member signature URLs (may be expired signed URLs or storage paths)
+  const [resolvedTeamMembers, setResolvedTeamMembers] = useState<TeamMember[]>(teamMembers);
+  useEffect(() => {
+    const resolveTeamSigs = async () => {
+      if (!teamMembers || teamMembers.length === 0) {
+        setResolvedTeamMembers([]);
+        return;
+      }
+      const resolved = await Promise.all(
+        teamMembers.map(async (m) => {
+          if (!m.signature_url) return m;
+          if (m.signature_url.startsWith('data:')) return m;
+          try {
+            const signed = await getSignedUrl(m.signature_url);
+            return { ...m, signature_url: signed };
+          } catch {
+            return m;
+          }
+        })
+      );
+      setResolvedTeamMembers(resolved);
+    };
+    resolveTeamSigs();
+  }, [teamMembers]);
+
   const [isAnalyzingAI, setIsAnalyzingAI] = useState(false);
   const [showLegislationDialog, setShowLegislationDialog] = useState(false);
   const [isEditingLegends, setIsEditingLegends] = useState(false);
@@ -2010,10 +2035,20 @@ _Enviado via FISCALIZ®_`;
                           nome: m.nome,
                           cargo: m.cargo || 'Auditor Fiscal de Saúde Pública',
                           matricula: m.matricula || '',
-                          signatureUrl: undefined as string | undefined,
+                          signatureUrl: m.signatureUrl || (m as any).signature_url || undefined,
                           isMain: false,
                         }))
                       : []),
+                    // Also include team_members (auditores/testemunhas) with resolved signatures
+                    ...resolvedTeamMembers
+                      .filter(m => m.name?.trim() && !isDuplicate({ nome: m.name, matricula: m.registration_number }))
+                      .map(m => ({
+                        nome: m.name,
+                        cargo: m.role === 'auditor' ? 'Auditor Fiscal' : 'Testemunha',
+                        matricula: m.registration_number || '',
+                        signatureUrl: m.signature_url || undefined,
+                        isMain: false,
+                      })),
                   ];
                   const cols = allSigners.length === 1 ? 'grid-cols-1 max-w-[50%] mx-auto' : allSigners.length === 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-3';
                   return (
@@ -3124,9 +3159,9 @@ _Enviado via FISCALIZ®_`;
                   : 'grid-cols-2'
             } gap-8 pt-8 border-t print:pt-6`}>
               <div className="text-center space-y-2">
-                {document.profile?.signature_url ? (
+                {resolvedAuditorSignature ? (
                   <img 
-                    src={document.profile.signature_url} 
+                    src={resolvedAuditorSignature} 
                     alt="Rubrica do Auditor" 
                     className="h-14 mx-auto"
                   />
@@ -3167,7 +3202,7 @@ _Enviado via FISCALIZ®_`;
                 </div>
               )}
               {/* Team Members Signatures */}
-              <TeamMembersSignatures members={teamMembers} />
+              <TeamMembersSignatures members={resolvedTeamMembers} />
             </div>
 
             {/* Footer */}
