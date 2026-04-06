@@ -2035,7 +2035,7 @@ _Enviado via FISCALIZ®_`;
                           nome: m.nome,
                           cargo: m.cargo || 'Auditor Fiscal de Saúde Pública',
                           matricula: m.matricula || '',
-                          signatureUrl: m.signatureUrl || (m as any).signature_url || undefined,
+                          signatureUrl: (m as any).signatureUrl || (m as any).signature_url || undefined,
                           isMain: false,
                         }))
                       : []),
