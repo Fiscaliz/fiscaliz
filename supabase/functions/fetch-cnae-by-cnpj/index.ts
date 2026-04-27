@@ -36,6 +36,28 @@ async function fetchJsonWithTimeout(url: string, timeoutMs = 5500) {
   }
 }
 
+async function firstValidProvider<T>(providers: Array<() => Promise<T>>, isValid: (value: T) => boolean): Promise<T | null> {
+  const pending = providers.map((provider) => provider());
+  const errors: unknown[] = [];
+
+  while (pending.length > 0) {
+    const indexed = pending.map((promise, index) => promise.then(
+      (value) => ({ index, value }),
+      (error) => ({ index, error })
+    ));
+    const result = await Promise.race(indexed);
+    pending.splice(result.index, 1);
+
+    if ('value' in result && isValid(result.value)) {
+      return result.value;
+    }
+    errors.push('error' in result ? result.error : result.value);
+  }
+
+  console.warn('[fetch-cnae] Provedores sem resposta válida:', errors);
+  return null;
+}
+
 function buildAddress(...parts: Array<string | null | undefined>) {
   return parts.map((part) => String(part ?? '').trim()).filter(Boolean).join(' ').trim() || null;
 }
@@ -146,11 +168,10 @@ serve(async (req) => {
       () => fetchJsonWithTimeout(`https://minhareceita.org/${cleanCnpj}`).then((data) => normalizeMinhaReceita(data, cleanCnpj)),
     ];
 
-    const settled = await Promise.allSettled(providers.map((provider) => provider()));
-    const normalized = settled.find((item) => item.status === 'fulfilled' && item.value?.razao_social) as PromiseFulfilledResult<any> | undefined;
+    const establishment = await firstValidProvider(providers, (value) => Boolean(value?.razao_social));
 
-    if (!normalized) {
-      console.warn(`[fetch-cnae] Nenhum provedor retornou dados para CNPJ ${cleanCnpj}`, settled);
+    if (!establishment) {
+      console.warn(`[fetch-cnae] Nenhum provedor retornou dados para CNPJ ${cleanCnpj}`);
       return new Response(JSON.stringify({ 
         error: "CNPJ não encontrado na base da Receita Federal",
         cnpj: cleanCnpj,
@@ -161,7 +182,6 @@ serve(async (req) => {
       });
     }
 
-    const establishment = normalized.value;
     console.log(`[fetch-cnae] Fonte: ${establishment.source}; CNAE: ${establishment.cnae_principal} - ${establishment.cnae_descricao}`);
 
     // Se tiver establishmentId, atualizar o estabelecimento no banco
