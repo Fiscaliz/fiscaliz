@@ -316,6 +316,19 @@ export default function EstablishmentEntry() {
     return docType === 'cpf' ? formatCPF(value) : formatCNPJ(value);
   };
 
+  const isValidCNPJ = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length !== 14 || /^(\d)\1+$/.test(digits)) return false;
+    const calc = (base: string, weights: number[]) => {
+      const sum = weights.reduce((acc, weight, index) => acc + Number(base[index]) * weight, 0);
+      const rest = sum % 11;
+      return rest < 2 ? 0 : 11 - rest;
+    };
+    const d1 = calc(digits.slice(0, 12), [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+    const d2 = calc(digits.slice(0, 13), [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+    return digits.endsWith(`${d1}${d2}`);
+  };
+
   const handleCNPJSearch = async () => {
     const cleanCNPJ = cnpj.replace(/\D/g, '');
     const emptyEstablishment = {
@@ -364,10 +377,10 @@ export default function EstablishmentEntry() {
       return;
     }
 
-    if (cleanCNPJ.length !== 14) {
+    if (!isValidCNPJ(cleanCNPJ)) {
       toast({
         title: 'CNPJ inválido',
-        description: 'Digite um CNPJ válido com 14 dígitos',
+        description: 'Digite um CNPJ válido com 14 dígitos e dígitos verificadores corretos',
         variant: 'destructive',
       });
       return;
@@ -378,8 +391,9 @@ export default function EstablishmentEntry() {
 
       const { data: localData, error: localError } = await supabase
         .from('establishments')
-        .select('*')
+        .select('id, cnpj, razao_social, nome_fantasia, endereco, bairro, cep, cnae_principal, risk_level, alvara_numero, alvara_validade, latitude, longitude, responsavel_nome, responsavel_cpf, responsavel_telefone')
         .eq('cnpj', cleanCNPJ)
+        .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
