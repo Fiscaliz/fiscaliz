@@ -739,10 +739,14 @@ export default function EstablishmentEntry() {
 
   const handleProceed = () => {
     if (establishment) {
+      const establishmentToProceed = {
+        ...establishment,
+        endereco: establishment.endereco?.trim() || 'Não informado',
+      };
       // Clear draft before navigating to next step
       clearEstablishmentDraft();
       // Navigate to document type selection
-      navigate(`/nova-acao/tipo-documento?motivo=${motivo}&establishment=${encodeURIComponent(JSON.stringify(establishment))}`);
+      navigate(`/nova-acao/tipo-documento?motivo=${motivo}&establishment=${encodeURIComponent(JSON.stringify(establishmentToProceed))}`);
     }
   };
 
@@ -1387,7 +1391,7 @@ export default function EstablishmentEntry() {
                 <Button 
                   className="flex-1" 
                   onClick={handleProceed}
-                  disabled={!establishment?.razao_social || !establishment?.cnpj || !establishment?.endereco}
+                  disabled={!establishment?.razao_social || !establishment?.cnpj}
                 >
                   Continuar
                 </Button>
