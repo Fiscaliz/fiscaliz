@@ -131,22 +131,26 @@ serve(async (req) => {
       });
     }
 
-    // Limpar CNPJ - apenas números
-    const cleanCnpj = cnpj.replace(/\D/g, "").slice(0, 14);
-    if (cleanCnpj.length !== 14) {
+    const cleanCnpj = onlyDigits(cnpj).slice(0, 14);
+    if (!isValidCnpj(cleanCnpj)) {
       return new Response(JSON.stringify({ error: "CNPJ inválido" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log(`[fetch-cnae] Buscando CNAE para CNPJ: ${cleanCnpj}`);
+    console.log(`[fetch-cnae] Buscando estabelecimento para CNPJ: ${cleanCnpj}`);
 
-    // Consultar BrasilAPI
-    const apiResp = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`);
+    const providers = [
+      () => fetchJsonWithTimeout(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`).then((data) => normalizeBrasilApi(data, cleanCnpj)),
+      () => fetchJsonWithTimeout(`https://minhareceita.org/${cleanCnpj}`).then((data) => normalizeMinhaReceita(data, cleanCnpj)),
+    ];
 
-    if (!apiResp.ok) {
-      console.warn(`[fetch-cnae] BrasilAPI retornou ${apiResp.status} para CNPJ ${cleanCnpj} - pode ser CNPJ inexistente, inativo ou MEI não registrado`);
+    const settled = await Promise.allSettled(providers.map((provider) => provider()));
+    const normalized = settled.find((item) => item.status === 'fulfilled' && item.value?.razao_social) as PromiseFulfilledResult<any> | undefined;
+
+    if (!normalized) {
+      console.warn(`[fetch-cnae] Nenhum provedor retornou dados para CNPJ ${cleanCnpj}`, settled);
       return new Response(JSON.stringify({ 
         error: "CNPJ não encontrado na base da Receita Federal",
         cnpj: cleanCnpj,
@@ -157,30 +161,12 @@ serve(async (req) => {
       });
     }
 
-    const data = await apiResp.json();
-
-    const cnaePrincipal = data.cnae_fiscal?.toString() || null;
-    const cnaeDescricao = data.cnae_fiscal_descricao || null;
-    const nomeFantasia = data.nome_fantasia || null;
-    const razaoSocial = data.razao_social || null;
-    const endereco = [
-      data.descricao_tipo_de_logradouro,
-      data.logradouro,
-      data.numero,
-      data.complemento,
-    ].filter(Boolean).join(' ').trim() || null;
-    const bairro = data.bairro || null;
-    const cep = typeof data.cep === 'string' ? data.cep.replace(/\D/g, '') : null;
-    const situacaoCadastral = data.descricao_situacao_cadastral || null;
-    const responsavelNome = Array.isArray(data.qsa)
-      ? data.qsa.find((item: { nome_socio?: string | null }) => item?.nome_socio)?.nome_socio || null
-      : null;
-
-    console.log(`[fetch-cnae] CNAE: ${cnaePrincipal} - ${cnaeDescricao}`);
+    const establishment = normalized.value;
+    console.log(`[fetch-cnae] Fonte: ${establishment.source}; CNAE: ${establishment.cnae_principal} - ${establishment.cnae_descricao}`);
 
     // Se tiver establishmentId, atualizar o estabelecimento no banco
     // Uses the authenticated user's context so RLS enforces ownership checks
-    if (establishmentId && cnaePrincipal) {
+    if (establishmentId && establishment.cnae_principal) {
       const authHeader = req.headers.get("authorization")!;
       const userSupabase = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -190,29 +176,18 @@ serve(async (req) => {
 
       const { error: updateError } = await userSupabase
         .from("establishments")
-        .update({ cnae_principal: cnaePrincipal })
+        .update({ cnae_principal: establishment.cnae_principal })
         .eq("id", establishmentId);
 
       if (updateError) {
         console.error(`[fetch-cnae] Update error:`, updateError);
       } else {
-        console.log(`[fetch-cnae] Estabelecimento ${establishmentId} atualizado com CNAE ${cnaePrincipal}`);
+        console.log(`[fetch-cnae] Estabelecimento ${establishmentId} atualizado com CNAE ${establishment.cnae_principal}`);
       }
     }
 
     return new Response(
-      JSON.stringify({
-        cnpj: cleanCnpj,
-        cnae_principal: cnaePrincipal,
-        cnae_descricao: cnaeDescricao,
-        nome_fantasia: nomeFantasia,
-        razao_social: razaoSocial,
-        endereco,
-        bairro,
-        cep,
-        situacao_cadastral: situacaoCadastral,
-        responsavel_nome: responsavelNome,
-      }),
+      JSON.stringify(establishment),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
