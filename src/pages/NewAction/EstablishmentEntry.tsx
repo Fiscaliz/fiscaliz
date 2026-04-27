@@ -464,6 +464,7 @@ export default function EstablishmentEntry() {
         cnae_descricao: result?.cnae_descricao || '',
         situacao_cadastral: result?.situacao_cadastral || '',
         responsavel_nome: result?.responsavel_nome || '',
+        responsavel_telefone: result?.telefone || '',
       });
 
       toast({
