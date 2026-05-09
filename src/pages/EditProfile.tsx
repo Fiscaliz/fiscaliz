@@ -136,7 +136,7 @@ export default function EditProfile() {
 
     const dataUrl = canvas.toDataURL('image/png');
     const blob = await (await fetch(dataUrl)).blob();
-    const fileName = `signatures/${user.id}-${Date.now()}.png`;
+    const fileName = `signatures/${user.id}/${Date.now()}.png`;
 
     const { data, error } = await supabase.storage
       .from('fiscal-photos')
@@ -331,7 +331,7 @@ export default function EditProfile() {
                   setIsUploadingSignature(true);
                   try {
                     const fileExt = file.name.split('.').pop();
-                    const fileName = `signatures/${user.id}-upload-${Date.now()}.${fileExt}`;
+                    const fileName = `signatures/${user.id}/upload-${Date.now()}.${fileExt}`;
                     
                     const { error: uploadError } = await supabase.storage
                       .from('fiscal-photos')
