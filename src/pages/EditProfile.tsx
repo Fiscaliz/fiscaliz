@@ -136,7 +136,7 @@ export default function EditProfile() {
 
     const dataUrl = canvas.toDataURL('image/png');
     const blob = await (await fetch(dataUrl)).blob();
-    const fileName = `signatures/${user.id}-${Date.now()}.png`;
+    const fileName = `signatures/${user.id}/${Date.now()}.png`;
 
     const { data, error } = await supabase.storage
       .from('fiscal-photos')
