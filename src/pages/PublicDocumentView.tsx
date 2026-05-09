@@ -45,31 +45,30 @@ export default function PublicDocumentView() {
     }
 
     const fetchDocument = async () => {
-      const { data, error } = await supabase
-        .from('fiscal_documents')
-        .select('*, establishment:establishments(*)')
-        .eq('id', id)
-        .maybeSingle();
+      const { data, error } = await supabase.functions.invoke('public-document-view', {
+        body: null,
+        method: 'GET',
+      } as any).catch(() => ({ data: null, error: true }));
 
-      if (error || !data) {
-        setStatus('error');
-        setErrorMessage('Documento não encontrado ou ainda não foi enviado.');
-        return;
-      }
-
-      const est = Array.isArray(data.establishment) ? data.establishment[0] : data.establishment;
-      setDocument(data);
-      setEstablishment(est);
-      setStatus('found');
-
-      // Bucket is private: use long-lived signed URL for public document sharing
-      if (data.pdf_url) {
-        const { data: signedData } = await supabase.storage
-          .from('fiscal-photos')
-          .createSignedUrl(data.pdf_url, 31536000); // 1 year expiry
-        if (signedData?.signedUrl) {
-          setPdfPublicUrl(signedData.signedUrl);
+      // functions.invoke doesn't easily support GET query params; use fetch directly
+      const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/public-document-view?id=${encodeURIComponent(id)}`;
+      try {
+        const res = await fetch(fnUrl, {
+          headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+        });
+        if (!res.ok) {
+          setStatus('error');
+          setErrorMessage('Documento não encontrado ou ainda não foi enviado.');
+          return;
         }
+        const payload = await res.json();
+        setDocument(payload.document);
+        setEstablishment(payload.establishment);
+        setPdfPublicUrl(payload.pdfUrl ?? null);
+        setStatus('found');
+      } catch {
+        setStatus('error');
+        setErrorMessage('Erro ao carregar documento.');
       }
     };
 
