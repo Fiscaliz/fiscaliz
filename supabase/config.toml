@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.fetch-cnae-by-cnpj]
 verify_jwt = false
+
+[functions.public-document-view]
+verify_jwt = false
