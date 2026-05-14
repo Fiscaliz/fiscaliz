@@ -71,6 +71,43 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!emailRegex.test(email) || email.length > 254) {
+      return new Response(
+        JSON.stringify({ error: "Email inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (!uuidRegex.test(documentId)) {
+      return new Response(
+        JSON.stringify({ error: "ID de documento inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (
+      typeof documentType !== 'string' || documentType.length > 100 ||
+      (establishmentName && (typeof establishmentName !== 'string' || establishmentName.length > 300)) ||
+      (fiscalName && (typeof fiscalName !== 'string' || fiscalName.length > 200))
+    ) {
+      return new Response(
+        JSON.stringify({ error: "Campos inválidos" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const escapeHtml = (s: string) =>
+      String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    const safeDocumentType = escapeHtml(documentType);
+    const safeEstablishmentName = escapeHtml(establishmentName ?? '');
+    const safeFiscalName = escapeHtml(fiscalName ?? '');
+
     console.log(`Sending fiscal document to ${email}`, { documentId, documentType, establishmentName });
 
     const appUrl = Deno.env.get("APP_URL") || "https://fiscaliz-smart-app.lovable.app";
