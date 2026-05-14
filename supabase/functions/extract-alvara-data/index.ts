@@ -58,9 +58,21 @@ serve(async (req) => {
     if (authResult instanceof Response) return authResult;
 
     const { imageBase64 } = await req.json();
-    if (!imageBase64) {
+    if (!imageBase64 || typeof imageBase64 !== 'string') {
       return new Response(JSON.stringify({ error: "Imagem não fornecida" }), {
         status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!imageBase64.startsWith('data:image/')) {
+      return new Response(JSON.stringify({ error: "Formato de imagem inválido" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (imageBase64.length > 7_000_000) {
+      return new Response(JSON.stringify({ error: "Imagem muito grande (máx ~5MB)" }), {
+        status: 413,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
