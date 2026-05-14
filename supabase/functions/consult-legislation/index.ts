@@ -207,6 +207,31 @@ serve(async (req) => {
       );
     }
 
+    // Cap conversation size to prevent AI token exhaustion
+    const MAX_MESSAGES = 50;
+    const MAX_CONTENT_LENGTH = 8000;
+    if (messages.length > MAX_MESSAGES) {
+      return new Response(
+        JSON.stringify({ error: `Too many messages (max ${MAX_MESSAGES})` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    for (const m of messages) {
+      if (
+        !m ||
+        typeof m !== 'object' ||
+        !['user', 'assistant'].includes(m.role) ||
+        typeof m.content !== 'string' ||
+        m.content.length === 0 ||
+        m.content.length > MAX_CONTENT_LENGTH
+      ) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid message format or content too long' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       console.error('LOVABLE_API_KEY not configured');

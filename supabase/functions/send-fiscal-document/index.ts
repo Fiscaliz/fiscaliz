@@ -71,6 +71,43 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!emailRegex.test(email) || email.length > 254) {
+      return new Response(
+        JSON.stringify({ error: "Email inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (!uuidRegex.test(documentId)) {
+      return new Response(
+        JSON.stringify({ error: "ID de documento inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (
+      typeof documentType !== 'string' || documentType.length > 100 ||
+      (establishmentName && (typeof establishmentName !== 'string' || establishmentName.length > 300)) ||
+      (fiscalName && (typeof fiscalName !== 'string' || fiscalName.length > 200))
+    ) {
+      return new Response(
+        JSON.stringify({ error: "Campos inválidos" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const escapeHtml = (s: string) =>
+      String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    const safeDocumentType = escapeHtml(documentType);
+    const safeEstablishmentName = escapeHtml(establishmentName ?? '');
+    const safeFiscalName = escapeHtml(fiscalName ?? '');
+
     console.log(`Sending fiscal document to ${email}`, { documentId, documentType, establishmentName });
 
     const appUrl = Deno.env.get("APP_URL") || "https://fiscaliz-smart-app.lovable.app";
@@ -79,7 +116,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "Fiscaliz <noreply@resend.dev>",
       to: [email],
-      subject: `${documentType} - Vigilância Sanitária de Goiânia`,
+      subject: `${safeDocumentType} - Vigilância Sanitária de Goiânia`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -95,9 +132,9 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
           
           <div style="background: #f7fafc; border-left: 4px solid #3182ce; padding: 20px; margin: 20px 0;">
-            <h2 style="color: #2b6cb0; margin: 0 0 10px 0;">${documentType}</h2>
-            <p style="margin: 5px 0;"><strong>Estabelecimento:</strong> ${establishmentName}</p>
-            <p style="margin: 5px 0;"><strong>Fiscal Responsável:</strong> ${fiscalName}</p>
+            <h2 style="color: #2b6cb0; margin: 0 0 10px 0;">${safeDocumentType}</h2>
+            <p style="margin: 5px 0;"><strong>Estabelecimento:</strong> ${safeEstablishmentName}</p>
+            <p style="margin: 5px 0;"><strong>Fiscal Responsável:</strong> ${safeFiscalName}</p>
           </div>
           
           <div style="background: #fffbeb; border: 1px solid #f6e05e; padding: 15px; border-radius: 5px; margin: 20px 0;">
@@ -108,7 +145,7 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${documentLink}" 
+            <a href="${escapeHtml(documentLink)}" 
                style="background: #3182ce; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
               📄 Visualizar Documento Completo
             </a>
