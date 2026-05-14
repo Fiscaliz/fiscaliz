@@ -169,7 +169,19 @@ serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (!documentType) {
+    if (imagesBase64.length > 10) {
+      return new Response(JSON.stringify({ error: "Máximo de 10 imagens por requisição" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    for (const img of imagesBase64) {
+      if (typeof img !== 'string' || !img.startsWith('data:image/') || img.length > 7_000_000) {
+        return new Response(JSON.stringify({ error: "Imagem inválida ou muito grande (máx ~5MB cada)" }), {
+          status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+    if (!documentType || typeof documentType !== 'string') {
       return new Response(JSON.stringify({ error: "Tipo de documento não informado" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
