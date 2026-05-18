@@ -5,15 +5,15 @@ import {
   BarChart3, 
   User,
   Scale,
-  ClipboardList
+  Search as SearchIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { to: '/', icon: Home, label: 'Início' },
   { to: '/nova-acao', icon: FileText, label: 'Ação' },
+  { to: '/pesquisar', icon: SearchIcon, label: 'Pesquisar' },
   { to: '/consultar-ia', icon: Scale, label: 'Consultar' },
-  { to: '/relatorios-mensais', icon: ClipboardList, label: 'Relatórios' },
   { to: '/dashboard', icon: BarChart3, label: 'Dashboard' },
   { to: '/perfil', icon: User, label: 'Perfil' },
 ];
