@@ -32,6 +32,7 @@ import ConsultAI from "./pages/ConsultAI";
 import AdminUsers from "./pages/AdminUsers";
 import Establishments from "./pages/Establishments";
 import Checklists from "./pages/Checklists";
+import Search from "./pages/Search";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
