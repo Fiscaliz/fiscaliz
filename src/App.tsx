@@ -155,6 +155,11 @@ const App = () => (
                 <Checklists />
               </ProtectedRoute>
             } />
+            <Route path="/pesquisar" element={
+              <ProtectedRoute>
+                <Search />
+              </ProtectedRoute>
+            } />
             {/* Public PDF redirect route - no auth required */}
             <Route path="/pdf/:fileName" element={<PDFRedirect />} />
             {/* Public document view via QR Code - no auth required */}
