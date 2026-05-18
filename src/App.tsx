@@ -32,6 +32,7 @@ import ConsultAI from "./pages/ConsultAI";
 import AdminUsers from "./pages/AdminUsers";
 import Establishments from "./pages/Establishments";
 import Checklists from "./pages/Checklists";
+import Search from "./pages/Search";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -152,6 +153,11 @@ const App = () => (
             <Route path="/checklists" element={
               <ProtectedRoute>
                 <Checklists />
+              </ProtectedRoute>
+            } />
+            <Route path="/pesquisar" element={
+              <ProtectedRoute>
+                <Search />
               </ProtectedRoute>
             } />
             {/* Public PDF redirect route - no auth required */}
