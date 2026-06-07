@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!upErr) {
             await supabase.from('ai_training_documents').insert({
               user_id: data.user.id,
-              file_name: file.name,
+              name: file.name,
               file_path: path,
               file_size: file.size,
               mime_type: file.type || 'application/octet-stream',
