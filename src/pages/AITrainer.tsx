@@ -102,7 +102,7 @@ export default function AITrainer() {
   };
 
   const removeDoc = async (doc: any) => {
-    if (doc.file_path && !doc.file_path.startsWith("url://")) {
+    if (doc.file_path && !doc.file_path.startsWith("url://") && !doc.file_path.startsWith("prompt://")) {
       await supabase.storage.from("ai-training").remove([doc.file_path]);
     }
     await supabase.from("ai_training_documents").delete().eq("id", doc.id);
