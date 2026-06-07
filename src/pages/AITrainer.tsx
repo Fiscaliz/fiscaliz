@@ -98,9 +98,43 @@ export default function AITrainer() {
   };
 
   const removeDoc = async (doc: any) => {
-    await supabase.storage.from("ai-training").remove([doc.file_path]);
+    if (doc.file_path && !doc.file_path.startsWith("url://")) {
+      await supabase.storage.from("ai-training").remove([doc.file_path]);
+    }
     await supabase.from("ai_training_documents").delete().eq("id", doc.id);
     load();
+  };
+
+  const handleAddUrl = async () => {
+    if (!user) return;
+    const url = urlInput.trim();
+    if (!/^https?:\/\//i.test(url)) {
+      toast.error("Informe uma URL válida (http/https)");
+      return;
+    }
+    setFetchingUrl(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("fetch-url-content", { body: { url } });
+      if (error || !data?.text) throw new Error(error?.message || "Falha ao acessar URL");
+      const { error: insErr } = await supabase.from("ai_training_documents").insert({
+        user_id: user.id,
+        name: data.title || url,
+        doc_type: uploadType as any,
+        file_path: `url://${url}`,
+        file_size: data.length ?? data.text.length,
+        mime_type: "text/html",
+        extracted_text: data.text,
+        status: "pending",
+      });
+      if (insErr) throw insErr;
+      toast.success("Conteúdo importado da URL");
+      setUrlInput("");
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Falha ao importar URL");
+    } finally {
+      setFetchingUrl(false);
+    }
   };
 
   const trainAI = async () => {
