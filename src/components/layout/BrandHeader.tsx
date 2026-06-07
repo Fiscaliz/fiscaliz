@@ -1,6 +1,6 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Sparkles } from 'lucide-react';
-import inspectflowSymbol from '@/assets/inspectflow-symbol.png';
+import fiscalizLogo from '@/assets/fiscaliz-logo.png';
 
 export function BrandHeader() {
   const { user } = useAuth();
@@ -18,11 +18,11 @@ export function BrandHeader() {
         style={{ background: 'var(--gradient-mesh)' }}
       />
       <div className="relative flex items-center gap-4">
-        <div className="h-16 w-16 rounded-2xl bg-white/10 ring-1 ring-white/20 backdrop-blur-md p-2 flex items-center justify-center shadow-lg">
+        <div className="h-16 w-16 rounded-2xl bg-white/10 ring-1 ring-white/20 backdrop-blur-md p-1.5 flex items-center justify-center shadow-lg">
           <img
-            src={inspectflowSymbol}
-            alt="InspectFlow AI"
-            className="h-full w-full object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.25)]"
+            src={fiscalizLogo}
+            alt="Fiscaliz"
+            className="h-full w-full object-contain rounded-xl"
             width={64}
             height={64}
           />
@@ -32,7 +32,7 @@ export function BrandHeader() {
             className="text-2xl font-bold tracking-tight"
             style={{ fontFamily: 'var(--font-display)' }}
           >
-            InspectFlow <span className="font-medium opacity-80">AI</span>
+            FISCALIZ
           </h2>
           <p className="text-sm text-white/85">
             {fullName}{registrationNumber ? ` · ${registrationNumber}` : ''}
