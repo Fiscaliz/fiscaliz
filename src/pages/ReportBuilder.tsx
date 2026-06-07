@@ -206,6 +206,14 @@ export default function ReportBuilder() {
     setTemplatesOpen(false);
   };
 
+  const loadStarter = (s: StarterTemplate) => {
+    setBlocks(s.blocks.map((b) => ({ ...b, id: crypto.randomUUID() })));
+    setReportId(null);
+    setTitle(s.name);
+    setTemplatesOpen(false);
+    toast.success(`Modelo "${s.name}" carregado`);
+  };
+
   return (
     <AppLayout>
       <div className="container max-w-5xl py-4 pb-32 space-y-4">
