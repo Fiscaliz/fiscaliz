@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
-  FileText, Plus, GripVertical, Trash2, Save, FileDown, FileType2, ImagePlus, BookOpen, X, Store,
+  FileText, Plus, GripVertical, Trash2, Save, FileDown, FileType2, ImagePlus, BookOpen, X,
 } from "lucide-react";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent,
@@ -129,6 +129,19 @@ export default function ReportBuilder() {
 
   useEffect(() => { load(); }, [user]);
 
+  // Consume pending template from Biblioteca de Templates
+  useEffect(() => {
+    const raw = sessionStorage.getItem("if_pending_template");
+    if (!raw) return;
+    sessionStorage.removeItem("if_pending_template");
+    try {
+      const tpl = JSON.parse(raw);
+      setTitle(tpl.name ?? "Novo Relatório");
+      setBlocks((tpl.blocks ?? []).map((b: any) => ({ ...b, id: crypto.randomUUID() })));
+      setReportId(null);
+    } catch { /* ignore */ }
+  }, []);
+
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
@@ -192,24 +205,6 @@ export default function ReportBuilder() {
     load();
   };
 
-  const publishToMarketplace = async () => {
-    if (!user) return;
-    const description = prompt("Descrição curta (visível no marketplace):", "");
-    if (description === null) return;
-    const area = prompt("Área de atuação (ex.: Engenharia, Sanitária, SST):", "Geral") ?? "Geral";
-    const blank = blocks.map((b) => ({ ...b, content: b.content, evidences: [] }));
-    const { error } = await supabase.from("marketplace_items").insert({
-      author_id: user.id,
-      type: "report_template",
-      title,
-      description,
-      area,
-      icon: "📄",
-      payload: { blocks: blank } as any,
-    });
-    if (error) { toast.error(error.message); return; }
-    toast.success("Enviado ao marketplace! Aguardando aprovação.");
-  };
 
   const loadTemplate = (tpl: any) => {
     setBlocks((tpl.blocks ?? []).map((b: any) => ({ ...b, id: crypto.randomUUID() })));
@@ -298,9 +293,6 @@ export default function ReportBuilder() {
             </Button>
             <Button variant="outline" onClick={saveAsTemplate}>
               <BookOpen className="h-4 w-4 mr-1" /> Salvar modelo
-            </Button>
-            <Button variant="outline" onClick={publishToMarketplace}>
-              <Store className="h-4 w-4 mr-1" /> Publicar
             </Button>
             <div className="flex-1" />
             <Button variant="secondary" onClick={() => exportReportPDF(title, blocks)}>
