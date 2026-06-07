@@ -12,6 +12,7 @@ export interface OnboardingData {
   areas: string[];
   reportTools: string[];
   trainingFiles: File[];
+  trainingUrls: string[];
   initialTemplate: string;
 }
 
@@ -21,6 +22,7 @@ export const EMPTY_ONBOARDING: OnboardingData = {
   areas: [],
   reportTools: [],
   trainingFiles: [],
+  trainingUrls: [],
   initialTemplate: '',
 };
 
