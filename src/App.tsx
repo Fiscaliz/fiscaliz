@@ -34,6 +34,7 @@ import Establishments from "./pages/Establishments";
 import Checklists from "./pages/Checklists";
 import Search from "./pages/Search";
 import EvidenceWorkspace from "./pages/EvidenceWorkspace";
+import AITrainer from "./pages/AITrainer";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -164,6 +165,11 @@ const App = () => (
             <Route path="/projeto/:projectId/workspace" element={
               <ProtectedRoute>
                 <EvidenceWorkspace />
+              </ProtectedRoute>
+            } />
+            <Route path="/ai-trainer" element={
+              <ProtectedRoute>
+                <AITrainer />
               </ProtectedRoute>
             } />
             {/* Public PDF redirect route - no auth required */}

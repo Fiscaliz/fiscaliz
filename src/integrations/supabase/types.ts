@@ -14,6 +14,105 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_company_profile: {
+        Row: {
+          area_of_practice: string | null
+          created_at: string
+          document_structure: Json | null
+          documents_analyzed: number
+          evidence_types: Json | null
+          id: string
+          last_trained_at: string | null
+          profession: string | null
+          report_format: Json | null
+          report_types: string[] | null
+          summary: string | null
+          updated_at: string
+          user_id: string
+          vocabulary: Json | null
+        }
+        Insert: {
+          area_of_practice?: string | null
+          created_at?: string
+          document_structure?: Json | null
+          documents_analyzed?: number
+          evidence_types?: Json | null
+          id?: string
+          last_trained_at?: string | null
+          profession?: string | null
+          report_format?: Json | null
+          report_types?: string[] | null
+          summary?: string | null
+          updated_at?: string
+          user_id: string
+          vocabulary?: Json | null
+        }
+        Update: {
+          area_of_practice?: string | null
+          created_at?: string
+          document_structure?: Json | null
+          documents_analyzed?: number
+          evidence_types?: Json | null
+          id?: string
+          last_trained_at?: string | null
+          profession?: string | null
+          report_format?: Json | null
+          report_types?: string[] | null
+          summary?: string | null
+          updated_at?: string
+          user_id?: string
+          vocabulary?: Json | null
+        }
+        Relationships: []
+      }
+      ai_training_documents: {
+        Row: {
+          analysis: Json | null
+          created_at: string
+          doc_type: Database["public"]["Enums"]["ai_training_doc_type"]
+          error: string | null
+          extracted_text: string | null
+          file_path: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          name: string
+          status: Database["public"]["Enums"]["ai_training_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis?: Json | null
+          created_at?: string
+          doc_type?: Database["public"]["Enums"]["ai_training_doc_type"]
+          error?: string | null
+          extracted_text?: string | null
+          file_path: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          name: string
+          status?: Database["public"]["Enums"]["ai_training_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis?: Json | null
+          created_at?: string
+          doc_type?: Database["public"]["Enums"]["ai_training_doc_type"]
+          error?: string | null
+          extracted_text?: string | null
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          name?: string
+          status?: Database["public"]["Enums"]["ai_training_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       checklists: {
         Row: {
           created_at: string
@@ -777,6 +876,15 @@ export type Database = {
       }
     }
     Enums: {
+      ai_training_doc_type:
+        | "relatorio"
+        | "laudo"
+        | "procedimento"
+        | "norma"
+        | "checklist"
+        | "modelo_interno"
+        | "outro"
+      ai_training_status: "pending" | "processing" | "completed" | "failed"
       app_role: "admin" | "fiscal" | "gestor"
       document_status: "draft" | "sent" | "archived"
       document_type:
@@ -952,6 +1060,16 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ai_training_doc_type: [
+        "relatorio",
+        "laudo",
+        "procedimento",
+        "norma",
+        "checklist",
+        "modelo_interno",
+        "outro",
+      ],
+      ai_training_status: ["pending", "processing", "completed", "failed"],
       app_role: ["admin", "fiscal", "gestor"],
       document_status: ["draft", "sent", "archived"],
       document_type: [
