@@ -134,7 +134,7 @@ const EXTRA_TEMPLATES: Array<{ tpl: StarterTemplate; category: TemplateCategory;
     concl: "Inspeção de facilities concluída com plano de manutenção preventiva e corretiva.",
   },
   {
-    tpl: emptyTemplate("personalizado", "Template Personalizado", "Personalizado", "Geral", "✨", "Modelo em branco para você estruturar do seu jeito.", "from-slate-700 via-slate-800 to-zinc-900"),
+    tpl: emptyTemplate("personalizado", "Template Personalizado", "Template Personalizado", "Geral", "✨", "Modelo em branco para você estruturar do seu jeito.", "from-slate-700 via-slate-800 to-zinc-900"),
     category: "Template Personalizado",
     cover: "from-slate-700 via-slate-800 to-zinc-900",
     ev: [],
