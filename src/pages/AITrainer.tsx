@@ -249,6 +249,33 @@ export default function AITrainer() {
             </p>
           </div>
 
+          <div className="space-y-2 pt-1">
+            <Label className="flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
+              <Wand2 className="h-3.5 w-3.5" /> Prompt ou Skill personalizado
+            </Label>
+            <Input
+              value={promptName}
+              onChange={(e) => setPromptName(e.target.value)}
+              placeholder="Nome (ex.: Estilo de redação, Checklist de inspeção predial)"
+            />
+            <Textarea
+              value={promptText}
+              onChange={(e) => setPromptText(e.target.value)}
+              placeholder="Escreva instruções, regras de escrita, modelo de conclusão, terminologia, ou qualquer skill que a IA deve seguir..."
+              rows={5}
+            />
+            <div className="flex justify-end">
+              <Button onClick={handleAddPrompt} disabled={savingPrompt || !promptText.trim()} variant="secondary" size="sm">
+                {savingPrompt ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Wand2 className="h-4 w-4 mr-1" /> Adicionar prompt</>}
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Use prompts e skills para ensinar à IA como você escreve, o tom técnico, formatos preferidos e regras específicas do seu trabalho.
+            </p>
+          </div>
+
+
+
           {docs.length > 0 && (
             <div className="space-y-2 pt-2">
               {docs.map((d) => (
