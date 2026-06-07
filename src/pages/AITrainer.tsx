@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Brain, Upload, FileText, Sparkles, Trash2, Loader2, Link2, Globe } from "lucide-react";
+import { Brain, Upload, FileText, Sparkles, Trash2, Loader2, Link2, Globe, Wand2 } from "lucide-react";
 
 const DOC_TYPES = [
   { value: "relatorio", label: "Relatório" },
@@ -18,6 +18,7 @@ const DOC_TYPES = [
   { value: "norma", label: "Norma" },
   { value: "checklist", label: "Checklist" },
   { value: "modelo_interno", label: "Modelo Interno" },
+  { value: "prompt", label: "Prompt / Skill" },
   { value: "outro", label: "Outro" },
 ];
 
@@ -33,6 +34,9 @@ export default function AITrainer() {
   const [reportTypes, setReportTypes] = useState("");
   const [urlInput, setUrlInput] = useState("");
   const [fetchingUrl, setFetchingUrl] = useState(false);
+  const [promptName, setPromptName] = useState("");
+  const [promptText, setPromptText] = useState("");
+  const [savingPrompt, setSavingPrompt] = useState(false);
 
   const load = async () => {
     if (!user) return;
@@ -98,7 +102,7 @@ export default function AITrainer() {
   };
 
   const removeDoc = async (doc: any) => {
-    if (doc.file_path && !doc.file_path.startsWith("url://")) {
+    if (doc.file_path && !doc.file_path.startsWith("url://") && !doc.file_path.startsWith("prompt://")) {
       await supabase.storage.from("ai-training").remove([doc.file_path]);
     }
     await supabase.from("ai_training_documents").delete().eq("id", doc.id);
@@ -136,6 +140,34 @@ export default function AITrainer() {
       setFetchingUrl(false);
     }
   };
+
+  const handleAddPrompt = async () => {
+    if (!user) return;
+    const text = promptText.trim();
+    if (text.length < 5) {
+      toast.error("Escreva o prompt ou skill");
+      return;
+    }
+    setSavingPrompt(true);
+    const { error } = await supabase.from("ai_training_documents").insert({
+      user_id: user.id,
+      name: promptName.trim() || `Prompt — ${new Date().toLocaleString("pt-BR")}`,
+      doc_type: "prompt" as any,
+      file_path: `prompt://${crypto.randomUUID()}`,
+      file_size: text.length,
+      mime_type: "text/plain",
+      extracted_text: text,
+      status: "pending",
+    });
+    setSavingPrompt(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Prompt/skill adicionado");
+    setPromptName("");
+    setPromptText("");
+    load();
+  };
+
+
 
   const trainAI = async () => {
     setTraining(true);
@@ -216,6 +248,33 @@ export default function AITrainer() {
               Cole o link de uma lei, norma técnica, RDC, manual ou página de referência. O conteúdo será extraído e usado no treinamento.
             </p>
           </div>
+
+          <div className="space-y-2 pt-1">
+            <Label className="flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
+              <Wand2 className="h-3.5 w-3.5" /> Prompt ou Skill personalizado
+            </Label>
+            <Input
+              value={promptName}
+              onChange={(e) => setPromptName(e.target.value)}
+              placeholder="Nome (ex.: Estilo de redação, Checklist de inspeção predial)"
+            />
+            <Textarea
+              value={promptText}
+              onChange={(e) => setPromptText(e.target.value)}
+              placeholder="Escreva instruções, regras de escrita, modelo de conclusão, terminologia, ou qualquer skill que a IA deve seguir..."
+              rows={5}
+            />
+            <div className="flex justify-end">
+              <Button onClick={handleAddPrompt} disabled={savingPrompt || !promptText.trim()} variant="secondary" size="sm">
+                {savingPrompt ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Wand2 className="h-4 w-4 mr-1" /> Adicionar prompt</>}
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Use prompts e skills para ensinar à IA como você escreve, o tom técnico, formatos preferidos e regras específicas do seu trabalho.
+            </p>
+          </div>
+
+
 
           {docs.length > 0 && (
             <div className="space-y-2 pt-2">
