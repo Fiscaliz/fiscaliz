@@ -64,37 +64,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (error) return { error: error as Error | null };
 
-    // Save extra fields to profiles after signup
+    // Save onboarding fields to profile
     if (data.user && extra) {
-      let logoUrl: string | null = null;
+      await supabase.from('profiles').update({
+        profession: extra.profession || null,
+        activity_types: extra.activityTypes ?? [],
+        areas_of_practice: extra.areas ?? [],
+        report_tools: extra.reportTools ?? [],
+        initial_template: extra.initialTemplate || null,
+        onboarding_completed: true,
+      } as any).eq('id', data.user.id);
 
-      // Upload logo if provided
-      if (extra.logoFile) {
-        const ext = extra.logoFile.name.split('.').pop();
-        const path = `logos/${data.user.id}.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from('fiscal-photos')
-          .upload(path, extra.logoFile, { upsert: true });
-        if (!uploadError) {
-          const { data: urlData } = await supabase.storage
-            .from('fiscal-photos')
-            .createSignedUrl(path, 60 * 60 * 24 * 365);
-          logoUrl = urlData?.signedUrl ?? null;
+      // Upload AI training material (optional, best effort)
+      if (extra.trainingFiles && extra.trainingFiles.length > 0) {
+        for (const file of extra.trainingFiles) {
+          const safe = file.name.replace(/[^\w.\-]+/g, '_');
+          const path = `${data.user.id}/${Date.now()}-${safe}`;
+          const { error: upErr } = await supabase.storage
+            .from('ai-training')
+            .upload(path, file, { upsert: false });
+          if (!upErr) {
+            await supabase.from('ai_training_documents').insert({
+              user_id: data.user.id,
+              file_name: file.name,
+              file_path: path,
+              file_size: file.size,
+              mime_type: file.type || 'application/octet-stream',
+            } as any);
+          }
         }
       }
-
-      await supabase.from('profiles').update({
-        user_type: extra.userType,
-        institutional_link: extra.institutionalLink,
-        institution_name: extra.institutionName || null,
-        institution_logo_url: logoUrl,
-        areas_of_practice: extra.areasOfPractice,
-        city: extra.city || null,
-        state: extra.state || null,
-        organ_name: extra.organName || null,
-        pdf_header_text: extra.pdfHeaderText || null,
-        custom_legislations: extra.customLegislations || [],
-      } as any).eq('id', data.user.id);
     }
 
     return { error: null };
