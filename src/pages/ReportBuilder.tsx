@@ -310,6 +310,7 @@ export default function ReportBuilder() {
                   ))}
                 </div>
               </div>
+              <div>
                 <div className="text-xs font-semibold uppercase text-muted-foreground mb-2">Meus Modelos</div>
                 {templates.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Nenhum modelo salvo ainda.</p>
