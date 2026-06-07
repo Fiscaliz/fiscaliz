@@ -23,6 +23,7 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   BLOCK_DEFS, defaultBlock, exportReportDOCX, exportReportPDF, type BlockType, type ReportBlock,
 } from "@/lib/reportBuilder";
+import { STARTER_TEMPLATES, type StarterTemplate } from "@/lib/starterTemplates";
 
 function SortableBlock({
   block, onChange, onRemove, onAddImage, onRemoveImage,
