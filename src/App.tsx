@@ -170,6 +170,11 @@ const App = () => (
                 <EvidenceWorkspace />
               </ProtectedRoute>
             } />
+            <Route path="/projeto/:projectId/workspace-pro" element={
+              <ProtectedRoute>
+                <EvidenceWorkspacePro />
+              </ProtectedRoute>
+            } />
             <Route path="/ai-trainer" element={
               <ProtectedRoute>
                 <AITrainer />
