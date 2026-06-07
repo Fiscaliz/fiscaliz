@@ -8,6 +8,7 @@ interface SignupExtra {
   areas?: string[];
   reportTools?: string[];
   trainingFiles?: File[];
+  trainingUrls?: string[];
   initialTemplate?: string;
 }
 
