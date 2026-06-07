@@ -229,8 +229,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
                   setEmail('');
                   setPassword('');
                   setFullName('');
-                  setRegistrationNumber('');
-                  setExtraData({ userType: '', institutionalLink: '', institutionName: '', areasOfPractice: [], logoFile: null, city: '', state: '', organName: '', pdfHeaderText: '', customLegislations: [] });
+                  setOnboarding(EMPTY_ONBOARDING);
                 }}
                 className="text-body text-primary font-semibold hover:underline transition-all"
               >
