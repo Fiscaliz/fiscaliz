@@ -197,6 +197,26 @@ export default function AITrainer() {
             <input type="file" multiple className="hidden" onChange={(e) => handleUpload(e.target.files)} />
           </label>
 
+          <div className="space-y-2 pt-1">
+            <Label className="flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
+              <Globe className="h-3.5 w-3.5" /> Importar de URL (site ou legislação)
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                placeholder="https://www.planalto.gov.br/... ou link de norma/site"
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddUrl(); } }}
+              />
+              <Button onClick={handleAddUrl} disabled={fetchingUrl || !urlInput.trim()} variant="secondary">
+                {fetchingUrl ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Link2 className="h-4 w-4 mr-1" /> Importar</>}
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Cole o link de uma lei, norma técnica, RDC, manual ou página de referência. O conteúdo será extraído e usado no treinamento.
+            </p>
+          </div>
+
           {docs.length > 0 && (
             <div className="space-y-2 pt-2">
               {docs.map((d) => (
