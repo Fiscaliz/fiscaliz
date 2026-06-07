@@ -173,7 +173,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="seu.email@goiania.go.gov.br"
+                  placeholder="seu.email@empresa.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
