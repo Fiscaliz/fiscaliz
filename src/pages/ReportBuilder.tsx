@@ -192,6 +192,25 @@ export default function ReportBuilder() {
     load();
   };
 
+  const publishToMarketplace = async () => {
+    if (!user) return;
+    const description = prompt("Descrição curta (visível no marketplace):", "");
+    if (description === null) return;
+    const area = prompt("Área de atuação (ex.: Engenharia, Sanitária, SST):", "Geral") ?? "Geral";
+    const blank = blocks.map((b) => ({ ...b, content: b.content, evidences: [] }));
+    const { error } = await supabase.from("marketplace_items").insert({
+      author_id: user.id,
+      type: "report_template",
+      title,
+      description,
+      area,
+      icon: "📄",
+      payload: { blocks: blank } as any,
+    });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Enviado ao marketplace! Aguardando aprovação.");
+  };
+
   const loadTemplate = (tpl: any) => {
     setBlocks((tpl.blocks ?? []).map((b: any) => ({ ...b, id: crypto.randomUUID() })));
     setReportId(null);
