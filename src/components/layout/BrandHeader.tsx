@@ -1,6 +1,6 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Sparkles } from 'lucide-react';
-import fiscalizLogo from '@/assets/fiscaliz-logo.png';
+import fiscalizLogo from '@/assets/logo-fiscaliz.png';
 
 export function BrandHeader() {
   const { user } = useAuth();
