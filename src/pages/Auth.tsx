@@ -56,38 +56,19 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
           setIsSubmitting(false);
           return;
         }
-        if (!extraData.userType) {
-          toast({ title: 'Campo obrigatório', description: 'Selecione o tipo de usuário.', variant: 'destructive' });
+        if (!isOnboardingComplete(onboarding)) {
+          toast({ title: 'Onboarding incompleto', description: 'Conclua todas as etapas do onboarding antes de continuar.', variant: 'destructive' });
           setIsSubmitting(false);
           return;
         }
-        if (!extraData.institutionalLink) {
-          toast({ title: 'Campo obrigatório', description: 'Selecione o vínculo institucional.', variant: 'destructive' });
-          setIsSubmitting(false);
-          return;
-        }
-        if (extraData.areasOfPractice.length === 0) {
-          toast({ title: 'Campo obrigatório', description: 'Selecione ao menos uma área de atuação.', variant: 'destructive' });
-          setIsSubmitting(false);
-          return;
-        }
-        if (!extraData.state || !extraData.city.trim()) {
-          toast({ title: 'Campo obrigatório', description: 'Informe o estado e a cidade.', variant: 'destructive' });
-          setIsSubmitting(false);
-          return;
-        }
-        
+
         const { error } = await signUp(email, password, fullName, {
-          userType: extraData.userType,
-          institutionalLink: extraData.institutionalLink,
-          institutionName: extraData.institutionName,
-          areasOfPractice: extraData.areasOfPractice,
-          logoFile: extraData.logoFile,
-          city: extraData.city,
-          state: extraData.state,
-          organName: extraData.organName,
-          pdfHeaderText: extraData.pdfHeaderText,
-          customLegislations: extraData.customLegislations,
+          profession: onboarding.profession,
+          activityTypes: onboarding.activityTypes,
+          areas: onboarding.areas,
+          reportTools: onboarding.reportTools,
+          trainingFiles: onboarding.trainingFiles,
+          initialTemplate: onboarding.initialTemplate,
         });
         if (error) {
           if (error.message.includes('already registered')) {
