@@ -496,6 +496,57 @@ export type Database = {
         }
         Relationships: []
       }
+      projects: {
+        Row: {
+          area: Database["public"]["Enums"]["project_area"]
+          client: string | null
+          created_at: string
+          custom_area: string | null
+          description: string | null
+          id: string
+          metadata: Json
+          name: string
+          project_date: string
+          responsible_name: string | null
+          responsible_registration: string | null
+          status: Database["public"]["Enums"]["project_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          area?: Database["public"]["Enums"]["project_area"]
+          client?: string | null
+          created_at?: string
+          custom_area?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json
+          name: string
+          project_date?: string
+          responsible_name?: string | null
+          responsible_registration?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          area?: Database["public"]["Enums"]["project_area"]
+          client?: string | null
+          created_at?: string
+          custom_area?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json
+          name?: string
+          project_date?: string
+          responsible_name?: string | null
+          responsible_registration?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           completed_at: string | null
@@ -635,6 +686,22 @@ export type Database = {
         | "demanda_interna"
         | "pfe"
       priority_level: "high" | "medium" | "low"
+      project_area:
+        | "fiscalizacao_sanitaria"
+        | "engenharia"
+        | "arquitetura"
+        | "seguranca_trabalho"
+        | "auditoria"
+        | "pericia_veicular"
+        | "seguros"
+        | "agronegocio"
+        | "personalizado"
+      project_status:
+        | "planejamento"
+        | "em_andamento"
+        | "em_revisao"
+        | "concluido"
+        | "arquivado"
       task_status: "pending" | "in_progress" | "completed" | "overdue"
     }
     CompositeTypes: {
@@ -796,6 +863,24 @@ export const Constants = {
         "pfe",
       ],
       priority_level: ["high", "medium", "low"],
+      project_area: [
+        "fiscalizacao_sanitaria",
+        "engenharia",
+        "arquitetura",
+        "seguranca_trabalho",
+        "auditoria",
+        "pericia_veicular",
+        "seguros",
+        "agronegocio",
+        "personalizado",
+      ],
+      project_status: [
+        "planejamento",
+        "em_andamento",
+        "em_revisao",
+        "concluido",
+        "arquivado",
+      ],
       task_status: ["pending", "in_progress", "completed", "overdue"],
     },
   },
