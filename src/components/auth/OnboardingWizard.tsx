@@ -3,8 +3,9 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import {
   Briefcase, ClipboardCheck, MapPin, FileText, Sparkles, LayoutTemplate,
-  Upload, X, ChevronLeft, ChevronRight, Check,
+  Upload, X, ChevronLeft, ChevronRight, Check, Link2, Globe,
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 export interface OnboardingData {
   profession: string;
