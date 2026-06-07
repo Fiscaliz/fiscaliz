@@ -3,16 +3,12 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
 interface SignupExtra {
-  userType?: string;
-  institutionalLink?: string;
-  institutionName?: string;
-  areasOfPractice?: string[];
-  logoFile?: File | null;
-  city?: string;
-  state?: string;
-  organName?: string;
-  pdfHeaderText?: string;
-  customLegislations?: string[];
+  profession?: string;
+  activityTypes?: string[];
+  areas?: string[];
+  reportTools?: string[];
+  trainingFiles?: File[];
+  initialTemplate?: string;
 }
 
 interface AuthContextType {
