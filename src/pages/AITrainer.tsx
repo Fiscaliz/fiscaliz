@@ -31,6 +31,8 @@ export default function AITrainer() {
   const [area, setArea] = useState("");
   const [profession, setProfession] = useState("");
   const [reportTypes, setReportTypes] = useState("");
+  const [urlInput, setUrlInput] = useState("");
+  const [fetchingUrl, setFetchingUrl] = useState(false);
 
   const load = async () => {
     if (!user) return;
