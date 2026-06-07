@@ -219,6 +219,11 @@ export function OnboardingWizard({ data, onChange }: Props) {
               ))}
             </ul>
           )}
+
+          <UrlListInput
+            urls={data.trainingUrls}
+            onChange={(urls) => update({ trainingUrls: urls })}
+          />
         </div>
       )}
 
