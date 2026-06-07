@@ -36,6 +36,7 @@ import Search from "./pages/Search";
 import EvidenceWorkspace from "./pages/EvidenceWorkspace";
 import AITrainer from "./pages/AITrainer";
 import ReportBuilder from "./pages/ReportBuilder";
+import Marketplace from "./pages/Marketplace";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
