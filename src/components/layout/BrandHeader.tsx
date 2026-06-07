@@ -1,6 +1,6 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Sparkles } from 'lucide-react';
-import fiscalizLogo from '@/assets/logo-fiscaliz.png';
+import inspectflowSymbol from '@/assets/inspectflow-symbol.png';
 
 export function BrandHeader() {
   const { user } = useAuth();
@@ -9,19 +9,37 @@ export function BrandHeader() {
   const registrationNumber = user?.user_metadata?.registration_number;
 
   return (
-    <div className="fiscaliz-gradient px-5 py-8">
-      <div className="flex items-center gap-4">
-        <div className="h-20 w-20 rounded-2xl bg-primary-foreground/10 p-2 backdrop-blur-sm flex items-center justify-center shadow-lg">
-          <img src={fiscalizLogo} alt="InspectFlow AI" className="h-full w-full object-contain drop-shadow-md" />
+    <div
+      className="relative overflow-hidden px-5 py-8"
+      style={{ background: 'var(--gradient-brand)' }}
+    >
+      <div
+        className="absolute inset-0 opacity-60 pointer-events-none"
+        style={{ background: 'var(--gradient-mesh)' }}
+      />
+      <div className="relative flex items-center gap-4">
+        <div className="h-16 w-16 rounded-2xl bg-white/10 ring-1 ring-white/20 backdrop-blur-md p-2 flex items-center justify-center shadow-lg">
+          <img
+            src={inspectflowSymbol}
+            alt="InspectFlow AI"
+            className="h-full w-full object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.25)]"
+            width={64}
+            height={64}
+          />
         </div>
-        <div className="text-primary-foreground">
-          <h2 className="text-h2 font-bold tracking-tight">InspectFlow AI</h2>
-          <p className="text-body text-primary-foreground/85">
+        <div className="text-white">
+          <h2
+            className="text-2xl font-bold tracking-tight"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            InspectFlow <span className="font-medium opacity-80">AI</span>
+          </h2>
+          <p className="text-sm text-white/85">
             {fullName}{registrationNumber ? ` · ${registrationNumber}` : ''}
           </p>
-          <div className="mt-2 flex items-center gap-1.5 text-caption text-primary-foreground/70">
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Relatórios técnicos com evidências</span>
+          <div className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-white/75">
+            <Sparkles className="h-3 w-3" />
+            <span>Evidências em conhecimento</span>
           </div>
         </div>
       </div>
