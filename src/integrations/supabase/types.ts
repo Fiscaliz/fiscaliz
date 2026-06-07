@@ -522,6 +522,92 @@ export type Database = {
           },
         ]
       }
+      marketplace_installs: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_installs_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_items: {
+        Row: {
+          area: string | null
+          author_id: string
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          installs_count: number
+          is_premium: boolean
+          payload: Json
+          price_cents: number
+          rating_avg: number
+          rating_count: number
+          status: Database["public"]["Enums"]["marketplace_status"]
+          title: string
+          type: Database["public"]["Enums"]["marketplace_item_type"]
+          updated_at: string
+        }
+        Insert: {
+          area?: string | null
+          author_id: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          installs_count?: number
+          is_premium?: boolean
+          payload?: Json
+          price_cents?: number
+          rating_avg?: number
+          rating_count?: number
+          status?: Database["public"]["Enums"]["marketplace_status"]
+          title: string
+          type: Database["public"]["Enums"]["marketplace_item_type"]
+          updated_at?: string
+        }
+        Update: {
+          area?: string | null
+          author_id?: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          installs_count?: number
+          is_premium?: boolean
+          payload?: Json
+          price_cents?: number
+          rating_avg?: number
+          rating_count?: number
+          status?: Database["public"]["Enums"]["marketplace_status"]
+          title?: string
+          type?: Database["public"]["Enums"]["marketplace_item_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       monthly_reports: {
         Row: {
           created_at: string
@@ -984,6 +1070,8 @@ export type Database = {
         | "outros"
         | "demanda_interna"
         | "pfe"
+      marketplace_item_type: "report_template" | "checklist" | "ai_profile"
+      marketplace_status: "pending" | "approved" | "rejected"
       priority_level: "high" | "medium" | "low"
       project_area:
         | "fiscalizacao_sanitaria"
@@ -1171,6 +1259,8 @@ export const Constants = {
         "demanda_interna",
         "pfe",
       ],
+      marketplace_item_type: ["report_template", "checklist", "ai_profile"],
+      marketplace_status: ["pending", "approved", "rejected"],
       priority_level: ["high", "medium", "low"],
       project_area: [
         "fiscalizacao_sanitaria",
