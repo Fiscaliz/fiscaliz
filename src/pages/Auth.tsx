@@ -8,29 +8,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Shield, Loader2, Eye, EyeOff } from 'lucide-react';
 import fiscalizLogo from '@/assets/logo-fiscaliz-oficial.png';
-import { SignupExtraFields, SignupExtraData } from '@/components/auth/SignupExtraFields';
+import { OnboardingWizard, EMPTY_ONBOARDING, OnboardingData, isOnboardingComplete } from '@/components/auth/OnboardingWizard';
 
 const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [registrationNumber, setRegistrationNumber] = useState('');
-  const [identificationType, setIdentificationType] = useState<'cnpj' | 'cpf'>('cpf');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [extraData, setExtraData] = useState<SignupExtraData>({
-    userType: '',
-    institutionalLink: '',
-    institutionName: '',
-    areasOfPractice: [],
-    logoFile: null,
-    city: '',
-    state: '',
-    organName: '',
-    pdfHeaderText: '',
-    customLegislations: [],
-  });
+  const [onboarding, setOnboarding] = useState<OnboardingData>(EMPTY_ONBOARDING);
   
   const { signIn, signUp, user, loading } = useAuth();
   const navigate = useNavigate();
@@ -69,38 +56,19 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
           setIsSubmitting(false);
           return;
         }
-        if (!extraData.userType) {
-          toast({ title: 'Campo obrigatório', description: 'Selecione o tipo de usuário.', variant: 'destructive' });
+        if (!isOnboardingComplete(onboarding)) {
+          toast({ title: 'Onboarding incompleto', description: 'Conclua todas as etapas do onboarding antes de continuar.', variant: 'destructive' });
           setIsSubmitting(false);
           return;
         }
-        if (!extraData.institutionalLink) {
-          toast({ title: 'Campo obrigatório', description: 'Selecione o vínculo institucional.', variant: 'destructive' });
-          setIsSubmitting(false);
-          return;
-        }
-        if (extraData.areasOfPractice.length === 0) {
-          toast({ title: 'Campo obrigatório', description: 'Selecione ao menos uma área de atuação.', variant: 'destructive' });
-          setIsSubmitting(false);
-          return;
-        }
-        if (!extraData.state || !extraData.city.trim()) {
-          toast({ title: 'Campo obrigatório', description: 'Informe o estado e a cidade.', variant: 'destructive' });
-          setIsSubmitting(false);
-          return;
-        }
-        
+
         const { error } = await signUp(email, password, fullName, {
-          userType: extraData.userType,
-          institutionalLink: extraData.institutionalLink,
-          institutionName: extraData.institutionName,
-          areasOfPractice: extraData.areasOfPractice,
-          logoFile: extraData.logoFile,
-          city: extraData.city,
-          state: extraData.state,
-          organName: extraData.organName,
-          pdfHeaderText: extraData.pdfHeaderText,
-          customLegislations: extraData.customLegislations,
+          profession: onboarding.profession,
+          activityTypes: onboarding.activityTypes,
+          areas: onboarding.areas,
+          reportTools: onboarding.reportTools,
+          trainingFiles: onboarding.trainingFiles,
+          initialTemplate: onboarding.initialTemplate,
         });
         if (error) {
           if (error.message.includes('already registered')) {
@@ -196,45 +164,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-caption font-semibold uppercase tracking-wide">Tipo de Identificação (opcional)</Label>
-                    <div className="flex gap-2">
-                      {[
-                        { value: 'cpf', label: 'CPF' },
-                        { value: 'cnpj', label: 'CNPJ' },
-                      ].map((type) => (
-                        <button
-                          key={type.value}
-                          type="button"
-                          onClick={() => setIdentificationType(type.value as typeof identificationType)}
-                          className={`flex-1 py-3 px-3 text-caption font-semibold rounded-xl border-2 transition-all duration-200 ${
-                            identificationType === type.value 
-                              ? 'bg-primary text-primary-foreground border-primary shadow-premium-sm' 
-                              : 'bg-background border-border/60 hover:bg-accent hover:border-accent'
-                          }`}
-                        >
-                          {type.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="registrationNumber" className="text-caption font-semibold uppercase tracking-wide">
-                      {identificationType === 'cpf' ? 'CPF' : 'CNPJ'} (opcional)
-                    </Label>
-                    <Input
-                      id="registrationNumber"
-                      type="text"
-                      placeholder={
-                        identificationType === 'cpf' ? '000.000.000-00' : '00.000.000/0000-00'
-                      }
-                      value={registrationNumber}
-                      onChange={(e) => setRegistrationNumber(e.target.value)}
-                    />
-                  </div>
-
-                  <SignupExtraFields data={extraData} onChange={setExtraData} />
+                  <OnboardingWizard data={onboarding} onChange={setOnboarding} />
                 </>
               )}
               
@@ -243,7 +173,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="seu.email@goiania.go.gov.br"
+                  placeholder="seu.email@empresa.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -299,8 +229,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
                   setEmail('');
                   setPassword('');
                   setFullName('');
-                  setRegistrationNumber('');
-                  setExtraData({ userType: '', institutionalLink: '', institutionName: '', areasOfPractice: [], logoFile: null, city: '', state: '', organName: '', pdfHeaderText: '', customLegislations: [] });
+                  setOnboarding(EMPTY_ONBOARDING);
                 }}
                 className="text-body text-primary font-semibold hover:underline transition-all"
               >
@@ -315,10 +244,10 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
         {/* Footer */}
         <div className="mt-10 pb-10 text-center">
           <p className="text-caption text-muted-foreground">
-            Sistema de Fiscalização Sanitária
+            Relatórios técnicos inteligentes para qualquer profissional
           </p>
           <p className="text-micro text-muted-foreground/70 uppercase tracking-wider mt-1">
-            © 2026 Prefeitura de Goiânia
+            © 2026 Fiscaliz
           </p>
         </div>
       </div>

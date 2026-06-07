@@ -733,6 +733,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          activity_types: string[] | null
           areas_of_practice: string[] | null
           avatar_url: string | null
           city: string | null
@@ -742,20 +743,25 @@ export type Database = {
           email: string | null
           full_name: string
           id: string
+          initial_template: string | null
           institution_logo_url: string | null
           institution_name: string | null
           institutional_link: string | null
           is_active: boolean
+          onboarding_completed: boolean
           organ_name: string | null
           pdf_header_text: string | null
           phone: string | null
+          profession: string | null
           registration_number: string | null
+          report_tools: string[] | null
           signature_url: string | null
           state: string | null
           updated_at: string
           user_type: string | null
         }
         Insert: {
+          activity_types?: string[] | null
           areas_of_practice?: string[] | null
           avatar_url?: string | null
           city?: string | null
@@ -765,20 +771,25 @@ export type Database = {
           email?: string | null
           full_name: string
           id: string
+          initial_template?: string | null
           institution_logo_url?: string | null
           institution_name?: string | null
           institutional_link?: string | null
           is_active?: boolean
+          onboarding_completed?: boolean
           organ_name?: string | null
           pdf_header_text?: string | null
           phone?: string | null
+          profession?: string | null
           registration_number?: string | null
+          report_tools?: string[] | null
           signature_url?: string | null
           state?: string | null
           updated_at?: string
           user_type?: string | null
         }
         Update: {
+          activity_types?: string[] | null
           areas_of_practice?: string[] | null
           avatar_url?: string | null
           city?: string | null
@@ -788,14 +799,18 @@ export type Database = {
           email?: string | null
           full_name?: string
           id?: string
+          initial_template?: string | null
           institution_logo_url?: string | null
           institution_name?: string | null
           institutional_link?: string | null
           is_active?: boolean
+          onboarding_completed?: boolean
           organ_name?: string | null
           pdf_header_text?: string | null
           phone?: string | null
+          profession?: string | null
           registration_number?: string | null
+          report_tools?: string[] | null
           signature_url?: string | null
           state?: string | null
           updated_at?: string
