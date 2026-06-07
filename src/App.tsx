@@ -33,6 +33,7 @@ import AdminUsers from "./pages/AdminUsers";
 import Establishments from "./pages/Establishments";
 import Checklists from "./pages/Checklists";
 import Search from "./pages/Search";
+import EvidenceWorkspace from "./pages/EvidenceWorkspace";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -158,6 +159,11 @@ const App = () => (
             <Route path="/pesquisar" element={
               <ProtectedRoute>
                 <Search />
+              </ProtectedRoute>
+            } />
+            <Route path="/projeto/:projectId/workspace" element={
+              <ProtectedRoute>
+                <EvidenceWorkspace />
               </ProtectedRoute>
             } />
             {/* Public PDF redirect route - no auth required */}

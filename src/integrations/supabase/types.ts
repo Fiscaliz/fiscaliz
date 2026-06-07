@@ -149,6 +149,128 @@ export type Database = {
         }
         Relationships: []
       }
+      evidence_categories: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          position: number
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidence_categories_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evidences: {
+        Row: {
+          ai_analysis: Json | null
+          ai_status: string
+          annotations: Json
+          caption: string | null
+          captured_at: string | null
+          category_id: string | null
+          created_at: string
+          file_name: string | null
+          finding: string | null
+          height: number | null
+          id: string
+          mime_type: string | null
+          observation: string | null
+          position: number
+          project_id: string
+          risk_level: string | null
+          storage_path: string
+          updated_at: string
+          user_id: string
+          width: number | null
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          ai_status?: string
+          annotations?: Json
+          caption?: string | null
+          captured_at?: string | null
+          category_id?: string | null
+          created_at?: string
+          file_name?: string | null
+          finding?: string | null
+          height?: number | null
+          id?: string
+          mime_type?: string | null
+          observation?: string | null
+          position?: number
+          project_id: string
+          risk_level?: string | null
+          storage_path: string
+          updated_at?: string
+          user_id: string
+          width?: number | null
+        }
+        Update: {
+          ai_analysis?: Json | null
+          ai_status?: string
+          annotations?: Json
+          caption?: string | null
+          captured_at?: string | null
+          category_id?: string | null
+          created_at?: string
+          file_name?: string | null
+          finding?: string | null
+          height?: number | null
+          id?: string
+          mime_type?: string | null
+          observation?: string | null
+          position?: number
+          project_id?: string
+          risk_level?: string | null
+          storage_path?: string
+          updated_at?: string
+          user_id?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidences_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "evidence_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evidences_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fiscal_actions: {
         Row: {
           created_at: string
