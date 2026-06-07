@@ -244,10 +244,10 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
         {/* Footer */}
         <div className="mt-10 pb-10 text-center">
           <p className="text-caption text-muted-foreground">
-            Sistema de Fiscalização Sanitária
+            Relatórios técnicos inteligentes para qualquer profissional
           </p>
           <p className="text-micro text-muted-foreground/70 uppercase tracking-wider mt-1">
-            © 2026 Prefeitura de Goiânia
+            © 2026 Fiscaliz
           </p>
         </div>
       </div>
