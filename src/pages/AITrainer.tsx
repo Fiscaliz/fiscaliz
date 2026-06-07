@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Brain, Upload, FileText, Sparkles, Trash2, Loader2 } from "lucide-react";
+import { Brain, Upload, FileText, Sparkles, Trash2, Loader2, Link2, Globe } from "lucide-react";
 
 const DOC_TYPES = [
   { value: "relatorio", label: "Relatório" },
