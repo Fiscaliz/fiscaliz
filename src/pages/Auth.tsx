@@ -164,45 +164,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-caption font-semibold uppercase tracking-wide">Tipo de Identificação (opcional)</Label>
-                    <div className="flex gap-2">
-                      {[
-                        { value: 'cpf', label: 'CPF' },
-                        { value: 'cnpj', label: 'CNPJ' },
-                      ].map((type) => (
-                        <button
-                          key={type.value}
-                          type="button"
-                          onClick={() => setIdentificationType(type.value as typeof identificationType)}
-                          className={`flex-1 py-3 px-3 text-caption font-semibold rounded-xl border-2 transition-all duration-200 ${
-                            identificationType === type.value 
-                              ? 'bg-primary text-primary-foreground border-primary shadow-premium-sm' 
-                              : 'bg-background border-border/60 hover:bg-accent hover:border-accent'
-                          }`}
-                        >
-                          {type.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="registrationNumber" className="text-caption font-semibold uppercase tracking-wide">
-                      {identificationType === 'cpf' ? 'CPF' : 'CNPJ'} (opcional)
-                    </Label>
-                    <Input
-                      id="registrationNumber"
-                      type="text"
-                      placeholder={
-                        identificationType === 'cpf' ? '000.000.000-00' : '00.000.000/0000-00'
-                      }
-                      value={registrationNumber}
-                      onChange={(e) => setRegistrationNumber(e.target.value)}
-                    />
-                  </div>
-
-                  <SignupExtraFields data={extraData} onChange={setExtraData} />
+                  <OnboardingWizard data={onboarding} onChange={setOnboarding} />
                 </>
               )}
               
