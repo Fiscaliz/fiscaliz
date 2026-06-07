@@ -36,7 +36,7 @@ import Search from "./pages/Search";
 import EvidenceWorkspace from "./pages/EvidenceWorkspace";
 import AITrainer from "./pages/AITrainer";
 import ReportBuilder from "./pages/ReportBuilder";
-import Marketplace from "./pages/Marketplace";
+import TemplateLibrary from "./pages/TemplateLibrary";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -179,9 +179,14 @@ const App = () => (
                 <ReportBuilder />
               </ProtectedRoute>
             } />
+            <Route path="/biblioteca" element={
+              <ProtectedRoute>
+                <TemplateLibrary />
+              </ProtectedRoute>
+            } />
             <Route path="/marketplace" element={
               <ProtectedRoute>
-                <Marketplace />
+                <TemplateLibrary />
               </ProtectedRoute>
             } />
             {/* Public PDF redirect route - no auth required */}
