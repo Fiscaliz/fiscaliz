@@ -142,6 +142,27 @@ export default function ReportBuilder() {
     } catch { /* ignore */ }
   }, []);
 
+  // Consume pending evidences from Evidence Workspace Pro
+  useEffect(() => {
+    const raw = sessionStorage.getItem("if_pending_evidences");
+    if (!raw) return;
+    sessionStorage.removeItem("if_pending_evidences");
+    try {
+      const items = JSON.parse(raw) as Array<{ url: string; caption?: string; observation?: string; finding?: string }>;
+      if (!items.length) return;
+      setBlocks((prev) => {
+        const idx = prev.findIndex((b) => b.type === "evidences");
+        if (idx >= 0) {
+          const copy = [...prev];
+          copy[idx] = { ...copy[idx], evidences: [...(copy[idx].evidences ?? []), ...items.map(i => ({ url: i.url, caption: i.caption }))] };
+          return copy;
+        }
+        return [...prev, { ...defaultBlock("evidences"), evidences: items.map(i => ({ url: i.url, caption: i.caption })) }];
+      });
+      toast.success(`${items.length} evidência(s) importadas do Workspace`);
+    } catch { /* ignore */ }
+  }, []);
+
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
