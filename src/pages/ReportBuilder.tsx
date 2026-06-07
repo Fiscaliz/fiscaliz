@@ -295,6 +295,21 @@ export default function ReportBuilder() {
             <DialogHeader><DialogTitle>Modelos e Relatórios</DialogTitle></DialogHeader>
             <div className="space-y-4 max-h-[60vh] overflow-auto">
               <div>
+                <div className="text-xs font-semibold uppercase text-muted-foreground mb-2">Modelos Prontos</div>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  {STARTER_TEMPLATES.map((s) => (
+                    <button key={s.id} onClick={() => loadStarter(s)}
+                      className="text-left p-3 rounded-lg border border-border hover:bg-accent hover:border-primary/40 transition">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl leading-none">{s.icon}</span>
+                        <div className="font-medium text-sm">{s.name}</div>
+                      </div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">{s.area}</div>
+                      <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{s.description}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
                 <div className="text-xs font-semibold uppercase text-muted-foreground mb-2">Meus Modelos</div>
                 {templates.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Nenhum modelo salvo ainda.</p>
