@@ -34,6 +34,9 @@ export default function AITrainer() {
   const [reportTypes, setReportTypes] = useState("");
   const [urlInput, setUrlInput] = useState("");
   const [fetchingUrl, setFetchingUrl] = useState(false);
+  const [promptName, setPromptName] = useState("");
+  const [promptText, setPromptText] = useState("");
+  const [savingPrompt, setSavingPrompt] = useState(false);
 
   const load = async () => {
     if (!user) return;
