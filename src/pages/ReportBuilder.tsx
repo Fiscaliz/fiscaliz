@@ -297,7 +297,10 @@ export default function ReportBuilder() {
               <Save className="h-4 w-4 mr-1" /> Salvar
             </Button>
             <Button variant="outline" onClick={saveAsTemplate}>
-              <BookOpen className="h-4 w-4 mr-1" /> Salvar como modelo
+              <BookOpen className="h-4 w-4 mr-1" /> Salvar modelo
+            </Button>
+            <Button variant="outline" onClick={publishToMarketplace}>
+              <Store className="h-4 w-4 mr-1" /> Publicar
             </Button>
             <div className="flex-1" />
             <Button variant="secondary" onClick={() => exportReportPDF(title, blocks)}>
