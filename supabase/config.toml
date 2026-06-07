@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.public-document-view]
 verify_jwt = false
+
+[functions.fetch-url-content]
+verify_jwt = true
