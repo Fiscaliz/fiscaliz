@@ -768,6 +768,75 @@ export type Database = {
         }
         Relationships: []
       }
+      report_templates: {
+        Row: {
+          blocks: Json
+          created_at: string
+          description: string | null
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          blocks?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          blocks?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reports: {
+        Row: {
+          blocks: Json
+          created_at: string
+          id: string
+          metadata: Json | null
+          project_id: string | null
+          template_id: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          blocks?: Json
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          project_id?: string | null
+          template_id?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          blocks?: Json
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          project_id?: string | null
+          template_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           completed_at: string | null
