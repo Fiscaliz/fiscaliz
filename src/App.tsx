@@ -34,6 +34,7 @@ import Establishments from "./pages/Establishments";
 import Checklists from "./pages/Checklists";
 import Search from "./pages/Search";
 import EvidenceWorkspace from "./pages/EvidenceWorkspace";
+import EvidenceWorkspacePro from "./pages/EvidenceWorkspacePro";
 import AITrainer from "./pages/AITrainer";
 import ReportBuilder from "./pages/ReportBuilder";
 import TemplateLibrary from "./pages/TemplateLibrary";
