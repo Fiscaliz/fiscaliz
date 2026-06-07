@@ -141,6 +141,34 @@ export default function AITrainer() {
     }
   };
 
+  const handleAddPrompt = async () => {
+    if (!user) return;
+    const text = promptText.trim();
+    if (text.length < 5) {
+      toast.error("Escreva o prompt ou skill");
+      return;
+    }
+    setSavingPrompt(true);
+    const { error } = await supabase.from("ai_training_documents").insert({
+      user_id: user.id,
+      name: promptName.trim() || `Prompt — ${new Date().toLocaleString("pt-BR")}`,
+      doc_type: "prompt" as any,
+      file_path: `prompt://${crypto.randomUUID()}`,
+      file_size: text.length,
+      mime_type: "text/plain",
+      extracted_text: text,
+      status: "pending",
+    });
+    setSavingPrompt(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Prompt/skill adicionado");
+    setPromptName("");
+    setPromptText("");
+    load();
+  };
+
+
+
   const trainAI = async () => {
     setTraining(true);
     const { data, error } = await supabase.functions.invoke("train-ai-profile");
