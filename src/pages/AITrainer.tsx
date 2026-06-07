@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Brain, Upload, FileText, Sparkles, Trash2, Loader2, Link2, Globe } from "lucide-react";
+import { Brain, Upload, FileText, Sparkles, Trash2, Loader2, Link2, Globe, Wand2 } from "lucide-react";
 
 const DOC_TYPES = [
   { value: "relatorio", label: "Relatório" },
@@ -18,6 +18,7 @@ const DOC_TYPES = [
   { value: "norma", label: "Norma" },
   { value: "checklist", label: "Checklist" },
   { value: "modelo_interno", label: "Modelo Interno" },
+  { value: "prompt", label: "Prompt / Skill" },
   { value: "outro", label: "Outro" },
 ];
 
