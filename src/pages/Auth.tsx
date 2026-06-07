@@ -8,29 +8,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Shield, Loader2, Eye, EyeOff } from 'lucide-react';
 import fiscalizLogo from '@/assets/logo-fiscaliz-oficial.png';
-import { SignupExtraFields, SignupExtraData } from '@/components/auth/SignupExtraFields';
+import { OnboardingWizard, EMPTY_ONBOARDING, OnboardingData, isOnboardingComplete } from '@/components/auth/OnboardingWizard';
 
 const Auth = forwardRef<HTMLDivElement>(function Auth(_props, ref) {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [registrationNumber, setRegistrationNumber] = useState('');
-  const [identificationType, setIdentificationType] = useState<'cnpj' | 'cpf'>('cpf');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [extraData, setExtraData] = useState<SignupExtraData>({
-    userType: '',
-    institutionalLink: '',
-    institutionName: '',
-    areasOfPractice: [],
-    logoFile: null,
-    city: '',
-    state: '',
-    organName: '',
-    pdfHeaderText: '',
-    customLegislations: [],
-  });
+  const [onboarding, setOnboarding] = useState<OnboardingData>(EMPTY_ONBOARDING);
   
   const { signIn, signUp, user, loading } = useAuth();
   const navigate = useNavigate();
