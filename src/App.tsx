@@ -34,6 +34,7 @@ import Establishments from "./pages/Establishments";
 import Checklists from "./pages/Checklists";
 import Search from "./pages/Search";
 import EvidenceWorkspace from "./pages/EvidenceWorkspace";
+import EvidenceWorkspacePro from "./pages/EvidenceWorkspacePro";
 import AITrainer from "./pages/AITrainer";
 import ReportBuilder from "./pages/ReportBuilder";
 import TemplateLibrary from "./pages/TemplateLibrary";
@@ -167,6 +168,11 @@ const App = () => (
             <Route path="/projeto/:projectId/workspace" element={
               <ProtectedRoute>
                 <EvidenceWorkspace />
+              </ProtectedRoute>
+            } />
+            <Route path="/projeto/:projectId/workspace-pro" element={
+              <ProtectedRoute>
+                <EvidenceWorkspacePro />
               </ProtectedRoute>
             } />
             <Route path="/ai-trainer" element={
