@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
-  FileText, Plus, GripVertical, Trash2, Save, FileDown, FileType2, ImagePlus, BookOpen, X,
+  FileText, Plus, GripVertical, Trash2, Save, FileDown, FileType2, ImagePlus, BookOpen, X, Store,
 } from "lucide-react";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent,
