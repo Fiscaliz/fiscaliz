@@ -8,6 +8,7 @@ interface SignupExtra {
   areas?: string[];
   reportTools?: string[];
   trainingFiles?: File[];
+  trainingUrls?: string[];
   initialTemplate?: string;
 }
 
@@ -92,6 +93,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               mime_type: file.type || 'application/octet-stream',
             } as any);
           }
+        }
+      }
+
+      // Import training URLs (sites / legislação) — best effort
+      if (extra.trainingUrls && extra.trainingUrls.length > 0) {
+        for (const url of extra.trainingUrls) {
+          try {
+            const { data: fetched, error: fnErr } = await supabase.functions.invoke('fetch-url-content', { body: { url } });
+            if (fnErr || !fetched?.text) continue;
+            await supabase.from('ai_training_documents').insert({
+              user_id: data.user.id,
+              name: fetched.title || url,
+              file_path: `url://${url}`,
+              file_size: fetched.length ?? fetched.text.length,
+              mime_type: 'text/html',
+              extracted_text: fetched.text,
+              status: 'pending',
+            } as any);
+          } catch { /* ignore */ }
         }
       }
     }

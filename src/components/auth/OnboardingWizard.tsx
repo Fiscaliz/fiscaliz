@@ -3,8 +3,9 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import {
   Briefcase, ClipboardCheck, MapPin, FileText, Sparkles, LayoutTemplate,
-  Upload, X, ChevronLeft, ChevronRight, Check,
+  Upload, X, ChevronLeft, ChevronRight, Check, Link2, Globe,
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 export interface OnboardingData {
   profession: string;
@@ -12,6 +13,7 @@ export interface OnboardingData {
   areas: string[];
   reportTools: string[];
   trainingFiles: File[];
+  trainingUrls: string[];
   initialTemplate: string;
 }
 
@@ -21,6 +23,7 @@ export const EMPTY_ONBOARDING: OnboardingData = {
   areas: [],
   reportTools: [],
   trainingFiles: [],
+  trainingUrls: [],
   initialTemplate: '',
 };
 
@@ -216,6 +219,11 @@ export function OnboardingWizard({ data, onChange }: Props) {
               ))}
             </ul>
           )}
+
+          <UrlListInput
+            urls={data.trainingUrls}
+            onChange={(urls) => update({ trainingUrls: urls })}
+          />
         </div>
       )}
 
@@ -297,6 +305,55 @@ function ChipList({
           </button>
         );
       })}
+    </div>
+  );
+}
+
+function UrlListInput({
+  urls, onChange,
+}: { urls: string[]; onChange: (urls: string[]) => void }) {
+  const [v, setV] = useState('');
+  const add = () => {
+    const url = v.trim();
+    if (!/^https?:\/\//i.test(url)) return;
+    onChange([...urls, url]);
+    setV('');
+  };
+  return (
+    <div className="space-y-2 pt-1">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
+        <Globe className="h-3.5 w-3.5" /> Sites e legislação (opcional)
+      </div>
+      <div className="flex gap-2">
+        <Input
+          value={v}
+          onChange={(e) => setV(e.target.value)}
+          placeholder="https://link de uma norma, lei ou site"
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
+        />
+        <Button type="button" size="sm" variant="secondary" onClick={add} disabled={!v.trim()}>
+          <Link2 className="h-4 w-4 mr-1" /> Adicionar
+        </Button>
+      </div>
+      {urls.length > 0 && (
+        <ul className="space-y-1.5">
+          {urls.map((u, i) => (
+            <li
+              key={i}
+              className="flex items-center justify-between gap-2 px-3 py-2 text-xs rounded-lg bg-accent/40 border border-border/40"
+            >
+              <span className="truncate">{u}</span>
+              <button
+                type="button"
+                onClick={() => onChange(urls.filter((_, idx) => idx !== i))}
+                className="text-destructive hover:opacity-70"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Brain, Upload, FileText, Sparkles, Trash2, Loader2 } from "lucide-react";
+import { Brain, Upload, FileText, Sparkles, Trash2, Loader2, Link2, Globe } from "lucide-react";
 
 const DOC_TYPES = [
   { value: "relatorio", label: "Relatório" },
@@ -31,6 +31,8 @@ export default function AITrainer() {
   const [area, setArea] = useState("");
   const [profession, setProfession] = useState("");
   const [reportTypes, setReportTypes] = useState("");
+  const [urlInput, setUrlInput] = useState("");
+  const [fetchingUrl, setFetchingUrl] = useState(false);
 
   const load = async () => {
     if (!user) return;
@@ -96,9 +98,43 @@ export default function AITrainer() {
   };
 
   const removeDoc = async (doc: any) => {
-    await supabase.storage.from("ai-training").remove([doc.file_path]);
+    if (doc.file_path && !doc.file_path.startsWith("url://")) {
+      await supabase.storage.from("ai-training").remove([doc.file_path]);
+    }
     await supabase.from("ai_training_documents").delete().eq("id", doc.id);
     load();
+  };
+
+  const handleAddUrl = async () => {
+    if (!user) return;
+    const url = urlInput.trim();
+    if (!/^https?:\/\//i.test(url)) {
+      toast.error("Informe uma URL válida (http/https)");
+      return;
+    }
+    setFetchingUrl(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("fetch-url-content", { body: { url } });
+      if (error || !data?.text) throw new Error(error?.message || "Falha ao acessar URL");
+      const { error: insErr } = await supabase.from("ai_training_documents").insert({
+        user_id: user.id,
+        name: data.title || url,
+        doc_type: uploadType as any,
+        file_path: `url://${url}`,
+        file_size: data.length ?? data.text.length,
+        mime_type: "text/html",
+        extracted_text: data.text,
+        status: "pending",
+      });
+      if (insErr) throw insErr;
+      toast.success("Conteúdo importado da URL");
+      setUrlInput("");
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Falha ao importar URL");
+    } finally {
+      setFetchingUrl(false);
+    }
   };
 
   const trainAI = async () => {
@@ -160,6 +196,26 @@ export default function AITrainer() {
             <span className="text-sm text-muted-foreground">Clique para enviar arquivos ({DOC_TYPES.find(t => t.value === uploadType)?.label})</span>
             <input type="file" multiple className="hidden" onChange={(e) => handleUpload(e.target.files)} />
           </label>
+
+          <div className="space-y-2 pt-1">
+            <Label className="flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
+              <Globe className="h-3.5 w-3.5" /> Importar de URL (site ou legislação)
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                placeholder="https://www.planalto.gov.br/... ou link de norma/site"
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddUrl(); } }}
+              />
+              <Button onClick={handleAddUrl} disabled={fetchingUrl || !urlInput.trim()} variant="secondary">
+                {fetchingUrl ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Link2 className="h-4 w-4 mr-1" /> Importar</>}
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Cole o link de uma lei, norma técnica, RDC, manual ou página de referência. O conteúdo será extraído e usado no treinamento.
+            </p>
+          </div>
 
           {docs.length > 0 && (
             <div className="space-y-2 pt-2">
